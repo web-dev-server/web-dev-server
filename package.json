@@ -25,9 +25,6 @@
     "url": "https://github.com/tomFlidr"
   },
   "main": "server",
-  "scripts": {
-    "install": "node install.js"
-  },
   "dependencies": {
     "http": "~0.0.0",
     "express": "~4.0.0",
