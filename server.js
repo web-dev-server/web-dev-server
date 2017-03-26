@@ -135,8 +135,22 @@ WebDevServer.prototype = {
 		});
 		this._expressApp.use(this._sessionParser);
 		this._expressApp.all('*', this._allRequestsHandler.bind(this));
-		this._httpServer.listen(this._port);
-		console.log("HTTP server has been started at: 'http://localhost:" + this._port + "' to serve directory: '" + this._documentRoot + "'.\nEnjoy browsing:-) To stop the server, pres CTRL + C or close this command line window.");
+		this._httpServer.on('error', function (e) {
+			if (e.code == 'EADDRINUSE') {
+				console.log('Address in use, retrying...');
+				setTimeout(function () {
+					this._httpServer.close();
+					this._httpServer.listen(this._port, '127.0.0.1');
+				}.bind(this), 1000);
+			}
+		}.bind(this));
+		this._httpServer.listen(this._port, '127.0.0.1', function () {
+			console.log(
+				"HTTP server has been started at: 'http://localhost:" 
+				+ this._port + "' to serve directory: '" + this._documentRoot 
+				+ "'.\nEnjoy browsing:-) To stop the server, pres CTRL + C or close this command line window."
+			);
+		}.bind(this));
 	},
 	// handle all requests:
 	_allRequestsHandler: function (req, res, cb) {
