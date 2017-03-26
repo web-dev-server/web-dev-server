@@ -184,7 +184,7 @@ WebDevServer.prototype = {
 		pathsToFound.reverse();
 		
 		for (var i = 0, l = pathsToFound.length; i < l; i += 1) {
-			pathToFound = pathsToFound[i];
+			pathToFound = this._documentRoot + pathsToFound[i];
 			if (typeof(this._dirIndexScriptsModulesStore[pathToFound]) != 'undefined') {
 				indexScriptDirFound = pathToFound;
 				dirIndexScriptsModule = this._dirIndexScriptsModulesStore[pathToFound];
@@ -194,7 +194,7 @@ WebDevServer.prototype = {
 		
 		if (indexScriptDirFound.length > 0) {
 			this._processDirectoryIndexScript(
-				fullPath,dirIndexScriptsModule.scriptName, dirIndexScriptsModule.stats, req, res, cb
+				indexScriptDirFound, dirIndexScriptsModule.scriptName, dirIndexScriptsModule.stats, req, res, cb
 			);
 			
 		} else {
@@ -223,7 +223,7 @@ WebDevServer.prototype = {
 				successCallback(newFullPath, lastFoundPathStats, lastFoundPath);
 			} else {
 				index += 1;
-				if (index + 1 == pathsToFound.length) {
+				if (index == pathsToFound.length) {
 					errorCallback(err);
 				} else {
 					this._processNonExistPathStatsHandler(pathsToFound, index, successCallback, errorCallback);
@@ -358,16 +358,18 @@ WebDevServer.prototype = {
 					indexScript = '',
 					indexFileStats = null;
 				dirItemsCount++;
-				if (itemStats.isDirectory()) {
-					dirRows[index] = {
-						path: dirItemLocal.toLowerCase(),
-						code: this._processDirRequestHandlerCompleteDirRow(path, dirItemLocal, itemStats)
-					};
-				} else {
-					fileRows[index] = {
-						path: dirItemLocal.toLowerCase(),
-						code: this._processDirRequestHandlerCompleteFileRow(path, dirItemLocal, itemStats || {})
-					};
+				if (itemStats) {
+					if (itemStats.isDirectory()) {
+						dirRows[index] = {
+							path: dirItemLocal.toLowerCase(),
+							code: this._processDirRequestHandlerCompleteDirRow(path, dirItemLocal, itemStats)
+						};
+					} else {
+						fileRows[index] = {
+							path: dirItemLocal.toLowerCase(),
+							code: this._processDirRequestHandlerCompleteFileRow(path, dirItemLocal, itemStats || {})
+						};
+					}
 				}
 				if (dirItemsCount == dirItemsLength) {
 					this._processDirRequestHandlerFinished(statusCode, path, fullPath, dirStats, dirRows, fileRows, req, res, cb);	
