@@ -24,7 +24,7 @@
     "email": "tomflidr@gmail.com",
     "url": "https://github.com/tomFlidr"
   },
-  "main": "server",
+  "main": "server.js",
   "dependencies": {
     "http": "~0.0.0",
     "express": "~4.0.0",
