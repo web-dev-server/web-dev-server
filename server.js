@@ -21,6 +21,7 @@ var WebDevServer = function () {
 };
 WebDevServer.VERSION = '1.0.0';
 WebDevServer.DEFAULT_PORT = 8000;
+WebDevServer.DEFAULT_DOMAIN = '127.0.0.1';
 WebDevServer.SESSION_HASH = "35$%d9wZfw256SAsMGá/@#$%&";
 WebDevServer.INDEX_SCRIPTS = ['index.js'];
 WebDevServer.INDEX_FILES = ['index.html','index.htm','default.html','default.htm'];
@@ -75,9 +76,22 @@ WebDevServer.DIR_LISTING_CODES = {
 		+'<td class="date">%date%</td>'
 	+'</tr>'
 };
+WebDevServer.Event = function (req, res, cb, fullPath) {
+	this.req = req;
+	this.res = res;
+	this.cb = cb;
+	this.fullPath = fullPath;
+	this.preventedDefault = false;
+};
+WebDevServer.Event.prototype = {
+	preventDefault: function () {
+		this.preventedDefault = true;
+	}
+};
 WebDevServer.prototype = {
 	_documentRoot: null,
 	_port: null,
+	_domain: null,
 	_development: true,
 	_http: null,
 	_httpServer: null,
@@ -85,6 +99,7 @@ WebDevServer.prototype = {
 	_expressApp: null,
 	_expressSession: null,
 	_sessionParser: null,
+	_expressCustomHttpHandlers: [],
 	_dirIndexScriptsModulesStore: {},
 	_indexFiles: {},
 	_indexScripts: {},
@@ -92,7 +107,7 @@ WebDevServer.prototype = {
 	_fs: null,
 	_path: null,
 	/**
-	 * Set http server port number, 8000 by default
+	 * @summary Set http server port number, 8000 by default
 	 * @param {string} dirname server root directory
 	 * @return WebDevServer
 	 */
@@ -101,7 +116,16 @@ WebDevServer.prototype = {
 		return this;
 	},
 	/**
-	 * Set http server root directory, required
+	 * @summary Set http server IP or domain to listening on, 127.0.0.1 by default
+	 * @param {string} domain server ip or domain to listening on
+	 * @return WebDevServer
+	 */
+	SetDomain: function (domain) {
+		this._domain = domain;
+		return this;
+	},
+	/**
+	 * @summary Set http server root directory, required
 	 * @param {string} dirname server root directory as absolute path
 	 * @return WebDevServer
 	 */
@@ -110,7 +134,7 @@ WebDevServer.prototype = {
 		return this;
 	},
 	/**
-	 * Set development mode, true by default, if false, directory content and exceptions are not displayed.
+	 * @summary Set development mode, true by default, if false, directory content and exceptions are not displayed.
 	 * @param {bool} development development mode
 	 * @return WebDevServer
 	 */
@@ -119,12 +143,22 @@ WebDevServer.prototype = {
 		return this;
 	},
 	/**
-	 * Start HTTP server
+	 * @summary Add custom express http handler
+	 * @param {function} handler custom express handler accepting params: 
+	 * @return WebDevServer
+	 */
+	AddExpressHandler: function (handler) {
+		this._expressCustomHttpHandlers.push(handler);
+		return this;
+	},
+	/**
+	 * @summary Start HTTP server
 	 * @return void
 	 */
 	Run: function () {
 		this._documentRoot = this._documentRoot || __dirname.replace(/\\/g, '/');
 		this._port = this._port || WebDevServer.DEFAULT_PORT;
+		this._domain = this._domain || WebDevServer.DEFAULT_DOMAIN;
 		this._expressApp = this._express();
 		this._httpServer = this._http.createServer(this._expressApp);
 		this._sessionParser = this._expressSession({
@@ -144,20 +178,55 @@ WebDevServer.prototype = {
 				}.bind(this), 1000);
 			}
 		}.bind(this));
-		this._httpServer.listen(this._port, '127.0.0.1', function () {
+		this._httpServer.listen(this._port, this._domain, function () {
 			console.log(
-				"HTTP server has been started at: 'http://localhost:" 
+				"HTTP server has been started at: 'http://" + this._domain + ":" 
 				+ this._port + "' to serve directory: '" + this._documentRoot 
 				+ "'.\nEnjoy browsing:-) To stop the server, pres CTRL + C or close this command line window."
 			);
 		}.bind(this));
+		return this;
+	},
+	/**
+	 * @summary Return used http module instance
+	 * @return http
+	 */
+	GetHttp: function () {
+		return this._http;
+	},
+	/**
+	 * @summary Return used express module instance
+	 * @return express
+	 */
+	GetExpress: function () {
+		return this._express;
+	},
+	/**
+	 * @summary Return used express session parser module instance
+	 * @return session
+	 */
+	GetExpressSession: function () {
+		return this._expressSession;
 	},
 	// handle all requests:
 	_allRequestsHandler: function (req, res, cb) {
 		var path = this._trimRight(this._trimLeft(req._parsedUrl.pathname, '/'), '/');
 		var fullPath = this._trimRight(this._documentRoot + '/' + path, '/');
 		fullPath = decodeURIComponent(fullPath);
-		this._fs.stat(fullPath, this._fsStatHandler.bind(this, path, fullPath, req, res, cb));
+		if (this._expressCustomHttpHandlers.length > 0) {
+			var event = new WebDevServer.Event(req, res, cb, fullPath);
+			for (var i = 0, l = this._expressCustomHttpHandlers.length; i < l; i += 1) {
+				this._expressCustomHttpHandlers[i].call(null, event);
+			}
+			if (event.preventedDefault) {
+				cb();
+			} else {
+				this._fs.stat(fullPath, this._fsStatHandler.bind(this, path, fullPath, req, res, cb));
+			}
+		} else {
+			this._fs.stat(fullPath, this._fsStatHandler.bind(this, path, fullPath, req, res, cb));
+		}
+		
 	},
 	// check if any content exists for current reqest on hard drive:
 	_fsStatHandler: function (path, fullPath, req, res, cb, err, stats) {
@@ -470,7 +539,7 @@ WebDevServer.prototype = {
 			pathCodes = [path];
 		}
 		headerCode = WebDevServer.DIR_LISTING_CODES.HEADER_FOUND
-			.replace('%domain%', 'localhost')
+			.replace('%domain%', this._domain)
 			.replace('%port%', this._port)
 			.replace('%path%', pathCodes.join(''))
 			.replace('%fullPath%', fullPath)
