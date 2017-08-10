@@ -1,7 +1,7 @@
 # Node.js Development HTTP Server
 
 [![Latest Stable Version](https://img.shields.io/badge/Stable-v1.1.0-brightgreen.svg?style=plastic)](https://github.com/web-dev-server/web-dev-server/releases)
-[![License](https://img.shields.io/badge/Licence-BSD-brightgreen.svg?style=plastic)](https://mvccore.github.io/docs/mvccore/4.0.0/LICENCE.md)
+[![License](https://img.shields.io/badge/Licence-BSD-brightgreen.svg?style=plastic)](https://github.com/web-dev-server/web-dev-server/blob/master/LICENCE.md)
 
 Node.js simple http server for common development or training purposes.
 
