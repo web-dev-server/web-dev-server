@@ -1,10 +1,10 @@
 /**
- * Node.js Development HTTP Server
+ * @summary		Node.js Development HTTP Server
  *
  * @description Node.js simple http server for common development or training purposes.
- * @copyright Tom Flidr 2016
- * @author Tom Flidr <tomflidr@gmail.com>
- * @example (require("web-dev-server")).SetDocumentRoot(__dirname).Run();
+ * @copyright	(c) Tom Flidr 2016
+ * @author		Tom Flidr <tomflidr@gmail.com>
+ * @example		(new require("web-dev-server")).SetDocumentRoot(__dirname).SetPort(8000).Run();
  */
 var WebDevServer = function () {
 	this._express = require('express');
@@ -18,10 +18,16 @@ var WebDevServer = function () {
 	for (i = 0, l = WebDevServer.INDEX_FILES.length; i < l; i += 1) {
 		this._indexFiles[WebDevServer.INDEX_FILES[i]] = i;
 	};
+	// clear all modules on any uncatched error
+	process.on('uncaughtException', function (e) {
+		this._dirIndexScriptsModulesStore = {};
+		for (var key in require.cache) delete require.cache[key];
+		this._printError(e, this._response);
+		this._callback();
+	}.bind(this));
 };
 WebDevServer.VERSION = '1.0.0';
 WebDevServer.DEFAULT_PORT = 8000;
-WebDevServer.DEFAULT_DOMAIN = '127.0.0.1';
 WebDevServer.SESSION_HASH = "35$%d9wZfw256SAsMGá/@#$%&";
 WebDevServer.INDEX_SCRIPTS = ['index.js'];
 WebDevServer.INDEX_FILES = ['index.html','index.htm','default.html','default.htm'];
@@ -101,6 +107,8 @@ WebDevServer.prototype = {
 	_sessionParser: null,
 	_expressCustomHttpHandlers: [],
 	_dirIndexScriptsModulesStore: {},
+	_callback: function () {},
+	_response: null,
 	_indexFiles: {},
 	_indexScripts: {},
 	_server: null,
@@ -147,7 +155,7 @@ WebDevServer.prototype = {
 	 * @param {function} handler custom express handler accepting params: 
 	 * @return WebDevServer
 	 */
-	AddExpressHandler: function (handler) {
+	AddHandler: function (handler) {
 		this._expressCustomHttpHandlers.push(handler);
 		return this;
 	},
@@ -214,19 +222,43 @@ WebDevServer.prototype = {
 		var fullPath = this._trimRight(this._documentRoot + '/' + path, '/');
 		fullPath = decodeURIComponent(fullPath);
 		if (this._expressCustomHttpHandlers.length > 0) {
-			var event = new WebDevServer.Event(req, res, cb, fullPath);
-			for (var i = 0, l = this._expressCustomHttpHandlers.length; i < l; i += 1) {
-				this._expressCustomHttpHandlers[i].call(null, event);
-			}
-			if (event.preventedDefault) {
-				cb();
-			} else {
-				this._fs.stat(fullPath, this._fsStatHandler.bind(this, path, fullPath, req, res, cb));
-			}
+			var event = new WebDevServer.Event(req, res, cb, fullPath),
+				index = 0;
+			
+			this._processCustomHandler(
+				index, req, res, event, function () {
+					if (event.preventedDefault) {
+						cb();
+					} else {
+						this._fs.stat(
+							fullPath, 
+							this._fsStatHandler.bind(
+								this, path, fullPath, req, res, cb
+							)
+						);
+					}
+				}.bind(this)
+			);
+			
+			/*for (var i = 0, l = this._expressCustomHttpHandlers.length; i < l; i += 1) {
+				this._expressCustomHttpHandlers[i].call(null, req, res, event, cb);
+			}*/
+			
+			
 		} else {
 			this._fs.stat(fullPath, this._fsStatHandler.bind(this, path, fullPath, req, res, cb));
 		}
-		
+	},
+	_processCustomHandler: function (index, req, res, event, cb) {
+		this._expressCustomHttpHandlers[index].call(null, req, res, event, function () {
+			if (index + 1 == this._expressCustomHttpHandlers.length) {
+				cb();
+			} else {
+				this._processCustomHandler(
+					index + 1, req, res, event, cb
+				);
+			}
+		}.bind(this));
 	},
 	// check if any content exists for current reqest on hard drive:
 	_fsStatHandler: function (path, fullPath, req, res, cb, err, stats) {
@@ -323,8 +355,11 @@ WebDevServer.prototype = {
 		if (typeof(this._dirIndexScriptsModulesStore[fullPath]) != 'undefined') {
 			moduleStoreRecord = this._dirIndexScriptsModulesStore[fullPath];
 			this._fs.stat(fullPath + '/' + indexScript, function (err, stats) {
+				this._callback = cb;
+				this._response = res;
+				//console.log(stats.mtime.getTime(), moduleStoreRecord.stats.mtime.getTime());
 				try {
-					if (stats.mtime > moduleStoreRecord.stats.mtime) {
+					if (stats.mtime.getTime() > moduleStoreRecord.stats.mtime.getTime()) {
 						this._deleteModuleFromCache(fullPath);
 						moduleInstance = this._processDirectoryIndexScriptCreateModule(fullPath, indexScript, indexScriptStats, req, res);
 					} else {
@@ -334,7 +369,7 @@ WebDevServer.prototype = {
 						req, res, cb
 					);
 				} catch (e) {
-					console.log(e, e.stack);
+					this._printError(e, res);
 					this._deleteModuleFromCache(fullPath);
 					res.status(500);
 					if (this._development) res.send(JSON.stringify(e));
@@ -342,13 +377,15 @@ WebDevServer.prototype = {
 				}
 			}.bind(this));
 		} else {
+			this._callback = cb;
+			this._response = res;
 			try {
 				moduleInstance = this._processDirectoryIndexScriptCreateModule(fullPath, indexScript, indexScriptStats, req, res);
 				moduleInstance.httpRequestHandler(
 					req, res, cb
 				);
 			} catch (e) {
-				console.log(e, e.stack);
+				this._printError(e, res);
 				this._deleteModuleFromCache(fullPath);
 				res.status(500);
 				if (this._development) res.send(JSON.stringify(e));
@@ -367,6 +404,25 @@ WebDevServer.prototype = {
 			scriptName: indexScript
 		};
 		return moduleInstance;
+	},
+	// print exception in command line a little more nicely and send error in response
+	_printError: function (e, res) {
+		var stackLines = e.stack.replace(/\r/, '').split("\n"),
+			stackLine = '', 
+			errorText = '';
+		for (var i = 1, l = stackLines.length; i < l; i += 1) {
+			stackLine = stackLines[i].replace(/\\/g, '/');
+			if (stackLine.indexOf(this._documentRoot) > -1) {
+				stackLines[i] = stackLine.replace(this._documentRoot, '');
+			}
+		}
+		errorText = stackLines.join("\n");
+		console.error("\n");
+		console.error(errorText);
+		console.error("\n");
+		if (!this._development) return;
+		res.writeHead(500);
+		res.end("/*\n"+errorText+"\n*/");
 	},
 	// display directory content or send index.html file:
 	_processDirRequestHandler: function (statusCode, dirStats, path, fullPath, req, res, cb, err, dirItems) {
