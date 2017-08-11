@@ -28,6 +28,7 @@ var WebDevServer = function () {
 };
 WebDevServer.VERSION = '1.0.0';
 WebDevServer.DEFAULT_PORT = 8000;
+WebDevServer.DEFAULT_DOMAIN = 'localhost';
 WebDevServer.SESSION_HASH = "35$%d9wZfw256SAsMGá/@#$%&";
 WebDevServer.INDEX_SCRIPTS = ['index.js'];
 WebDevServer.INDEX_FILES = ['index.html','index.htm','default.html','default.htm'];
