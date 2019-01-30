@@ -1,6 +1,6 @@
 # Node.js Development HTTP Server
 
-[![Latest Stable Version](https://img.shields.io/badge/Stable-v1.1.0-brightgreen.svg?style=plastic)](https://github.com/web-dev-server/web-dev-server/releases)
+[![Latest Stable Version](https://img.shields.io/badge/Stable-v1.2.0-brightgreen.svg?style=plastic)](https://github.com/web-dev-server/web-dev-server/releases)
 [![License](https://img.shields.io/badge/Licence-BSD-brightgreen.svg?style=plastic)](https://github.com/web-dev-server/web-dev-server/blob/master/LICENCE.md)
 
 Node.js simple http server for common development or training purposes.
@@ -26,6 +26,9 @@ npm install web-dev-server
 - posibility to add any custom express request/response dispatching handler to be executed before 
   `web-dev-server` will dispatch request
 	- posibility to prevent `web-dev-server` request dispatching from custom handler
+- possibility to use under Apache through `mod_proxy`
+	- to do so, you need to redirect some requests to localhost on different port on your webserver machine:
+	- `RewriteRule /node(.*) http://127.0.0.1:8000$1 [P,L]`
 
 ## Usage
 #### 1. Create web development server instance initialization in `run.js` file and run it by `node run.js`:
@@ -35,6 +38,7 @@ var devServer = (new WebDevServer())
 	.SetDocumentRoot(__dirname)	// required
 	//.SetPort(8000)		// optional, 8000 by default
 	//.SetDomain('localhost')	// optional, 'localhost' by default
+	//.SetBasePath('/node')	// optional, null by default, useful for apache proxy modes
 	//.SetDevelopment(false)	// optional, true by default to display Errors and directory content
 	.AddHandler(function (req, res, e, cb) {// optional, to prepend any execution before `web-dev-server` module execution
 		if (req.url == '/health') {
@@ -81,7 +85,7 @@ App.prototype = {
 	httpRequestHandler: function (request, response, callback) {
 		this._completeWholeRequestInfo(request, function (requestInfo) {
 			
-						
+			
 			// some demo operation to say hallo world:
 			var staticHtmlFileFullPath = __dirname + '/../static-content/index.html';
 			fs.readFile(staticHtmlFileFullPath, 'utf8', function (err, data) {
@@ -107,23 +111,35 @@ App.prototype = {
 	 * @return	void
 	 */
 	_completeWholeRequestInfo: function (request, callback) {
-        	var reqInfo = {
-            		url: request.url,
-            		method: request.method,
-            		headers: request.headers,
-            		statusCode: request.statusCode,
-            		textBody: ''
-        	};
-        	var bodyArr = [];
-        	request.on('error', function (err) {
-            		console.error(err);
-        	}).on('data', function (chunk) {
-            		bodyArr.push(chunk);
-        	}).on('end', function () {
-            		reqInfo.textBody = Buffer.concat(bodyArr).toString();
-            		reqInfo.request = request;
-            		callback(reqInfo);
-        	}.bind(this));
+		var basePath = request.basePath === null ? '' : request.basePath,
+			domainUrl = request.protocol + '://' + request.hostname,
+			queryString = '', 
+			delim = '?';
+		for (var paramName in request.query) {
+			queryString += delim + paramName + '=' + request.query[paramName];
+			delim = '&';
+		}
+		var reqInfo = {
+			basePath: basePath,
+			path: request.path,
+			requestPath: basePath + request.path,
+			domainUrl: domainUrl,
+			fullUrl: domainUrl + basePath + request.path + queryString,
+			method: request.method,
+			headers: request.headers,
+			statusCode: request.statusCode,
+			textBody: ''
+		};
+		var bodyArr = [];
+		request.on('error', function (err) {
+			console.error(err);
+		}).on('data', function (chunk) {
+			bodyArr.push(chunk);
+		}).on('end', function () {
+			reqInfo.textBody = Buffer.concat(bodyArr).toString();
+			reqInfo.request = request;
+			callback(reqInfo);
+		}.bind(this));
 	}
 };
 module.exports = App;

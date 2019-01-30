@@ -97,6 +97,7 @@ WebDevServer.Event.prototype = {
 };
 WebDevServer.prototype = {
 	_documentRoot: null,
+	_basePath: null,
 	_port: null,
 	_domain: null,
 	_development: true,
@@ -140,6 +141,15 @@ WebDevServer.prototype = {
 	 */
 	SetDocumentRoot: function (dirname) {
 		this._documentRoot = dirname.replace(/\\/g, '/');
+		return this;
+	},
+	/**
+	 * @summary Set http server base path, not required
+	 * @param {string} server base path (proxy path, if you are running the server under proxy)
+	 * @return WebDevServer
+	 */
+	SetBasePath: function (basePath) {
+		this._basePath = basePath.replace(/\\/g, '/');
 		return this;
 	},
 	/**
@@ -190,7 +200,7 @@ WebDevServer.prototype = {
 		this._httpServer.listen(this._port, this._domain, function () {
 			console.log(
 				"HTTP server has been started at: 'http://" + this._domain + ":" 
-				+ this._port + "' to serve directory: '" + this._documentRoot 
+				+ this._port + "' to serve directory: \n'" + this._documentRoot 
 				+ "'.\nEnjoy browsing:-) To stop the server, pres CTRL + C or close this command line window."
 			);
 		}.bind(this));
@@ -222,6 +232,7 @@ WebDevServer.prototype = {
 		var path = this._trimRight(this._trimLeft(req._parsedUrl.pathname, '/'), '/');
 		var fullPath = this._trimRight(this._documentRoot + '/' + path, '/');
 		fullPath = decodeURIComponent(fullPath);
+		req.basePath = this._basePath;
 		if (this._expressCustomHttpHandlers.length > 0) {
 			var event = new WebDevServer.Event(req, res, cb, fullPath),
 				index = 0;
@@ -571,14 +582,14 @@ WebDevServer.prototype = {
 	// display directory content - complete directory row code for directory content:
 	_processDirRequestHandlerCompleteDirRow: function (path, dir, itemStats) {
 		return WebDevServer.DIR_LISTING_CODES.DIR_ROW
-			.replace('%href%', '/' + (path ? path + '/' : '') + dir)
+			.replace('%href%', (this._basePath === null ? '' : this._basePath) + '/' + (path ? path + '/' : '') + this._trimRight(dir, '/') + '/')
 			.replace('%path%', dir)
 			.replace('%date%', this._formatDate(itemStats.mtime));
 	},
 	// display directory content - complete file row code for directory content:
 	_processDirRequestHandlerCompleteFileRow: function (path, file, itemStats) {
 		return WebDevServer.DIR_LISTING_CODES.FILE_ROW
-			.replace('%href%', '/' + (path ? path + '/' : '') + file)
+			.replace('%href%', (this._basePath === null ? '' : this._basePath) + '/' + (path ? path + '/' : '') + file)
 			.replace('%path%', file)
 			.replace('%filesize%', this._formatFileSize(itemStats.size || 0))
 			.replace('%date%', this._formatDate(itemStats.mtime || (new Date()).setTime(0) ));
