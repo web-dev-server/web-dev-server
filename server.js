@@ -26,10 +26,11 @@ var WebDevServer = function () {
 		this._callback();
 	}.bind(this));
 };
-WebDevServer.VERSION = '1.0.0';
+WebDevServer.VERSION = '1.3.0';
 WebDevServer.DEFAULT_PORT = 8000;
 WebDevServer.DEFAULT_DOMAIN = 'localhost';
 WebDevServer.SESSION_HASH = "35$%d9wZfw256SAsMGá/@#$%&";
+WebDevServer.SESSION_ID_MAX_AGE = 3600; // hour
 WebDevServer.INDEX_SCRIPTS = ['index.js'];
 WebDevServer.INDEX_FILES = ['index.html','index.htm','default.html','default.htm'];
 WebDevServer.FILE_SIZE_THRESH = 1000;
@@ -98,6 +99,8 @@ WebDevServer.Event.prototype = {
 WebDevServer.prototype = {
 	_documentRoot: null,
 	_basePath: null,
+	_sessionMaxAge: null,
+	_sessionHash: null,
 	_port: null,
 	_domain: null,
 	_development: true,
@@ -153,6 +156,24 @@ WebDevServer.prototype = {
 		return this;
 	},
 	/**
+	 * @summary Set session id cookie max age.
+	 * @param {number} Session cookie max age in seconds, not miliseconds.
+	 * @return WebDevServer
+	 */
+	SetSessionMaxAge: function (seconds) {
+		this._sessionMaxAge = seconds;
+		return this;
+	},
+	/**
+	 * @summary Set session id hash salt.
+	 * @param {string} Session id hash salt.
+	 * @return WebDevServer
+	 */
+	SetSessionHash: function (hashSalt) {
+		this._sessionHash = hashSalt;
+		return this;
+	},
+	/**
 	 * @summary Set development mode, true by default, if false, directory content and exceptions are not displayed.
 	 * @param {bool} development development mode
 	 * @return WebDevServer
@@ -180,10 +201,17 @@ WebDevServer.prototype = {
 		this._domain = this._domain || WebDevServer.DEFAULT_DOMAIN;
 		this._expressApp = this._express();
 		this._httpServer = this._http.createServer(this._expressApp);
+		var sessionMaxAge = this._sessionMaxAge !== null
+			? this._sessionMaxAge
+			: WebDevServer.SESSION_ID_MAX_AGE;
+		var sessionHash = this._sessionHash !== null
+			? this._sessionHash
+			: WebDevServer.SESSION_HASH;
 		this._sessionParser = this._expressSession({
-			secret: WebDevServer.SESSION_HASH,
-			cookie: { maxAge: 2628000000 },
-			resave: true,
+			httpOnly: true,
+			secret: sessionHash,
+			cookie: { maxAge: 1000 * sessionMaxAge /* default is 1 hour */ },
+			resave: false,
 			saveUninitialized: true
 		});
 		this._expressApp.use(this._sessionParser);
@@ -433,7 +461,8 @@ WebDevServer.prototype = {
 		console.error(errorText);
 		console.error("\n");
 		if (!this._development) return;
-		res.writeHead(500);
+		if (!res.headersSent)
+			res.writeHead(500);
 		res.end("/*\n"+errorText+"\n*/");
 	},
 	// display directory content or send index.html file:

@@ -1,6 +1,6 @@
 # Node.js Development HTTP Server
 
-[![Latest Stable Version](https://img.shields.io/badge/Stable-v1.2.0-brightgreen.svg?style=plastic)](https://github.com/web-dev-server/web-dev-server/releases)
+[![Latest Stable Version](https://img.shields.io/badge/Stable-v1.3.0-brightgreen.svg?style=plastic)](https://github.com/web-dev-server/web-dev-server/releases)
 [![License](https://img.shields.io/badge/Licence-BSD-brightgreen.svg?style=plastic)](https://github.com/web-dev-server/web-dev-server/blob/master/LICENCE.md)
 
 Node.js simple http server for common development or training purposes.
@@ -38,6 +38,8 @@ var devServer = (new WebDevServer())
     .SetDocumentRoot(__dirname)    // required
     //.SetPort(8000)        // optional, 8000 by default
     //.SetDomain('localhost')    // optional, 'localhost' by default
+    //.SetSessionMaxAge(60 * 60 * 24)    // optional, 1 hour by default, seconds
+    //.SetSessionHash('SGS2e+9x5$as%SD_AS6s.aHS96s')    // optional, session id hash salt
     //.SetBasePath('/node')    // optional, null by default, useful for apache proxy modes
     //.SetDevelopment(false)    // optional, true by default to display Errors and directory content
     .AddHandler(function (req, res, e, cb) {// optional, to prepend any execution before `web-dev-server` module execution
