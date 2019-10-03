@@ -26,7 +26,7 @@ var WebDevServer = function () {
 		this._callback();
 	}.bind(this));
 };
-WebDevServer.VERSION = '1.4.0';
+WebDevServer.VERSION = '1.4.1';
 WebDevServer.DEFAULT_PORT = 8000;
 WebDevServer.DEFAULT_DOMAIN = 'localhost';
 WebDevServer.SESSION_HASH = "35$%d9wZfw256SAsMGá/@#$%&";
@@ -218,16 +218,22 @@ WebDevServer.prototype = {
 		this._expressApp.use(this._sessionParser);
 		this._expressApp.all('*', this._allRequestsHandler.bind(this));
 		this._httpServer.on('error', function (e) {
-			if (!callback) console.error(e);
-			callback(false, e);
+			if (!callback) {
+				console.error(e);
+			} else {
+				callback(false, e);
+			}
 		}.bind(this));
 		this._httpServer.listen(this._port, this._domain, function () {
-			if (!callback) console.log(
-				"HTTP server has been started at: 'http://" + this._domain + ":" 
-				+ this._port + "' to serve directory: \n'" + this._documentRoot 
-				+ "'.\nEnjoy browsing:-) To stop the server, pres CTRL + C or close this command line window."
-			);
-			callback(true, null);
+			if (!callback) {
+				console.log(
+					"HTTP server has been started at: 'http://" + this._domain + ":" 
+					+ this._port + "' to serve directory: \n'" + this._documentRoot 
+					+ "'.\nEnjoy browsing:-) To stop the server, pres CTRL + C or close this command line window."
+				);
+			} else {
+				callback(true, null);	
+			}
 		}.bind(this));
 		return this;
 	},
