@@ -1,6 +1,6 @@
 # Node.js Development HTTP Server
 
-[![Latest Stable Version](https://img.shields.io/badge/Stable-v1.3.0-brightgreen.svg?style=plastic)](https://github.com/web-dev-server/web-dev-server/releases)
+[![Latest Stable Version](https://img.shields.io/badge/Stable-v1.4.0-brightgreen.svg?style=plastic)](https://github.com/web-dev-server/web-dev-server/releases)
 [![License](https://img.shields.io/badge/Licence-BSD-brightgreen.svg?style=plastic)](https://github.com/web-dev-server/web-dev-server/blob/master/LICENCE.md)
 
 Node.js simple http server for common development or training purposes.
@@ -50,7 +50,9 @@ var devServer = (new WebDevServer())
         }
         cb();
     })
-    .Run();
+    .Run(function (success, err) {                    // optional, callback called after server has been started or after error ocured
+		// ...
+	});
 ```
 #### 2. Create empty folder next to `run.js` with `index.js` file inside, executed as default directory content:
 ```javascript

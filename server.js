@@ -26,7 +26,7 @@ var WebDevServer = function () {
 		this._callback();
 	}.bind(this));
 };
-WebDevServer.VERSION = '1.3.0';
+WebDevServer.VERSION = '1.4.0';
 WebDevServer.DEFAULT_PORT = 8000;
 WebDevServer.DEFAULT_DOMAIN = 'localhost';
 WebDevServer.SESSION_HASH = "35$%d9wZfw256SAsMGá/@#$%&";
@@ -184,7 +184,7 @@ WebDevServer.prototype = {
 	},
 	/**
 	 * @summary Add custom express http handler
-	 * @param {function} handler custom express handler accepting params: 
+	 * @param {function} handler custom express handler: (req, res, e, cb) => {}
 	 * @return WebDevServer
 	 */
 	AddHandler: function (handler) {
@@ -193,9 +193,10 @@ WebDevServer.prototype = {
 	},
 	/**
 	 * @summary Start HTTP server
-	 * @return void
+	 * @param {function} callback custom handler: (success, err) => {}
+	 * @return WebDevServer
 	 */
-	Run: function () {
+	Run: function (callback) {
 		this._documentRoot = this._documentRoot || __dirname.replace(/\\/g, '/');
 		this._port = this._port || WebDevServer.DEFAULT_PORT;
 		this._domain = this._domain || WebDevServer.DEFAULT_DOMAIN;
@@ -217,20 +218,16 @@ WebDevServer.prototype = {
 		this._expressApp.use(this._sessionParser);
 		this._expressApp.all('*', this._allRequestsHandler.bind(this));
 		this._httpServer.on('error', function (e) {
-			if (e.code == 'EADDRINUSE') {
-				console.log('Address in use, retrying...');
-				setTimeout(function () {
-					this._httpServer.close();
-					this._httpServer.listen(this._port, '127.0.0.1');
-				}.bind(this), 1000);
-			}
+			if (!callback) console.error(e);
+			callback(false, e);
 		}.bind(this));
 		this._httpServer.listen(this._port, this._domain, function () {
-			console.log(
+			if (!callback) console.log(
 				"HTTP server has been started at: 'http://" + this._domain + ":" 
 				+ this._port + "' to serve directory: \n'" + this._documentRoot 
 				+ "'.\nEnjoy browsing:-) To stop the server, pres CTRL + C or close this command line window."
 			);
+			callback(true, null);
 		}.bind(this));
 		return this;
 	},
