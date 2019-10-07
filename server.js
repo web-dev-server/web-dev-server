@@ -21,12 +21,14 @@ var WebDevServer = function () {
 	// clear all modules on any uncatched error
 	process.on('uncaughtException', function (e) {
 		this._dirIndexScriptsModulesStore = {};
-		for (var key in require.cache) delete require.cache[key];
+		var requireCacheKeys = Object.keys(require.cache);
+		for (var i = 0, l = requireCacheKeys.length; i < l; i += 1) 
+			delete require.cache[requireCacheKeys[i]];
 		this._printError(e, this._response);
 		this._callback();
 	}.bind(this));
 };
-WebDevServer.VERSION = '1.4.1';
+WebDevServer.VERSION = '1.5.0';
 WebDevServer.DEFAULT_PORT = 8000;
 WebDevServer.DEFAULT_DOMAIN = 'localhost';
 WebDevServer.SESSION_HASH = "35$%d9wZfw256SAsMGá/@#$%&";
@@ -116,6 +118,7 @@ WebDevServer.prototype = {
 	_response: null,
 	_indexFiles: {},
 	_indexScripts: {},
+	_requireCacheDirsWatched: {},
 	_server: null,
 	_fs: null,
 	_path: null,
@@ -218,22 +221,16 @@ WebDevServer.prototype = {
 		this._expressApp.use(this._sessionParser);
 		this._expressApp.all('*', this._allRequestsHandler.bind(this));
 		this._httpServer.on('error', function (e) {
-			if (!callback) {
-				console.error(e);
-			} else {
-				callback(false, e);
-			}
+			if (!callback) console.error(e);
+			callback(false, e);
 		}.bind(this));
 		this._httpServer.listen(this._port, this._domain, function () {
-			if (!callback) {
-				console.log(
-					"HTTP server has been started at: 'http://" + this._domain + ":" 
-					+ this._port + "' to serve directory: \n'" + this._documentRoot 
-					+ "'.\nEnjoy browsing:-) To stop the server, pres CTRL + C or close this command line window."
-				);
-			} else {
-				callback(true, null);	
-			}
+			if (!callback) console.log(
+				"HTTP server has been started at: 'http://" + this._domain + ":" 
+				+ this._port + "' to serve directory: \n'" + this._documentRoot 
+				+ "'.\nEnjoy browsing:-) To stop the server, pres CTRL + C or close this command line window."
+			);
+			callback(true, null);
 		}.bind(this));
 		return this;
 	},
@@ -397,29 +394,49 @@ WebDevServer.prototype = {
 		
 		if (typeof(this._dirIndexScriptsModulesStore[fullPath]) != 'undefined') {
 			moduleStoreRecord = this._dirIndexScriptsModulesStore[fullPath];
-			this._fs.stat(fullPath + '/' + indexScript, function (err, stats) {
-				this._callback = cb;
-				this._response = res;
-				//console.log(stats.mtime.getTime(), moduleStoreRecord.stats.mtime.getTime());
-				try {
-					if (stats.mtime.getTime() > moduleStoreRecord.stats.mtime.getTime()) {
-						this._deleteModuleFromCache(fullPath);
-						moduleInstance = this._processDirectoryIndexScriptCreateModule(fullPath, indexScript, indexScriptStats, req, res);
-					} else {
-						moduleInstance = moduleStoreRecord.instance;
+			// instance of index.js class already exists:
+			this._callback = cb;
+			this._response = res;
+			if (this._development) {
+				// check any change on dev:
+				this._fs.stat(fullPath + '/' + indexScript, function (err, stats) {
+					if (err) {
+						console.error(err);
+						return cb();
 					}
+					try {
+						moduleInstance = moduleStoreRecord.instance;
+						if (stats.mtime.getTime() > moduleStoreRecord.stats.mtime.getTime()) {
+							this._deleteModuleFromCache(fullPath);
+							moduleInstance = this._processDirectoryIndexScriptCreateModule(fullPath, indexScript, indexScriptStats, req, res);
+						} else {
+							moduleInstance = moduleStoreRecord.instance;
+						}
+						moduleInstance.httpRequestHandler(
+							req, res, cb
+						);
+					} catch (e) {
+						res.status(500);
+						if (this._development) this._printError(e, res);
+						this._deleteModuleFromCache(fullPath);
+						cb();
+					}
+				}.bind(this));
+			} else {
+				try {
+					moduleInstance = moduleStoreRecord.instance;
 					moduleInstance.httpRequestHandler(
 						req, res, cb
 					);
 				} catch (e) {
-					this._printError(e, res);
-					this._deleteModuleFromCache(fullPath);
 					res.status(500);
-					if (this._development) res.send(JSON.stringify(e));
+					if (this._development) this._printError(e, res);
+					this._deleteModuleFromCache(fullPath);
 					cb();
 				}
-			}.bind(this));
+			}
 		} else {
+			// create instance and handle request by index.js class:
 			this._callback = cb;
 			this._response = res;
 			try {
@@ -428,16 +445,65 @@ WebDevServer.prototype = {
 					req, res, cb
 				);
 			} catch (e) {
-				this._printError(e, res);
-				this._deleteModuleFromCache(fullPath);
 				res.status(500);
-				if (this._development) res.send(JSON.stringify(e));
+				if (this._development) this._printError(e, res);
+				this._deleteModuleFromCache(fullPath);
 				cb();
 			}
 		}
 	},
 	_processDirectoryIndexScriptCreateModule: function (fullPath, indexScript, indexScriptStats, req, res) {
-		var moduleDeclaration = require(fullPath + '/' + indexScript);
+		if (this._development) {
+			var cacheKeysBeforeRequire = Object.keys(require.cache);
+			var moduleDeclaration = require(fullPath + '/' + indexScript);
+			var cacheKeysAfterRequire = Object.keys(require.cache);
+			var cacheKeysToWatch = this._getRequireCacheDifferenceKeys(
+				cacheKeysBeforeRequire, cacheKeysAfterRequire, fullPath + '/node_modules/'
+			);
+			cacheKeysToWatch.forEach(function(cacheKeyToWatch, i){
+				this._fs.watch(
+					cacheKeyToWatch, 
+					{ persistent: false, recursive: false }, 
+					function (eventType, filename) { // eventType => 'change' | 'rename'
+						//console.log(["file", eventType, filename, cacheKeyToWatch]);
+						if (typeof(require.cache[cacheKeyToWatch]) != 'undefined') {
+							delete require.cache[cacheKeyToWatch];	
+							if (this._development) console.log(
+								'Module cache cleaned for: "' + cacheKeyToWatch + '"'
+							);
+						}
+						delete this._dirIndexScriptsModulesStore[cacheKeyToWatch];
+					}.bind(this)
+				);
+				var lastSlashPos = cacheKeyToWatch.lastIndexOf('/');
+				if (lastSlashPos !== -1) { 
+					var cacheDirKeyToWatch = cacheKeyToWatch.substr(0, lastSlashPos);
+					if (typeof(this._requireCacheDirsWatched[cacheDirKeyToWatch]) == 'undefined') {
+						this._requireCacheDirsWatched[cacheDirKeyToWatch] = true;
+						this._fs.watch(
+							cacheDirKeyToWatch, 
+							{ persistent: true, recursive: true }, 
+							function (eventType, filename) {
+								//console.log(["dir", eventType, filename, cacheDirKeyToWatch]);
+								if (filename.length > 3 && filename.substr(-3).toLowerCase() == '.js') {
+									// eventType => 'change' | 'rename'
+									var cacheFilefullPath = cacheDirKeyToWatch + '/' + filename;
+									if (typeof(require.cache[cacheFilefullPath]) != 'undefined') {
+										delete require.cache[cacheFilefullPath];	
+										if (this._development) console.log(
+											'Module cache cleaned for: "' + cacheFilefullPath + '"'
+										);
+									}
+									delete this._dirIndexScriptsModulesStore[cacheFilefullPath];			
+								}
+							}.bind(this)
+						);
+					}
+				}
+			}, this);
+		} else {
+			var moduleDeclaration = require(fullPath + '/' + indexScript);
+		}
 		var moduleInstance = new moduleDeclaration(
 			this._httpServer, this._expressApp, this._sessionParser, req, res
 		);
@@ -647,6 +713,17 @@ WebDevServer.prototype = {
 		return headerCode;
 	},
 	// helper methods:
+	_getRequireCacheDifferenceKeys: function (cacheKeysBeforeRequire, cacheKeysAfterRequire, doNotIncludePath) {
+		var result = [], 
+			record = '';
+		for (var i = 0, l = cacheKeysAfterRequire.length; i < l; i += 1) {
+			record = cacheKeysAfterRequire[i];
+			if (cacheKeysBeforeRequire.indexOf(record) == -1)
+				if (record.indexOf(doNotIncludePath) !== 0)
+					result.push(record);
+		}
+		return result;
+	},
 	_findIndexScriptsOrFilesInDirectoryItems: function (dirItems) {
 		var dirItemsLowerCased = [],
 			indexFilesFound = [],
@@ -705,8 +782,13 @@ WebDevServer.prototype = {
 		}
 	},
 	_deleteModuleFromCache: function (fullPath) {
+		if (typeof(require.cache[require.resolve(fullPath)]) != 'undefined') {
+			delete require.cache[require.resolve(fullPath)];
+			if (this._development) console.log(
+				'Module cache cleaned for: "' + fullPath + '"'
+			);
+		}
 		delete this._dirIndexScriptsModulesStore[fullPath];
-		delete require.cache[require.resolve(fullPath)];
 	},
 	_formatDate: function (date) {
 		return date.getFullYear() +
