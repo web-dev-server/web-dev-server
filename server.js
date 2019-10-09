@@ -20,15 +20,17 @@ var WebDevServer = function () {
 	};
 	// clear all modules on any uncatched error
 	process.on('uncaughtException', function (e) {
-		this._dirIndexScriptsModulesStore = {};
-		var requireCacheKeys = Object.keys(require.cache);
-		for (var i = 0, l = requireCacheKeys.length; i < l; i += 1) 
-			delete require.cache[requireCacheKeys[i]];
-		this._printError(e, this._response);
+		if (this._development) {
+			this._dirIndexScriptsModulesStore = {};
+			var requireCacheKeys = Object.keys(require.cache);
+			for (var i = 0, l = requireCacheKeys.length; i < l; i += 1) 
+				delete require.cache[requireCacheKeys[i]];
+		}
+		this._printError(e, this._request, this._response);
 		this._callback();
 	}.bind(this));
 };
-WebDevServer.VERSION = '1.5.0';
+WebDevServer.VERSION = '1.6.0';
 WebDevServer.DEFAULT_PORT = 8000;
 WebDevServer.DEFAULT_DOMAIN = 'localhost';
 WebDevServer.SESSION_HASH = "35$%d9wZfw256SAsMGá/@#$%&";
@@ -42,7 +44,7 @@ WebDevServer.ICONS = {
 	FOLDER: '<?xml version="1.0" encoding="utf-8"?><svg version="1.1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="16px" height="16px" viewBox="0 0 16 16" enable-background="new 0 0 16 16" xml:space="preserve"><path d="M15.943,7.439L13.742,13.5H1.66l2.273-6.063C4.126,6.922,4.735,6.5,5.285,6.5h10C15.835,6.5,16.132,6.924,15.943,7.439z M0.97,12.494l2.028-5.408C3.336,6.182,4.319,5.5,5.285,5.5H14c0-0.553-0.447-1-1-1H6l-1-2H1c-0.553,0-1,0.447-1,1v8 C0,12.043,0.432,12.477,0.97,12.494z"/></svg>',
 	FILE: '<?xml version="1.0" encoding="utf-8"?><svg version="1.1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="16px" height="16px" viewBox="0 0 16 16" enable-background="new 0 0 16 16" xml:space="preserve"><path d="M10.292,4.56V0.347c0.134,0.08,0.24,0.16,0.32,0.24l3.652,3.652c0.08,0.08,0.16,0.188,0.24,0.32H10.292L10.292,4.56z M9.146,4.854c0,0.24,0.08,0.453,0.24,0.613s0.373,0.238,0.613,0.238h4.854v9.439c0,0.24-0.08,0.453-0.24,0.613 c-0.159,0.16-0.373,0.24-0.612,0.24H2c-0.239,0-0.453-0.08-0.612-0.24c-0.16-0.16-0.24-0.373-0.24-0.613V0.853 c0-0.24,0.08-0.453,0.24-0.613c0.159-0.16,0.371-0.238,0.611-0.238h7.146V4.854L9.146,4.854z"/></svg>'
 };
-WebDevServer.DIR_LISTING_CODES = {
+WebDevServer.RESPONSE_CODES = {
 	HTML: '<!DOCTYPE HTML><html lang="en-US"><head>%head%' + WebDevServer.ICONS.FAVICON + '</head><body>%body%</body></html>',
 	HEAD_FOUND: '<meta charset="UTF-8" /><title>%fullPath%</title>'
 		+'<style type="text/css">'
@@ -56,12 +58,14 @@ WebDevServer.DIR_LISTING_CODES = {
 			+'.filesize,.dirsize{text-align:right;padding:3px 20px;}'
 			+'.date{text-align:right;padding:3px 20px;}'
 		+'</style>',
+	HEAD_NOT_FOUND: '<meta charset="UTF-8" /><title>Error 404 - Not Found</title>',
 	HEAD_NOT_ALLOWED: '<meta charset="UTF-8" /><title>Error 403 - Forbidden.</title>',
+	HEAD_ERROR: '<meta charset="UTF-8" /><title>Error 500 - General Server Error.</title>',
 	HEADER_FOUND: '<h1>Index Of: <a href="http://%domain%:%port%/">/</a> %path%</h1>'
 		+'<p>Full path: <b>%fullPath%</b><br />Last Modification: <b>%lastMod%</b></p><hr />',
-	HEADER_NOT_FOUND: "<h1 style=\"color:red;\">Error 404 - File Not Found: '%errorPath%'.</h1>"
-		+"<p>Displaying content of first existing parent folder: <b>'/%path%'</b><p><hr />",
+	HEADER_NOT_FOUND: "<h1 style=\"color:red;\">Error 404 - File Not Found: '%path%'.</h1>",
 	HEADER_NOT_ALLOWED: "<h1 style=\"color:red;\">Error 403 - Forbidden.</h1>",
+	HEADER_ERROR: "<h1 style=\"color:red;\">Error 500 - General Server Error.</h1>",
 	LIST: '<table>'
 			+'<thead>'
 				+'<tr>'
@@ -115,10 +119,12 @@ WebDevServer.prototype = {
 	_expressCustomHttpHandlers: [],
 	_dirIndexScriptsModulesStore: {},
 	_callback: function () {},
+	_request: null,
 	_response: null,
 	_indexFiles: {},
 	_indexScripts: {},
-	_requireCacheDirsWatched: {},
+	_requireCacheWatched: {},
+	_requireCacheDependencies: {},
 	_server: null,
 	_fs: null,
 	_path: null,
@@ -257,14 +263,12 @@ WebDevServer.prototype = {
 	},
 	// handle all requests:
 	_allRequestsHandler: function (req, res, cb) {
-		var path = this._trimRight(this._trimLeft(req._parsedUrl.pathname, '/'), '/');
+		var path = this._trimRight(this._trimLeft(decodeURIComponent(req._parsedUrl.pathname), '/'), '/');
 		var fullPath = this._trimRight(this._documentRoot + '/' + path, '/');
-		fullPath = decodeURIComponent(fullPath);
 		req.basePath = this._basePath;
 		if (this._expressCustomHttpHandlers.length > 0) {
 			var event = new WebDevServer.Event(req, res, cb, fullPath),
 				index = 0;
-			
 			this._processCustomHandler(
 				index, req, res, event, function () {
 					if (event.preventedDefault) {
@@ -353,19 +357,29 @@ WebDevServer.prototype = {
 			);
 			
 		} else {
-			this._processNonExistPathStatsHandler(pathsToFound, 0, function (newFullPath, lastFoundPathStats, lastFoundPath) {
-				this._fs.readdir(
-					newFullPath, 
-					this._processDirRequestHandler.bind(
-						this,
-						404, lastFoundPathStats, lastFoundPath, fullPath, req, res, cb
-					)
-				);
-			}.bind(this), function (err) {
-				res.status(500);
-				if (this._development) res.send(JSON.stringify(err));
-				cb();
-			}.bind(this));
+			this._processNonExistPathStatsHandler(
+				pathsToFound, 
+				0, 
+				function (newFullPath, lastFoundPathStats, lastFoundPath) {
+					this._fs.readdir(
+						newFullPath, 
+						this._processDirRequestHandler.bind(
+							this,
+							404, lastFoundPathStats, lastFoundPath, fullPath, req, res, cb
+						)
+					);
+				}.bind(this), 
+				function (err) {
+					var error = null;
+					try {
+						throw new Error("Path not found: `" + path + "`.");
+					} catch (e) {
+						error = e;
+					}
+					this._printError(error, req, res, 404);
+					return cb();
+				}.bind(this)
+			);
 		}
 	},
 	_processNonExistPathStatsHandler: function (pathsToFound, index, successCallback, errorCallback) {
@@ -396,6 +410,7 @@ WebDevServer.prototype = {
 			moduleStoreRecord = this._dirIndexScriptsModulesStore[fullPath];
 			// instance of index.js class already exists:
 			this._callback = cb;
+			this._request = req;
 			this._response = res;
 			if (this._development) {
 				// check any change on dev:
@@ -406,18 +421,15 @@ WebDevServer.prototype = {
 					}
 					try {
 						moduleInstance = moduleStoreRecord.instance;
-						if (stats.mtime.getTime() > moduleStoreRecord.stats.mtime.getTime()) {
+						if (stats.mtime.getTime() > moduleStoreRecord.stats.mtime.getTime() || !require.cache[fullPath + '/' + indexScript]) {
 							this._deleteModuleFromCache(fullPath);
 							moduleInstance = this._processDirectoryIndexScriptCreateModule(fullPath, indexScript, indexScriptStats, req, res);
 						} else {
 							moduleInstance = moduleStoreRecord.instance;
 						}
-						moduleInstance.httpRequestHandler(
-							req, res, cb
-						);
+						this._processDirectoryIndexScriptHttpRequestHandler(fullPath, indexScript, moduleInstance, req, res, cb);
 					} catch (e) {
-						res.status(500);
-						if (this._development) this._printError(e, res);
+						this._printError(e, req, res);
 						this._deleteModuleFromCache(fullPath);
 						cb();
 					}
@@ -425,12 +437,9 @@ WebDevServer.prototype = {
 			} else {
 				try {
 					moduleInstance = moduleStoreRecord.instance;
-					moduleInstance.httpRequestHandler(
-						req, res, cb
-					);
+					this._processDirectoryIndexScriptHttpRequestHandler(fullPath, indexScript, moduleInstance, req, res, cb);
 				} catch (e) {
-					res.status(500);
-					if (this._development) this._printError(e, res);
+					this._printError(e, req, res);
 					this._deleteModuleFromCache(fullPath);
 					cb();
 				}
@@ -438,69 +447,32 @@ WebDevServer.prototype = {
 		} else {
 			// create instance and handle request by index.js class:
 			this._callback = cb;
+			this._request = req;
 			this._response = res;
 			try {
 				moduleInstance = this._processDirectoryIndexScriptCreateModule(fullPath, indexScript, indexScriptStats, req, res);
-				moduleInstance.httpRequestHandler(
-					req, res, cb
-				);
+				this._processDirectoryIndexScriptHttpRequestHandler(fullPath, indexScript, moduleInstance, req, res, cb);
 			} catch (e) {
-				res.status(500);
-				if (this._development) this._printError(e, res);
+				this._printError(e, req, res);
 				this._deleteModuleFromCache(fullPath);
 				cb();
 			}
 		}
 	},
+	// create directory index.js script module with optional development require cache resolving
 	_processDirectoryIndexScriptCreateModule: function (fullPath, indexScript, indexScriptStats, req, res) {
 		if (this._development) {
-			var cacheKeysBeforeRequire = Object.keys(require.cache);
-			var moduleDeclaration = require(fullPath + '/' + indexScript);
-			var cacheKeysAfterRequire = Object.keys(require.cache);
-			var cacheKeysToWatch = this._getRequireCacheDifferenceKeys(
-				cacheKeysBeforeRequire, cacheKeysAfterRequire, fullPath + '/node_modules/'
-			);
-			cacheKeysToWatch.forEach(function(cacheKeyToWatch, i){
-				this._fs.watch(
-					cacheKeyToWatch, 
-					{ persistent: false, recursive: false }, 
-					function (eventType, filename) { // eventType => 'change' | 'rename'
-						//console.log(["file", eventType, filename, cacheKeyToWatch]);
-						if (typeof(require.cache[cacheKeyToWatch]) != 'undefined') {
-							delete require.cache[cacheKeyToWatch];	
-							if (this._development) console.log(
-								'Module cache cleaned for: "' + cacheKeyToWatch + '"'
-							);
-						}
-						delete this._dirIndexScriptsModulesStore[cacheKeyToWatch];
-					}.bind(this)
+			var cacheKeysBeforeRequire = Object.keys(require.cache),
+				moduleDeclaration = require(fullPath + '/' + indexScript),
+				cacheKeysAfterRequire = Object.keys(require.cache);
+			if (cacheKeysBeforeRequire.length != cacheKeysAfterRequire.length) {
+				var cacheKeysToWatch = this._getRequireCacheDifferenceKeys(
+					cacheKeysBeforeRequire, cacheKeysAfterRequire, 
+					fullPath + '/' + indexScript, fullPath + '/node_modules/'
 				);
-				var lastSlashPos = cacheKeyToWatch.lastIndexOf('/');
-				if (lastSlashPos !== -1) { 
-					var cacheDirKeyToWatch = cacheKeyToWatch.substr(0, lastSlashPos);
-					if (typeof(this._requireCacheDirsWatched[cacheDirKeyToWatch]) == 'undefined') {
-						this._requireCacheDirsWatched[cacheDirKeyToWatch] = true;
-						this._fs.watch(
-							cacheDirKeyToWatch, 
-							{ persistent: true, recursive: true }, 
-							function (eventType, filename) {
-								//console.log(["dir", eventType, filename, cacheDirKeyToWatch]);
-								if (filename.length > 3 && filename.substr(-3).toLowerCase() == '.js') {
-									// eventType => 'change' | 'rename'
-									var cacheFilefullPath = cacheDirKeyToWatch + '/' + filename;
-									if (typeof(require.cache[cacheFilefullPath]) != 'undefined') {
-										delete require.cache[cacheFilefullPath];	
-										if (this._development) console.log(
-											'Module cache cleaned for: "' + cacheFilefullPath + '"'
-										);
-									}
-									delete this._dirIndexScriptsModulesStore[cacheFilefullPath];			
-								}
-							}.bind(this)
-						);
-					}
-				}
-			}, this);
+				//console.log("declaration keys loaded: ", cacheKeysToWatch);
+				this._initRequireCacheItemsWatchHandlers(fullPath + '/' + indexScript, cacheKeysToWatch);
+			}
 		} else {
 			var moduleDeclaration = require(fullPath + '/' + indexScript);
 		}
@@ -514,9 +486,85 @@ WebDevServer.prototype = {
 		};
 		return moduleInstance;
 	},
+	// process directory index.js script http request handler with optional development require cache resolving
+	_processDirectoryIndexScriptHttpRequestHandler: function (fullPath, indexScript, moduleInstance, req, res, cb) {
+		if (this._development) {
+			var cacheKeysBeforeRequire = Object.keys(require.cache);
+			moduleInstance.httpRequestHandler(
+				req, res, cb
+			);
+			var cacheKeysAfterRequire = Object.keys(require.cache);
+			if (cacheKeysBeforeRequire.length != cacheKeysAfterRequire.length) {
+				var cacheKeysToWatch = this._getRequireCacheDifferenceKeys(
+					cacheKeysBeforeRequire, cacheKeysAfterRequire, 
+					fullPath + '/' + indexScript, fullPath + '/node_modules/'
+				);
+				//console.log("handler keys loaded: ", cacheKeysToWatch);
+				this._initRequireCacheItemsWatchHandlers(fullPath + '/' + indexScript, cacheKeysToWatch);
+			}
+		} else {
+			moduleInstance.httpRequestHandler(
+				req, res, cb
+			);
+		}
+	},
+	// initialize filesystem change or rename handler for given fullpath file to clear necessary require cache modules
+	_initRequireCacheItemsWatchHandlers: function (requiredByFullPath, cacheKeysToWatchFullPaths) {
+		cacheKeysToWatchFullPaths.forEach(function(cacheKeyToWatchFullPath, i) {
+			// set up dependencies:
+			var dependencies = {};
+			if (typeof(this._requireCacheDependencies[cacheKeyToWatchFullPath]) != 'undefined') 
+				dependencies = this._requireCacheDependencies[cacheKeyToWatchFullPath];
+			for (var j = 0, k = cacheKeysToWatchFullPaths.length; j < k; j += 1) {
+				if (j !== i)
+					dependencies[cacheKeysToWatchFullPaths[j]] = true;
+			}
+			dependencies[requiredByFullPath] = true;
+			this._requireCacheDependencies[cacheKeyToWatchFullPath] = dependencies;
+			// watch directory if necessary:
+			var lastSlashPos = cacheKeyToWatchFullPath.lastIndexOf('/');
+			if (lastSlashPos !== -1) { 
+				var cacheDirKeyToWatch = cacheKeyToWatchFullPath.substr(0, lastSlashPos);
+				if (typeof(this._requireCacheWatched[cacheDirKeyToWatch]) == 'undefined') {
+					this._requireCacheWatched[cacheDirKeyToWatch] = true;
+					this._fs.watch(
+						cacheDirKeyToWatch, 
+						{ persistent: true, recursive: true }, 
+						function (eventType, filename) {
+							//console.log(["dir", eventType, filename, cacheDirKeyToWatch]);
+							if (filename.length > 3 && filename.substr(-3).toLowerCase() == '.js') {
+								// eventType => 'change' | 'rename'
+								this._clearRequireCacheByFullPath(
+									cacheDirKeyToWatch + '/' + filename
+								);
+							}
+						}.bind(this)
+					);
+				}
+			}
+		}, this);
+	},
+	// recursive clear require cache with cleaning module dependencies
+	_clearRequireCacheByFullPath: function (fullPath) {
+		if (typeof(require.cache[fullPath]) != 'undefined') {
+			delete require.cache[fullPath];	
+			if (this._development) console.log(
+				'Module cache cleaned for: "' + fullPath + '"'
+			);
+		}
+		delete this._dirIndexScriptsModulesStore[fullPath];
+		if (typeof(this._requireCacheDependencies[fullPath]) != 'undefined') {
+			var dependencies = this._requireCacheDependencies[fullPath];
+			delete this._requireCacheDependencies[fullPath];
+			for (var dependencyFullPath in dependencies)
+				this._clearRequireCacheByFullPath(dependencyFullPath);
+			this._requireCacheDependencies[fullPath] = dependencies;
+		}
+	},
 	// print exception in command line a little more nicely and send error in response
-	_printError: function (e, res) {
-		var stackLines = e.stack.replace(/\r/, '').split("\n"),
+	_printError: function (e, req, res, code) {
+		code = code || 500;
+		var stackLines = e.stack.replace(/\r/g, '').split("\n"),
 			stackLine = '', 
 			errorText = '';
 		for (var i = 1, l = stackLines.length; i < l; i += 1) {
@@ -529,19 +577,33 @@ WebDevServer.prototype = {
 		console.error("\n");
 		console.error(errorText);
 		console.error("\n");
-		if (!this._development) return;
-		if (!res.headersSent)
-			res.writeHead(500);
-		res.end("/*\n"+errorText+"\n*/");
+		if (!res.headersSent) {
+			res.setHeader('Content-Type', this._development ? 'text/plain; charset=utf-8' : 'text/html; charset=utf-8');
+			res.writeHead(code);
+		}
+		if (this._development) {
+			res.end("/*\n"+errorText+"\n*/");
+		} else {
+			if (code == 404) {
+				var headerCode = WebDevServer.RESPONSE_CODES.HEADER_NOT_FOUND
+					.replace('%path%', this._htmlEntitiesEncode(req._parsedUrl.pathname));
+				var outputStr = WebDevServer.RESPONSE_CODES.HTML
+					.replace('%head%', WebDevServer.RESPONSE_CODES.HEAD_NOT_FOUND)
+					.replace('%body%', headerCode);
+			} else {
+				var outputStr = WebDevServer.RESPONSE_CODES.HTML
+					.replace('%head%', WebDevServer.RESPONSE_CODES.HEAD_ERROR)
+					.replace('%body%', WebDevServer.RESPONSE_CODES.HEADER_ERROR);
+			}
+			res.end(outputStr);
+		}
 	},
 	// display directory content or send index.html file:
 	_processDirRequestHandler: function (statusCode, dirStats, path, fullPath, req, res, cb, err, dirItems) {
 		if (err != null) {
 			// TODO: display any error message as output
-			res.status(500);
-			if (this._development) res.send(JSON.stringify(err));
-			cb();
-			return;
+			this._printError(err, req, res, 403);
+			return cb();
 		}
 		var indexScriptsAndFiles = this._findIndexScriptsOrFilesInDirectoryItems(dirItems);
 		if (indexScriptsAndFiles.scripts.length > 0) {
@@ -577,6 +639,7 @@ WebDevServer.prototype = {
 			this._processDirRequestHandlerDirItems(statusCode, dirStats, dirItems, path, fullPath, req, res, cb);
 		}
 	},
+	
 	_processDirRequestHandlerGetIndexFileStats: function (fullPath, files, index, successCallback, errorCallback) {
 		this._fs.stat(fullPath + '/' + files[index], function(err, itemStat) {
 			if (err == null && itemStat.isFile()) {
@@ -593,9 +656,8 @@ WebDevServer.prototype = {
 	},
 	// go through all files and folders in current directory
 	_processDirRequestHandlerDirItems: function (statusCode, dirStats, dirItems, path, fullPath, req, res, cb) {
-		if (!this._development) {
+		if (!this._development) 
 			return this._processDirRequestHandlerDirItemsForbidden(path, fullPath, req, res, cb);
-		}
 		var dirItem = '',
 			dirRows = [],
 			fileRows = [],
@@ -626,11 +688,16 @@ WebDevServer.prototype = {
 			}.bind(this, dirItem, i));
 		};
 	},
+	// render and send 403 forbidden page - do not list directory content
 	_processDirRequestHandlerDirItemsForbidden: function (path, fullPath, req, res, cb) {
-		var outputStr = WebDevServer.DIR_LISTING_CODES.HTML
-			.replace('%head%', WebDevServer.DIR_LISTING_CODES.HEAD_NOT_ALLOWED)
-			.replace('%body%', WebDevServer.DIR_LISTING_CODES.HEADER_NOT_ALLOWED);
-		res.status(403).send(outputStr);
+		if (!res.headersSent) {
+			res.setHeader('Content-Type', 'text/html; charset=utf-8');
+			res.writeHead(403);
+		}
+		var outputStr = WebDevServer.RESPONSE_CODES.HTML
+			.replace('%head%', WebDevServer.RESPONSE_CODES.HEAD_NOT_ALLOWED)
+			.replace('%body%', WebDevServer.RESPONSE_CODES.HEADER_NOT_ALLOWED);
+		res.send(outputStr);
 		cb();
 	},
 	// display directory content - send directory content html code:
@@ -644,28 +711,32 @@ WebDevServer.prototype = {
 		
 		if (statusCode == 200) {
 			headerCode = this._processDirRequestHandlerCompleteHeader(path, fullPath, dirStats);
-		} else {
-			headerCode = WebDevServer.DIR_LISTING_CODES.HEADER_NOT_FOUND.replace('%errorPath%', req._parsedUrl.pathname).replace('%path%', path)
-		}
-		
-		if (path) {
-			dirRows.unshift({
-				path: '..',
-				code: this._processDirRequestHandlerCompleteDirRow(path, '..', dirStats)
+			if (path) {
+				dirRows.unshift({
+					path: '..',
+					code: this._processDirRequestHandlerCompleteDirRow(path, '..', dirStats)
+				});
+			}
+			dirRows.forEach(function (item, i) {
+				listCode += item.code;
 			});
+			fileRows.forEach(function (item, i) {
+				listCode += item.code;
+			});
+			outputStr = WebDevServer.RESPONSE_CODES.HTML
+				.replace('%head%', WebDevServer.RESPONSE_CODES.HEAD_FOUND.replace('%fullPath%', fullPath))
+				.replace('%body%', headerCode + WebDevServer.RESPONSE_CODES.LIST.replace('%tbody%', listCode));
+		} else /*if (statusCode == 403)*/ {
+			outputStr = WebDevServer.RESPONSE_CODES.HTML
+				.replace('%head%', WebDevServer.RESPONSE_CODES.HEAD_NOT_ALLOWED)
+				.replace('%body%', WebDevServer.RESPONSE_CODES.HEADER_NOT_ALLOWED);
 		}
-		dirRows.forEach(function (item, i) {
-			listCode += item.code;
-		});
-		fileRows.forEach(function (item, i) {
-			listCode += item.code;
-		});
 		
-		outputStr = WebDevServer.DIR_LISTING_CODES.HTML
-			.replace('%head%', WebDevServer.DIR_LISTING_CODES.HEAD_FOUND.replace('%fullPath%', fullPath))
-			.replace('%body%', headerCode + WebDevServer.DIR_LISTING_CODES.LIST.replace('%tbody%', listCode));
-			
-		res.status(statusCode).send(outputStr);
+		if (!res.headersSent) {
+			res.setHeader('Content-Type', 'text/html; charset=utf-8');
+			res.writeHead(statusCode);
+		}
+		res.send(outputStr);
 		cb();
 	},
 	// send file:
@@ -679,16 +750,16 @@ WebDevServer.prototype = {
 	},
 	// display directory content - complete directory row code for directory content:
 	_processDirRequestHandlerCompleteDirRow: function (path, dir, itemStats) {
-		return WebDevServer.DIR_LISTING_CODES.DIR_ROW
+		return WebDevServer.RESPONSE_CODES.DIR_ROW
 			.replace('%href%', (this._basePath === null ? '' : this._basePath) + '/' + (path ? path + '/' : '') + this._trimRight(dir, '/') + '/')
-			.replace('%path%', dir)
+			.replace('%path%', this._htmlEntitiesEncode(dir))
 			.replace('%date%', this._formatDate(itemStats.mtime));
 	},
 	// display directory content - complete file row code for directory content:
 	_processDirRequestHandlerCompleteFileRow: function (path, file, itemStats) {
-		return WebDevServer.DIR_LISTING_CODES.FILE_ROW
+		return WebDevServer.RESPONSE_CODES.FILE_ROW
 			.replace('%href%', (this._basePath === null ? '' : this._basePath) + '/' + (path ? path + '/' : '') + file)
-			.replace('%path%', file)
+			.replace('%path%', this._htmlEntitiesEncode(file))
 			.replace('%filesize%', this._formatFileSize(itemStats.size || 0))
 			.replace('%date%', this._formatDate(itemStats.mtime || (new Date()).setTime(0) ));
 	},
@@ -704,22 +775,22 @@ WebDevServer.prototype = {
 		} else {
 			pathCodes = [path];
 		}
-		headerCode = WebDevServer.DIR_LISTING_CODES.HEADER_FOUND
-			.replace('%domain%', this._domain)
+		headerCode = WebDevServer.RESPONSE_CODES.HEADER_FOUND
+			.replace('%domain%', this._htmlEntitiesEncode(this._domain))
 			.replace('%port%', this._port)
-			.replace('%path%', pathCodes.join(''))
+			.replace('%path%', this._htmlEntitiesEncode(pathCodes.join('')))
 			.replace('%fullPath%', fullPath)
 			.replace('%lastMod%', this._formatDate(dirStats.mtime));
 		return headerCode;
 	},
 	// helper methods:
-	_getRequireCacheDifferenceKeys: function (cacheKeysBeforeRequire, cacheKeysAfterRequire, doNotIncludePath) {
+	_getRequireCacheDifferenceKeys: function (cacheKeysBeforeRequire, cacheKeysAfterRequire, requiredBy, doNotIncludePath) {
 		var result = [], 
 			record = '';
 		for (var i = 0, l = cacheKeysAfterRequire.length; i < l; i += 1) {
 			record = cacheKeysAfterRequire[i];
 			if (cacheKeysBeforeRequire.indexOf(record) == -1)
-				if (record.indexOf(doNotIncludePath) !== 0)
+				if (record !== requiredBy && record.indexOf(doNotIncludePath) !== 0)
 					result.push(record);
 		}
 		return result;
@@ -837,6 +908,11 @@ WebDevServer.prototype = {
 			}
 		}
 		return newStr;
+	},
+	_htmlEntitiesEncode: function (rawStr) {
+		return rawStr.replace(/[\u00A0-\u9999<>\&]/gim, function(i) {
+		   return '&#'+i.charCodeAt(0)+';';
+		});
 	}
 };
 module.exports = WebDevServer;
