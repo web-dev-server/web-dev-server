@@ -25,20 +25,6 @@ npm install web-dev-server
   `web-dev-server` will dispatch request
     - posibility to prevent `web-dev-server` request dispatching from custom handler
 - possibility to use under Apache through `mod_proxy`
-    - to do so, you need to redirect some requests to localhost on different port on your webserver machine:
-    ```
-    <VirtualHost 127.0.0.1:80>
-    	ServerName example.com
-	DocumentRoot /var/www/html/example.com
-	RewriteEngine on
-    	# Node.JS proxy - websockets:
-    	RewriteCond %{HTTP:Upgrade} =websocket [NC]
-    	RewriteRule /node/(.*) ws://127.0.0.1:8888/$1 [P,L]
-    	# Node.JS proxy - http/https:
-    	RewriteCond %{REQUEST_URI} ^/node(.*)$
-    	RewriteRule /node(.*) http://127.0.0.1:8888$1 [P,L]
-    </VirtualHost>
-    ```
 
 ## Usage
 #### 1. Create web development server instance initialization in `run.js` file and run it by `node run.js`:
@@ -159,3 +145,28 @@ App.prototype = {
 module.exports = App;
 ```
 #### 3. Open your browser and visit `http://localhost/` and see how it works with `index.js` changes and errors
+
+## Using Node with Apache with `mod_proxy` extension
+
+To use **Node.JS** with **Apache** with the same **Session ID** is very usefull, when you need to bring more  
+interactivity to your already existing web applications under Apache server with Node.JS.
+
+Everything you need to do is to redirect some requests in `.htaccess` to Node.JS (for example all `/node(.*)` requests).  
+Node.JS web server has to run on the same server machine on different port - for example Apache on port 80, Node.JS on port 8888.  
+Users and their browsers will see the same port `:80` on Apache as usual, but all request starting with substring `/node`  
+will be redirected to Node.JS web server application on port 8888 including websockets.
+
+### Apache And Node.JS Configuration Example In `.htaccess`:
+```
+<VirtualHost 127.0.0.1:80>
+    ServerName example.com
+    DocumentRoot /var/www/html/example.com
+    RewriteEngine on
+    # Node.JS proxy - websockets:
+    RewriteCond %{HTTP:Upgrade} =websocket [NC]
+    RewriteRule /node/(.*) ws://127.0.0.1:8888/$1 [P,L]
+    # Node.JS proxy - http/https:
+    RewriteCond %{REQUEST_URI} ^/node(.*)$
+    RewriteRule /node(.*) http://127.0.0.1:8888$1 [P,L]
+</VirtualHost>
+```
