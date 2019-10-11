@@ -17,18 +17,28 @@ npm install web-dev-server
   response to serve
     - you need to assign into `module.exports` you desired class definition to be executed - [see more](https://github.com/web-dev-server/example-helloworld/blob/master/dynamic-content/index.js)
 - serving `index.html`,`index.htm`,`default.html`,`default.htm` files as default directory content automaticly if no `index.js` file
-- not necessary to kill (`CTRL + C`) and re-run your script again (`node index.js`) for every script change 
-  or for any catched/uncatched Error inside. You just need to save your `index.js` (`CTRL + S`) or refresh 
-  browser (if there is was any Error) and there will be ececuted new `index.js` version in next request.
-  Also all remembered `index.js` scripts instances are forgotten in any catched/uncatched error 
-  and there is created new `index.js` exported content instance in next request to see changed result.
+- not necessary to kill (`CTRL + C`) and re-run your script again (`node run.js`) for every script change 
+  or for any uncatched Error inside. You just need to save your `index.js` (`CTRL + S`) or any it's required sub-script(s)  
+  and then, you can just refresh browser page and there will be ececuted fresh, realoded `*.js` files. 
 - all errors rendered in browser for development mode
 - posibility to add any custom express request/response dispatching handler to be executed before 
   `web-dev-server` will dispatch request
     - posibility to prevent `web-dev-server` request dispatching from custom handler
 - possibility to use under Apache through `mod_proxy`
     - to do so, you need to redirect some requests to localhost on different port on your webserver machine:
-    - `RewriteRule /node(.*) http://127.0.0.1:8000$1 [P,L]`
+    ```
+    <VirtualHost 127.0.0.1:80>
+    	ServerName example.com
+	DocumentRoot /var/www/html/example.com
+	RewriteEngine on
+    	# Node.JS proxy - websockets:
+    	RewriteCond %{HTTP:Upgrade} =websocket [NC]
+    	RewriteRule /node/(.*) ws://127.0.0.1:8888/$1 [P,L]
+    	# Node.JS proxy - http/https:
+    	RewriteCond %{REQUEST_URI} ^/node(.*)$
+    	RewriteRule /node(.*) http://127.0.0.1:8888$1 [P,L]
+    </VirtualHost>
+    ```
 
 ## Usage
 #### 1. Create web development server instance initialization in `run.js` file and run it by `node run.js`:
