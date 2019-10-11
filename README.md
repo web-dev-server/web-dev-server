@@ -161,6 +161,12 @@ application on port `:8888` including websockets.
 
 ### Apache And Node.JS Configuration Example In `.htaccess`:
 ```
+...
+LoadModule proxy_module modules/mod_proxy.so
+LoadModule proxy_http_module modules/mod_proxy_http.so
+LoadModule proxy_wstunnel_module modules/mod_proxy_wstunnel.so
+...
+
 <VirtualHost 127.0.0.1:80>
     ServerName example.com
     DocumentRoot /var/www/html/example.com
