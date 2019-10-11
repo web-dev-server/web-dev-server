@@ -12,19 +12,18 @@ npm install web-dev-server
 
 ## Main Goals
 - displaying directories content in development mode (development mode is true by default, possible to change)
-- serving static content for any existing files by default with express node module
-- executing `index.js` file in server side by node for directory requests as default directory 
+- serving static content for any existing files by default with `express` node module
+- executing `index.js` file in server side by Node.JS for directory requests as default directory 
   response to serve
     - you need to assign into `module.exports` you desired class definition to be executed - [see more](https://github.com/web-dev-server/example-helloworld/blob/master/dynamic-content/index.js)
 - serving `index.html`,`index.htm`,`default.html`,`default.htm` files as default directory content automaticly if no `index.js` file
-- not necessary to kill (`CTRL + C`) and re-run your script again (`node run.js`) for every script change 
-  or for any uncatched Error inside. You just need to save your `index.js` (`CTRL + S`) or any it's required sub-script(s)  
-  and then, you can just refresh browser page and there will be ececuted fresh, realoded `*.js` files. 
+- not necessary to kill (`CTRL + C`) and re-run your script(s) again (`node run.js`) for every server script change or for  
+  any uncatched Error inside. You just need to work in development mode and save your `index.js` (`CTRL + S`) or any it's required  
+  sub-script(s) and then, you can just refresh browser page and there will be ececuted fresh, realoded `*.js` files. 
 - all errors rendered in browser for development mode
-- posibility to add any custom express request/response dispatching handler to be executed before 
-  `web-dev-server` will dispatch request
+- posibility to add any custom express req/res dispatching handler to be executed before `web-dev-server` will dispatch the request
     - posibility to prevent `web-dev-server` request dispatching from custom handler
-- possibility to use under Apache through `mod_proxy`
+- possibility to use under Apache through `mod_proxy`, [read more here](#apache-and-nodejs-configuration-example-in-htaccess)
 
 ## Usage
 #### 1. Create web development server instance initialization in `run.js` file and run it by `node run.js`:
