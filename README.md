@@ -152,9 +152,13 @@ To use **Node.JS** with **Apache** with the same **Session ID** is very usefull,
 interactivity to your already existing web applications under Apache server with Node.JS.
 
 Everything you need to do is to redirect some requests in `.htaccess` to Node.JS (for example all `/node(.*)` requests).  
-Node.JS web server has to run on the same server machine on different port - for example Apache on port 80, Node.JS on port 8888.  
-Users and their browsers will see the same port `:80` on Apache as usual, but all request starting with substring `/node`  
-will be redirected to Node.JS web server application on port 8888 including websockets.
+
+Node.JS web server has to run on the same server machine on different por,  
+for example **Apache** on port `:80`, **Node.JS** on port `:8888`.  
+
+Users and their browsers will see the same port as before, the port `:80` with Apache,  
+but all request starting with substring `/node` will be redirected to **Node.JS** web server  
+application on port `:8888` including websockets.
 
 ### Apache And Node.JS Configuration Example In `.htaccess`:
 ```
