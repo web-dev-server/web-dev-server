@@ -173,3 +173,6 @@ application on port `:8888` including websockets.
     RewriteRule /node(.*) http://127.0.0.1:8888$1 [P,L]
 </VirtualHost>
 ```
+Read more here:  
+https://stackoverflow.com/questions/52576182/nodejs-apache-config-for-proxy-pass/58338589#58338589
+
