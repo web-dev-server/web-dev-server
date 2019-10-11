@@ -30,7 +30,7 @@ var WebDevServer = function () {
 		this._callback();
 	}.bind(this));
 };
-WebDevServer.VERSION = '1.6.0';
+WebDevServer.VERSION = '1.6.1';
 WebDevServer.DEFAULT_PORT = 8000;
 WebDevServer.DEFAULT_DOMAIN = 'localhost';
 WebDevServer.SESSION_HASH = "35$%d9wZfw256SAsMGá/@#$%&";
@@ -534,8 +534,9 @@ WebDevServer.prototype = {
 							//console.log(["dir", eventType, filename, cacheDirKeyToWatch]);
 							if (filename.length > 3 && filename.substr(-3).toLowerCase() == '.js') {
 								// eventType => 'change' | 'rename'
+								var clearedKeys = {};
 								this._clearRequireCacheByFullPath(
-									cacheDirKeyToWatch + '/' + filename
+									cacheDirKeyToWatch + '/' + filename, clearedKeys
 								);
 							}
 						}.bind(this)
@@ -545,7 +546,8 @@ WebDevServer.prototype = {
 		}, this);
 	},
 	// recursive clear require cache with cleaning module dependencies
-	_clearRequireCacheByFullPath: function (fullPath) {
+	_clearRequireCacheByFullPath: function (fullPath, clearedKeys) {
+		clearedKeys[fullPath] = true;
 		if (typeof(require.cache[fullPath]) != 'undefined') {
 			delete require.cache[fullPath];	
 			if (this._development) console.log(
@@ -557,7 +559,8 @@ WebDevServer.prototype = {
 			var dependencies = this._requireCacheDependencies[fullPath];
 			delete this._requireCacheDependencies[fullPath];
 			for (var dependencyFullPath in dependencies)
-				this._clearRequireCacheByFullPath(dependencyFullPath);
+				if (!clearedKeys[dependencyFullPath])
+					this._clearRequireCacheByFullPath(dependencyFullPath, clearedKeys);
 			this._requireCacheDependencies[fullPath] = dependencies;
 		}
 	},
