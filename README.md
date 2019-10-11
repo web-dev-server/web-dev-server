@@ -160,7 +160,7 @@ but all request starting with substring `/node` will be redirected to **Node.JS*
 application on port `:8888` including websockets.
 
 ### Apache And Node.JS Configuration Example In `.htaccess`:
-```sh
+```apache
 ...
 LoadModule proxy_module modules/mod_proxy.so
 LoadModule proxy_http_module modules/mod_proxy_http.so
