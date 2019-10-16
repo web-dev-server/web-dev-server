@@ -20,7 +20,7 @@ var WebDevServer = function () {
 	};
 	this._initErrorsHandlers();
 };
-WebDevServer.VERSION = '1.6.3';
+WebDevServer.VERSION = '1.6.4';
 WebDevServer.DEFAULT_PORT = 8000;
 WebDevServer.DEFAULT_DOMAIN = '127.0.0.1';
 WebDevServer.SESSION_HASH = "35$%d9wZfw256SAsMGá/@#$%&";

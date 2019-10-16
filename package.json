@@ -1,6 +1,6 @@
 {
   "name": "web-dev-server",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "keywords": [
     "node",
     "server",
@@ -26,8 +26,8 @@
   },
   "main": "server.js",
   "dependencies": {
-    "http": "~0.0.0",
-    "express": "~4.14.0",
-    "express-session": "~1.14.2"
+    "http": "^0.0.0",
+    "express": "^4.17.1",
+    "express-session": "^1.17.0"
   }
 }
