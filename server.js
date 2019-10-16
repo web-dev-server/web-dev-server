@@ -15,24 +15,14 @@ var WebDevServer = function () {
 	for (var i = 0, l = WebDevServer.INDEX_SCRIPTS.length; i < l; i += 1) {
 		this._indexScripts[WebDevServer.INDEX_SCRIPTS[i]] = i;
 	};
-	for (i = 0, l = WebDevServer.INDEX_FILES.length; i < l; i += 1) {
+	for (var i = 0, l = WebDevServer.INDEX_FILES.length; i < l; i += 1) {
 		this._indexFiles[WebDevServer.INDEX_FILES[i]] = i;
 	};
-	// clear all modules on any uncatched error
-	process.on('uncaughtException', function (e) {
-		if (this._development) {
-			this._dirIndexScriptsModulesStore = {};
-			var requireCacheKeys = Object.keys(require.cache);
-			for (var i = 0, l = requireCacheKeys.length; i < l; i += 1) 
-				delete require.cache[requireCacheKeys[i]];
-		}
-		this._printError(e, this._request, this._response);
-		this._callback();
-	}.bind(this));
+	this._initErrorsHandlers();
 };
-WebDevServer.VERSION = '1.6.2';
+WebDevServer.VERSION = '1.6.3';
 WebDevServer.DEFAULT_PORT = 8000;
-WebDevServer.DEFAULT_DOMAIN = 'localhost';
+WebDevServer.DEFAULT_DOMAIN = '127.0.0.1';
 WebDevServer.SESSION_HASH = "35$%d9wZfw256SAsMGá/@#$%&";
 WebDevServer.SESSION_ID_MAX_AGE = 3600; // hour
 WebDevServer.INDEX_SCRIPTS = ['index.js'];
@@ -100,6 +90,9 @@ WebDevServer.Event = function (req, res, cb, fullPath) {
 WebDevServer.Event.prototype = {
 	preventDefault: function () {
 		this.preventedDefault = true;
+	},
+	PreventDefault: function () {
+		this.preventedDefault = true;
 	}
 };
 WebDevServer.prototype = {
@@ -107,8 +100,8 @@ WebDevServer.prototype = {
 	_basePath: null,
 	_sessionMaxAge: null,
 	_sessionHash: null,
-	_port: null,
-	_domain: null,
+	_port: WebDevServer.DEFAULT_PORT,
+	_domain: WebDevServer.DEFAULT_DOMAIN,
 	_development: true,
 	_http: null,
 	_httpServer: null,
@@ -121,6 +114,7 @@ WebDevServer.prototype = {
 	_callback: function () {},
 	_request: null,
 	_response: null,
+	_errorHandler: null,
 	_indexFiles: {},
 	_indexScripts: {},
 	_requireCacheWatched: {},
@@ -131,7 +125,7 @@ WebDevServer.prototype = {
 	/**
 	 * @summary Set http server port number, 8000 by default
 	 * @param {string} dirname server root directory
-	 * @return WebDevServer
+	 * @return {WebDevServer}
 	 */
 	SetPort: function (port) {
 		this._port = port;
@@ -140,7 +134,7 @@ WebDevServer.prototype = {
 	/**
 	 * @summary Set http server IP or domain to listening on, 127.0.0.1 by default
 	 * @param {string} domain server ip or domain to listening on
-	 * @return WebDevServer
+	 * @return {WebDevServer}
 	 */
 	SetDomain: function (domain) {
 		this._domain = domain;
@@ -149,7 +143,7 @@ WebDevServer.prototype = {
 	/**
 	 * @summary Set http server root directory, required
 	 * @param {string} dirname server root directory as absolute path
-	 * @return WebDevServer
+	 * @return {WebDevServer}
 	 */
 	SetDocumentRoot: function (dirname) {
 		this._documentRoot = dirname.replace(/\\/g, '/');
@@ -158,7 +152,7 @@ WebDevServer.prototype = {
 	/**
 	 * @summary Set http server base path, not required
 	 * @param {string} server base path (proxy path, if you are running the server under proxy)
-	 * @return WebDevServer
+	 * @return {WebDevServer}
 	 */
 	SetBasePath: function (basePath) {
 		this._basePath = basePath.replace(/\\/g, '/');
@@ -167,7 +161,7 @@ WebDevServer.prototype = {
 	/**
 	 * @summary Set session id cookie max age.
 	 * @param {number} Session cookie max age in seconds, not miliseconds.
-	 * @return WebDevServer
+	 * @return {WebDevServer}
 	 */
 	SetSessionMaxAge: function (seconds) {
 		this._sessionMaxAge = seconds;
@@ -176,7 +170,7 @@ WebDevServer.prototype = {
 	/**
 	 * @summary Set session id hash salt.
 	 * @param {string} Session id hash salt.
-	 * @return WebDevServer
+	 * @return {WebDevServer}
 	 */
 	SetSessionHash: function (hashSalt) {
 		this._sessionHash = hashSalt;
@@ -185,7 +179,7 @@ WebDevServer.prototype = {
 	/**
 	 * @summary Set development mode, true by default, if false, directory content and exceptions are not displayed.
 	 * @param {bool} development development mode
-	 * @return WebDevServer
+	 * @return {WebDevServer}
 	 */
 	SetDevelopment: function (development) {
 		this._development = development;
@@ -194,16 +188,25 @@ WebDevServer.prototype = {
 	/**
 	 * @summary Add custom express http handler
 	 * @param {function} handler custom express handler: (req, res, e, cb) => {}
-	 * @return WebDevServer
+	 * @return {WebDevServer}
 	 */
 	AddHandler: function (handler) {
 		this._expressCustomHttpHandlers.push(handler);
 		return this;
 	},
 	/**
+	 * @summary Set custom error handler for uncatched errors and warnings
+	 * @param {function} errorHandler custom error handler: (e, req, res, code) => {}
+	 * @return {WebDevServer}
+	 */
+	SetErrorHandler: function (errorHandler) {
+		this._errorHandler = errorHandler;
+		return this;
+	},
+	/**
 	 * @summary Start HTTP server
 	 * @param {function} callback custom handler: (success, err) => {}
-	 * @return WebDevServer
+	 * @return {WebDevServer}
 	 */
 	Run: function (callback) {
 		this._documentRoot = this._documentRoot || __dirname.replace(/\\/g, '/');
@@ -227,51 +230,96 @@ WebDevServer.prototype = {
 		this._expressApp.use(this._sessionParser);
 		this._expressApp.all('*', this._allRequestsHandler.bind(this));
 		this._httpServer.on('error', function (e) {
-			if (!callback) console.error(e);
-			callback(false, e);
+			if (!callback) {
+				console.error(e);
+			} else {
+				callback(false, e);
+			}
 		}.bind(this));
 		this._httpServer.listen(this._port, this._domain, function () {
-			if (!callback) console.log(
-				"HTTP server has been started at: 'http://" + this._domain + ":" 
-				+ this._port + "' to serve directory: \n'" + this._documentRoot 
-				+ "'.\nEnjoy browsing:-) To stop the server, pres CTRL + C or close this command line window."
-			);
-			callback(true, null);
+			if (!callback) {
+				console.log(
+					"HTTP server has been started at: 'http://" + this._domain + ":" 
+					+ this._port + "' to serve directory: \n'" + this._documentRoot 
+					+ "'.\nEnjoy browsing:-) To stop the server, pres CTRL + C or close this command line window."
+				);
+			} else {
+				callback(true, null);
+			}
 		}.bind(this));
 		return this;
 	},
 	/**
 	 * @summary Return used http module instance
-	 * @return http
+	 * @return {http}
 	 */
 	GetHttp: function () {
 		return this._http;
 	},
 	/**
 	 * @summary Return used express module instance
-	 * @return express
+	 * @return {express}
 	 */
 	GetExpress: function () {
 		return this._express;
 	},
 	/**
 	 * @summary Return used express session parser module instance
-	 * @return session
+	 * @return {session}
 	 */
 	GetExpressSession: function () {
 		return this._expressSession;
 	},
-	// handle all requests:
+	/**
+	 * @summary Initialize uncatch error and uncatch warning handlers
+	 * @return {void}
+	 */
+	_initErrorsHandlers: function () {
+		process.on('uncaughtException', this._uncatchErrorAndWarningHandler.bind(this, true));
+		process.on('warning', this._uncatchErrorAndWarningHandler.bind(this, false));
+	},
+	/**
+	 * @summary Clear all modules on any uncatched error
+	 * @param {boolean}			clearRequireCache
+	 * @param {Error|Warning}	errorOrWarning
+	 * @return {void}
+	 */
+	_uncatchErrorAndWarningHandler: function (clearRequireCache, errorOrWarning) {
+		if (this._development && clearRequireCache) {
+			this._dirIndexScriptsModulesStore = {};
+			var requireCacheKeys = Object.keys(require.cache);
+			for (var i = 0, l = requireCacheKeys.length; i < l; i += 1) 
+				delete require.cache[requireCacheKeys[i]];
+		}
+		if (this._development) {
+			this._printError(errorOrWarning, this._request, this._response, 500);
+			this._callback();
+		} else {
+			this._printError(errorOrWarning, null, null, 500);
+		}
+	},
+	/**
+	 * @summary Handle all HTTP requests:
+	 * @param {Request}		req
+	 * @param {Response}	res
+	 * @param {function}	cb
+	 * @return {void}
+	 */
 	_allRequestsHandler: function (req, res, cb) {
 		var path = this._trimRight(this._trimLeft(decodeURIComponent(req._parsedUrl.pathname), '/'), '/');
 		var fullPath = this._trimRight(this._documentRoot + '/' + path, '/');
 		req.basePath = this._basePath;
+		if (this._development) {
+			this._callback = cb;
+			this._request = req;
+			this._response = res;
+		}
 		if (this._expressCustomHttpHandlers.length > 0) {
-			var event = new WebDevServer.Event(req, res, cb, fullPath),
+			var evnt = new WebDevServer.Event(req, res, cb, fullPath),
 				index = 0;
-			this._processCustomHandler(
-				index, req, res, event, function () {
-					if (event.preventedDefault) {
+			this._processCustomHandlersRecursively(
+				index, req, res, evnt, function () {
+					if (evnt.preventedDefault) {
 						cb();
 					} else {
 						this._fs.stat(
@@ -283,28 +331,49 @@ WebDevServer.prototype = {
 					}
 				}.bind(this)
 			);
-			
-			/*for (var i = 0, l = this._expressCustomHttpHandlers.length; i < l; i += 1) {
-				this._expressCustomHttpHandlers[i].call(null, req, res, event, cb);
-			}*/
-			
-			
 		} else {
 			this._fs.stat(fullPath, this._fsStatHandler.bind(this, path, fullPath, req, res, cb));
 		}
 	},
-	_processCustomHandler: function (index, req, res, event, cb) {
-		this._expressCustomHttpHandlers[index].call(null, req, res, event, function () {
-			if (index + 1 == this._expressCustomHttpHandlers.length) {
-				cb();
-			} else {
-				this._processCustomHandler(
-					index + 1, req, res, event, cb
-				);
-			}
-		}.bind(this));
+	/**
+	 * @summary Handle custom http handlers recursively:
+	 * @param {number}				index
+	 * @param {Request}				req
+	 * @param {Response}			res
+	 * @param {WebDevServer.Event}	evnt
+	 * @param {function}			cb
+	 * @return {void}
+	 */
+	_processCustomHandlersRecursively: function (index, req, res, evnt, cb) {
+		var handler = this._expressCustomHttpHandlers[index],
+			localCallback = function () {
+				if (evnt.preventedDefault || index + 1 == this._expressCustomHttpHandlers.length) {
+					cb();
+				} else {
+					this._processCustomHandlersRecursively(
+						index + 1, req, res, evnt, cb
+					);
+				}
+			}.bind(this);
+		try {
+			handler.call(null, req, res, evnt, localCallback);
+		} catch (e) {
+			this._printError(e, req, res, 500);
+			evnt.PreventDefault();
+			localCallback();
+		}
 	},
-	// check if any content exists for current reqest on hard drive:
+	/**
+	 * @summary Check if any content exists for current reqest on hard drive:
+	 * @param {string}		path
+	 * @param {string}		fullPath
+	 * @param {Request}		req
+	 * @param {Response}	res
+	 * @param {function}	cb
+	 * @param {Error|null}	err
+	 * @param {Stats|null}	stats
+	 * @return {void}
+	 */
 	_fsStatHandler: function (path, fullPath, req, res, cb, err, stats) {
 		if (err == null) {
 			this._processExistPath(stats, path, fullPath, req, res, cb);
@@ -312,7 +381,16 @@ WebDevServer.prototype = {
 			this._processNonExistPath(path, fullPath, req, res, cb);
 		}
 	},
-	// process request content found:
+	/**
+	 * @summary Process request content found:
+	 * @param {Stats}		stats
+	 * @param {string}		path
+	 * @param {string}		fullPath
+	 * @param {Request}		req
+	 * @param {Response}	res
+	 * @param {function}	cb
+	 * @return {void}
+	 */
 	_processExistPath: function (stats, path, fullPath, req, res, cb) {
 		if (stats.isDirectory()) {
 			var originalPathname = req._parsedUrl.pathname;
@@ -327,7 +405,15 @@ WebDevServer.prototype = {
 			cb();
 		}
 	},
-	// display error 500/404 (and try to list first existing parent folder content):
+	/**
+	 * @summary Display error 500/404 (and try to list first existing parent folder content):
+	 * @param {string}		path
+	 * @param {string}		fullPath
+	 * @param {Request}		req
+	 * @param {Response}	res
+	 * @param {function}	cb
+	 * @return {void}
+	 */
 	_processNonExistPath: function (path, fullPath, req, res, cb) {
 		var pathExploded = path.split('/'),
 			pathToFound = '',
@@ -382,6 +468,14 @@ WebDevServer.prototype = {
 			);
 		}
 	},
+	/**
+	 * @summary Try to get file system directory stats - recursively on first existing parent directory.
+	 * @param {string[]}	pathsToFound
+	 * @param {number}		index
+	 * @param {function}	successCallback
+	 * @param {function}	errorCallback
+	 * @return {void}
+	 */
 	_processNonExistPathStatsHandler: function (pathsToFound, index, successCallback, errorCallback) {
 		var pathToFound = pathsToFound[index];
 		this._fs.stat(this._documentRoot + pathToFound, function (lastFoundPath, err, lastFoundPathStats) {
@@ -400,7 +494,16 @@ WebDevServer.prototype = {
 			}
 		}.bind(this, pathToFound));
 	},
-	// process any application in index.js in directory request or on non-existing path request
+	/**
+	 * @summary Process any application in index.js in directory request or on non-existing path request:
+	 * @param {string}		fullPath
+	 * @param {string}		indexScript
+	 * @param {Stats}		indexScriptStats
+	 * @param {Request}		req
+	 * @param {Response}	res
+	 * @param {function}	cb
+	 * @return {void}
+	 */
 	_processDirectoryIndexScript: function (fullPath, indexScript, indexScriptStats, req, res, cb) {
 		var moduleStoreRecord = {},
 			moduleDeclaration,
@@ -409,9 +512,6 @@ WebDevServer.prototype = {
 		if (typeof(this._dirIndexScriptsModulesStore[fullPath]) != 'undefined') {
 			moduleStoreRecord = this._dirIndexScriptsModulesStore[fullPath];
 			// instance of index.js class already exists:
-			this._callback = cb;
-			this._request = req;
-			this._response = res;
 			if (this._development) {
 				// check any change on dev:
 				this._fs.stat(fullPath + '/' + indexScript, function (err, stats) {
@@ -429,7 +529,7 @@ WebDevServer.prototype = {
 						}
 						this._processDirectoryIndexScriptHttpRequestHandler(fullPath, indexScript, moduleInstance, req, res, cb);
 					} catch (e) {
-						this._printError(e, req, res);
+						this._printError(e, req, res, 500);
 						this._deleteModuleFromCache(fullPath);
 						cb();
 					}
@@ -439,27 +539,32 @@ WebDevServer.prototype = {
 					moduleInstance = moduleStoreRecord.instance;
 					this._processDirectoryIndexScriptHttpRequestHandler(fullPath, indexScript, moduleInstance, req, res, cb);
 				} catch (e) {
-					this._printError(e, req, res);
+					this._printError(e, req, res, 500);
 					this._deleteModuleFromCache(fullPath);
 					cb();
 				}
 			}
 		} else {
 			// create instance and handle request by index.js class:
-			this._callback = cb;
-			this._request = req;
-			this._response = res;
 			try {
 				moduleInstance = this._processDirectoryIndexScriptCreateModule(fullPath, indexScript, indexScriptStats, req, res);
 				this._processDirectoryIndexScriptHttpRequestHandler(fullPath, indexScript, moduleInstance, req, res, cb);
 			} catch (e) {
-				this._printError(e, req, res);
+				this._printError(e, req, res, 500);
 				this._deleteModuleFromCache(fullPath);
 				cb();
 			}
 		}
 	},
-	// create directory index.js script module with optional development require cache resolving
+	/**
+	 * @summary Create directory index.js script module instance with optional development require cache resolving:
+	 * @param {string}		fullPath
+	 * @param {string}		indexScript
+	 * @param {Stats}		indexScriptStats
+	 * @param {Request}		req
+	 * @param {Response}	res
+	 * @return {object}
+	 */
 	_processDirectoryIndexScriptCreateModule: function (fullPath, indexScript, indexScriptStats, req, res) {
 		if (this._development) {
 			var cacheKeysBeforeRequire = Object.keys(require.cache),
@@ -486,7 +591,16 @@ WebDevServer.prototype = {
 		};
 		return moduleInstance;
 	},
-	// process directory index.js script http request handler with optional development require cache resolving
+	/**
+	 * @summary Process directory index.js script http request handler with optional development require cache resolving:
+	 * @param {string}		fullPath
+	 * @param {string}		indexScript
+	 * @param {object}		moduleInstance
+	 * @param {Request}		req
+	 * @param {Response}	res
+	 * @param {function}	cb
+	 * @return {void}
+	 */
 	_processDirectoryIndexScriptHttpRequestHandler: function (fullPath, indexScript, moduleInstance, req, res, cb) {
 		if (this._development) {
 			var cacheKeysBeforeRequire = Object.keys(require.cache);
@@ -508,7 +622,12 @@ WebDevServer.prototype = {
 			);
 		}
 	},
-	// initialize filesystem change or rename handler for given fullpath file to clear necessary require cache modules
+	/**
+	 * @summary Initialize filesystem change or rename handler for given fullpath file to clear necessary require cache modules:
+	 * @param {string}		requiredByFullPath
+	 * @param {Response}	cacheKeysToWatchFullPaths
+	 * @return {void}
+	 */
 	_initRequireCacheItemsWatchHandlers: function (requiredByFullPath, cacheKeysToWatchFullPaths) {
 		cacheKeysToWatchFullPaths.forEach(function(cacheKeyToWatchFullPath, i) {
 			// set up dependencies:
@@ -545,7 +664,12 @@ WebDevServer.prototype = {
 			}
 		}, this);
 	},
-	// recursive clear require cache with cleaning module dependencies
+	/**
+	 * @summary Clear require cache recursively with cleaning module dependencies:
+	 * @param {string}	fullPath
+	 * @param {object}	clearedKeys
+	 * @return {void}
+	 */
 	_clearRequireCacheByFullPath: function (fullPath, clearedKeys) {
 		clearedKeys[fullPath] = true;
 		if (typeof(require.cache[fullPath]) != 'undefined') {
@@ -564,28 +688,34 @@ WebDevServer.prototype = {
 			this._requireCacheDependencies[fullPath] = dependencies;
 		}
 	},
-	// print exception in command line a little more nicely and send error in response
+	/**
+	 * @summary Print exception in command line a little more nicely and send error in response:
+	 * @param {Error|Warning}	e
+	 * @param {Request|null}	req
+	 * @param {Response|null}	res
+	 * @param {number}			code
+	 * @return {void}
+	 */
 	_printError: function (e, req, res, code) {
 		code = code || 500;
-		var stackLines = e.stack.replace(/\r/g, '').split("\n"),
-			stackLine = '', 
-			errorText = '';
-		for (var i = 1, l = stackLines.length; i < l; i += 1) {
-			stackLine = stackLines[i].replace(/\\/g, '/');
-			if (stackLine.indexOf(this._documentRoot) > -1) {
-				stackLines[i] = stackLine.replace(this._documentRoot, '');
-			}
+		var noErrorHandler = this._errorHandler === null,
+			errorText = (this._development || noErrorHandler)
+				? this._printErrorRenderText(e)
+				: '';
+		if (noErrorHandler) {
+			if (this._development) console.log("\n");
+			console.error(errorText);
+			if (this._development) console.log("\n");
+		} else {
+			this._errorHandler(e, code, req, res);
 		}
-		errorText = stackLines.join("\n");
-		console.error("\n");
-		console.error(errorText);
-		console.error("\n");
+		if (!res || (res && res.finished)) return;
 		if (!res.headersSent) {
 			res.setHeader('Content-Type', this._development ? 'text/plain; charset=utf-8' : 'text/html; charset=utf-8');
 			res.writeHead(code);
 		}
 		if (this._development) {
-			res.end("/*\n"+errorText+"\n*/");
+			res.write("/*\n"+errorText+"\n*/");
 		} else {
 			if (code == 404) {
 				var headerCode = WebDevServer.RESPONSE_CODES.HEADER_NOT_FOUND
@@ -598,13 +728,39 @@ WebDevServer.prototype = {
 					.replace('%head%', WebDevServer.RESPONSE_CODES.HEAD_ERROR)
 					.replace('%body%', WebDevServer.RESPONSE_CODES.HEADER_ERROR);
 			}
-			res.end(outputStr);
+			res.write(outputStr);
 		}
 	},
-	// display directory content or send index.html file:
+	/**
+	 * @summary Render error as text for development purposes:
+	 * @param {Error} e
+	 * @return {string}
+	 */
+	_printErrorRenderText: function (e) {
+		var stackLines = e.stack.replace(/\r/g, '').split("\n"),
+			stackLine = '';
+		for (var i = 1, l = stackLines.length; i < l; i += 1) {
+			stackLine = stackLines[i].replace(/\\/g, '/');
+			if (stackLine.indexOf(this._documentRoot) > -1) 
+				stackLines[i] = stackLine.replace(this._documentRoot, '');
+		}
+		return stackLines.join("\n");
+	},
+	/**
+	 * @summary Display directory content or send index.html file:
+	 * @param {number}		statusCode
+	 * @param {Stats}		dirStats
+	 * @param {string}		path
+	 * @param {string}		fullPath
+	 * @param {Request}		req
+	 * @param {Response}	res
+	 * @param {function}	cb
+	 * @param {string}		err
+	 * @param {string[]}	dirItems
+	 * @return {void}
+	 */
 	_processDirRequestHandler: function (statusCode, dirStats, path, fullPath, req, res, cb, err, dirItems) {
 		if (err != null) {
-			// TODO: display any error message as output
 			this._printError(err, req, res, 403);
 			return cb();
 		}
@@ -642,7 +798,15 @@ WebDevServer.prototype = {
 			this._processDirRequestHandlerDirItems(statusCode, dirStats, dirItems, path, fullPath, req, res, cb);
 		}
 	},
-	
+	/**
+	 * @summary Get first index script (or index static file) file system stats:
+	 * @param {string}		fullPath
+	 * @param {string[]}	files
+	 * @param {number}		index
+	 * @param {function}	successCallback
+	 * @param {function}	errorCallback
+	 * @return {void}
+	 */
 	_processDirRequestHandlerGetIndexFileStats: function (fullPath, files, index, successCallback, errorCallback) {
 		this._fs.stat(fullPath + '/' + files[index], function(err, itemStat) {
 			if (err == null && itemStat.isFile()) {
@@ -657,7 +821,18 @@ WebDevServer.prototype = {
 			}
 		}.bind(this));
 	},
-	// go through all files and folders in current directory
+	/**
+	 * @summary Go through all files and folders in current directory:
+	 * @param {number}		statusCode
+	 * @param {Stats}		dirStats
+	 * @param {string[]}	dirItems
+	 * @param {string}		path
+	 * @param {string}		fullPath
+	 * @param {Request}		req
+	 * @param {Response}	res
+	 * @param {function}	cb
+	 * @return {void}
+	 */
 	_processDirRequestHandlerDirItems: function (statusCode, dirStats, dirItems, path, fullPath, req, res, cb) {
 		if (!this._development) 
 			return this._processDirRequestHandlerDirItemsForbidden(path, fullPath, req, res, cb);
@@ -691,19 +866,38 @@ WebDevServer.prototype = {
 			}.bind(this, dirItem, i));
 		};
 	},
-	// render and send 403 forbidden page - do not list directory content
+	/**
+	 * @summary Render and send 403 forbidden page - do not list directory content:
+	 * @param {number}		statusCode
+	 * @param {string}		fullPath
+	 * @param {Request}		req
+	 * @param {Response}	res
+	 * @param {function}	cb
+	 * @return {void}
+	 */
 	_processDirRequestHandlerDirItemsForbidden: function (path, fullPath, req, res, cb) {
 		if (!res.headersSent) {
 			res.setHeader('Content-Type', 'text/html; charset=utf-8');
 			res.writeHead(403);
 		}
-		var outputStr = WebDevServer.RESPONSE_CODES.HTML
-			.replace('%head%', WebDevServer.RESPONSE_CODES.HEAD_NOT_ALLOWED)
-			.replace('%body%', WebDevServer.RESPONSE_CODES.HEADER_NOT_ALLOWED);
-		res.send(outputStr);
-		cb();
+		if (!res.finished) {
+			var outputStr = WebDevServer.RESPONSE_CODES.HTML
+				.replace('%head%', WebDevServer.RESPONSE_CODES.HEAD_NOT_ALLOWED)
+				.replace('%body%', WebDevServer.RESPONSE_CODES.HEADER_NOT_ALLOWED);
+			res.write(outputStr, null, cb);
+		} else {
+			cb();
+		}
 	},
-	// display directory content - send directory content html code:
+	/**
+	 * @summary Display directory content - send directory content html code:
+	 * @param {string}		path
+	 * @param {string}		fullPath
+	 * @param {Request}		req
+	 * @param {Response}	res
+	 * @param {function}	cb
+	 * @return {void}
+	 */
 	_processDirRequestHandlerFinished: function (statusCode, path, fullPath, dirStats, dirRows, fileRows, req, res, cb) {
 		var headerCode = '',
 			listCode = '', 
@@ -739,10 +933,22 @@ WebDevServer.prototype = {
 			res.setHeader('Content-Type', 'text/html; charset=utf-8');
 			res.writeHead(statusCode);
 		}
-		res.send(outputStr);
-		cb();
+		if (!res.finished) {
+			res.write(outputStr, null, cb);
+		} else {
+			cb();	
+		}
 	},
-	// send file:
+	/**
+	 * @summary Send file:
+	 * @param {Stats}		stats
+	 * @param {string}		path
+	 * @param {string}		fullPath
+	 * @param {Request}		req
+	 * @param {Response}	res
+	 * @param {function}	cb
+	 * @return {void}
+	 */
 	_readFileHandler: function (stats, path, fullPath, req, res, cb) {
 		res.status(200).setHeader('Content-Length', stats.size);
 		res.sendFile(fullPath, {
@@ -751,14 +957,26 @@ WebDevServer.prototype = {
 			cb();
 		});
 	},
-	// display directory content - complete directory row code for directory content:
+	/**
+	 * @summary Display directory content - complete directory row code for directory content:
+	 * @param {string}	path
+	 * @param {string}	dir
+	 * @param {Stats}	itemStats
+	 * @return {string}
+	 */
 	_processDirRequestHandlerCompleteDirRow: function (path, dir, itemStats) {
 		return WebDevServer.RESPONSE_CODES.DIR_ROW
 			.replace('%href%', (this._basePath === null ? '' : this._basePath) + '/' + (path ? path + '/' : '') + this._trimRight(dir, '/') + '/')
 			.replace('%path%', this._htmlEntitiesEncode(dir))
 			.replace('%date%', this._formatDate(itemStats.mtime));
 	},
-	// display directory content - complete file row code for directory content:
+	/**
+	 * @summary Display directory content - complete file row code for directory content:
+	 * @param {string}	path
+	 * @param {string}	file
+	 * @param {Stats}	itemStats
+	 * @return {string}
+	 */
 	_processDirRequestHandlerCompleteFileRow: function (path, file, itemStats) {
 		return WebDevServer.RESPONSE_CODES.FILE_ROW
 			.replace('%href%', (this._basePath === null ? '' : this._basePath) + '/' + (path ? path + '/' : '') + file)
@@ -766,7 +984,13 @@ WebDevServer.prototype = {
 			.replace('%filesize%', this._formatFileSize(itemStats.size || 0))
 			.replace('%date%', this._formatDate(itemStats.mtime || (new Date()).setTime(0) ));
 	},
-	// display directory content - complete heading code for directory content:
+	/**
+	 * @summary Display directory content - complete heading code for directory content:
+	 * @param {string}	path
+	 * @param {string}	fullPath
+	 * @param {Stats}	dirStats
+	 * @return {string}
+	 */
 	_processDirRequestHandlerCompleteHeader: function (path, fullPath, dirStats) {
 		var headerCode = '', pathStep = '', pathCodes = [];
 		var pathExploded = path.split('/');
@@ -786,7 +1010,20 @@ WebDevServer.prototype = {
 			.replace('%lastMod%', this._formatDate(dirStats.mtime));
 		return headerCode;
 	},
-	// helper methods:
+	
+	
+	/********************************************************************************************************
+	 *                                         helper methods                                               *
+	 *******************************************************************************************************/
+	
+	/**
+	 * @summary Return difference between two records of require cache keys - before and after require has been called.
+	 * @param {string[]} 	cacheKeysBeforeRequire	Require cache keys before `require(requiredBy)` has been called.
+	 * @param {string[]} 	cacheKeysAfterRequire	Require cache keys after `require(requiredBy)` has been called.
+	 * @param {string} 		requiredBy				Full path as first param from require call.
+	 * @param {string} 		doNotIncludePath		Do not include records beginning with this string.
+	 * @return {string[]}
+	 */
 	_getRequireCacheDifferenceKeys: function (cacheKeysBeforeRequire, cacheKeysAfterRequire, requiredBy, doNotIncludePath) {
 		var result = [], 
 			record = '';
@@ -798,6 +1035,11 @@ WebDevServer.prototype = {
 		}
 		return result;
 	},
+	/**
+	 * @summary Return found index JS stripts for server side  execution or index HTML static files.
+	 * @param {string[]}
+	 * @return {object}
+	 */
 	_findIndexScriptsOrFilesInDirectoryItems: function (dirItems) {
 		var dirItemsLowerCased = [],
 			indexFilesFound = [],
@@ -823,7 +1065,7 @@ WebDevServer.prototype = {
 				resultScripts.push(item[1]);
 			});
 		} else {
-			for (i = 0, l = dirItemsLowerCased.length; i < l; i += 1) {
+			for (var i = 0, l = dirItemsLowerCased.length; i < l; i += 1) {
 				dirItem = dirItemsLowerCased[i][0];
 				dirItemLowerCased = dirItemsLowerCased[i][1];
 				if (typeof(this._indexFiles[dirItemLowerCased]) != 'undefined') {
@@ -890,7 +1132,7 @@ WebDevServer.prototype = {
 	},
 	_trimLeft: function (str, ch) {
 		var newStr = '';
-		for (i = 0, l = str.length; i < l; i += 1) {
+		for (var i = 0, l = str.length; i < l; i += 1) {
 			if (str.charAt(i) == ch) {
 				newStr = str.substr(i + 1);
 			} else {
@@ -902,7 +1144,7 @@ WebDevServer.prototype = {
 	},
 	_trimRight: function (str, ch) {
 		var newStr = '';
-		for (i = str.length - 1; i > -1; i -= 1) {
+		for (var i = str.length - 1; i > -1; i -= 1) {
 			if (str.charAt(i) == ch) {
 				newStr = str.substring(0, i);
 			} else {
