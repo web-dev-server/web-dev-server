@@ -20,7 +20,7 @@ var WebDevServer = function () {
 	};
 	this._initErrorsHandlers();
 };
-WebDevServer.VERSION = '1.6.4';
+WebDevServer.VERSION = '1.6.5';
 WebDevServer.DEFAULT_PORT = 8000;
 WebDevServer.DEFAULT_DOMAIN = '127.0.0.1';
 WebDevServer.SESSION_HASH = "35$%d9wZfw256SAsMGá/@#$%&";
@@ -730,6 +730,7 @@ WebDevServer.prototype = {
 			}
 			res.write(outputStr);
 		}
+		res.end();
 	},
 	/**
 	 * @summary Render error as text for development purposes:
@@ -885,6 +886,7 @@ WebDevServer.prototype = {
 				.replace('%head%', WebDevServer.RESPONSE_CODES.HEAD_NOT_ALLOWED)
 				.replace('%body%', WebDevServer.RESPONSE_CODES.HEADER_NOT_ALLOWED);
 			res.write(outputStr, null, cb);
+			res.end();
 		} else {
 			cb();
 		}
@@ -935,6 +937,7 @@ WebDevServer.prototype = {
 		}
 		if (!res.finished) {
 			res.write(outputStr, null, cb);
+			res.end();
 		} else {
 			cb();	
 		}
