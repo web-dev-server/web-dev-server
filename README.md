@@ -37,7 +37,7 @@ var devServer = (new WebDevServer())
     //.SetSessionHash('SGS2e+9x5$as%SD_AS6s.aHS96s')  // optional, session id hash salt
     //.SetBasePath('/node')                           // optional, null by default, useful for apache proxy modes
     //.SetDevelopment(false)                          // optional, true by default to display Errors and directory content
-	// .SetErrorHandler((e,code,req,res) => {})	      // optional, custom place to log any unhandled errors and warnings
+    // .SetErrorHandler((e,code,req,res) => {})	      // optional, custom place to log any unhandled errors and warnings
     .AddHandler(function (req, res, e, cb) {          // optional, to prepend any execution before `web-dev-server` module execution
         if (req.url == '/health') {
             res.writeHead(200);
