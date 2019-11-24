@@ -1000,7 +1000,7 @@ WebDevServer.prototype = {
 		if (pathExploded[0] != '') {
 			for (var i = 0, l = pathExploded.length; i < l; i += 1) {
 				pathStep += ((i > 0) ? '/' : '') + pathExploded[i];
-				pathCodes.push('<a href="/' + pathStep + '/">' + pathExploded[i] + '/</a> ');
+				pathCodes.push('<a href="/' + this._htmlEntitiesEncode(pathStep) + '/">' + pathExploded[i] + '/</a> ');
 			}
 		} else {
 			pathCodes = [path];
@@ -1008,7 +1008,7 @@ WebDevServer.prototype = {
 		headerCode = WebDevServer.RESPONSE_CODES.HEADER_FOUND
 			.replace('%domain%', this._htmlEntitiesEncode(this._domain))
 			.replace('%port%', this._port)
-			.replace('%path%', this._htmlEntitiesEncode(pathCodes.join('')))
+			.replace('%path%', pathCodes.join(''))
 			.replace('%fullPath%', fullPath)
 			.replace('%lastMod%', this._formatDate(dirStats.mtime));
 		return headerCode;
