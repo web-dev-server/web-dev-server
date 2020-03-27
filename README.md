@@ -115,7 +115,9 @@ WebDevServer.Server.CreateNew()
 - Open command line:
    - Initialize Node.JS project by `npm init`.
    - Initialize TypeScript project by `tsc --init`.
-   - Install packages by `npm install -y web-dev-server @types/express-serve-static-core`.
+   - Install packages by `npm install -y web-dev-server`.
+   - Install packages by `npm install -y --save-dev @types/express-serve-static-core`.
+   
 - Create empty file `./run.ts`.
 - Initialize web development server instance in `./run.ts`:
 ```ts
