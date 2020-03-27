@@ -1,7 +1,7 @@
 # Node.js Development HTTP Server
 
 [![Latest Stable Version](https://img.shields.io/badge/Stable-v2.0.0-brightgreen.svg?style=plastic)](https://github.com/web-dev-server/web-dev-server/releases)
-[![Min. TypeScript Version](https://img.shields.io/badge/TypeScript-v3.7.7-brightgreen.svg?style=plastic)](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-7.html)
+[![Min. TypeScript Version](https://img.shields.io/badge/TypeScript-v3.7.3-brightgreen.svg?style=plastic)](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-7.html)
 [![License](https://img.shields.io/badge/Licence-BSD-brightgreen.svg?style=plastic)](https://github.com/web-dev-server/web-dev-server/blob/master/LICENCE.md)
 
 Node.js simple http server for common development or training purposes in Javascript or Typescript.
@@ -118,93 +118,68 @@ file inside, executed as default directory content later:
 ```js
 var fs = require('fs');
 
-/**
- * @summary Constructor, called only for first time, when there is default directory request with index.js 
-            file inside and there is necessary to create instance of this `module.exports` content to call 
-            `instance.httpRequestHandler` method to dispatch http request. If there is detected any file change
-            inside this file, `web-deb-server` module automaticly reload content of this file and it creates
-            instance and call this constructor again automaticly, the same behaviour if there is any catched error 
-            in `httpRequestHandler` execution - this file and constructor is loaded and called again - to develop more comfortably.
- * @param   {http}           http           used node http module instance
- * @param   {express}        express        used node express module instance
- * @param   {expressSession} expressSession used node expressSession module instance
- * @param   {request}        request        current http request object
- * @param   {response}       response       current http response object
+/** 
+ * @summary Application constructor, which is executed only once, 
+ *                      when there is a request to directory with default index.js 
+ *                      script inside. Then it's automatically created an instance 
+ *                      of `module.exports` content. Then it's executed 
+ *                      `handleHttpRequest` method on that instance. 
+ *                      This is the way, how is directory request handled with 
+ *                      default `index.js` file inside. 
+ *                      If there is detected any file change inside this file 
+ *                      (or inside file included in this file), the module 
+ *                      `web-deb-server` automaticly reloads all necesssary 
+ *                      dependent source codes and creates this application 
+ *                      instance again. The same realoding procedure is executed, 
+ *                      if there is any unhandled error inside method 
+ *                      `handleHttpRequest` (to develop more comfortably).
+ * @param {http}           http           Used node http module instance.
+ * @param {express}        express        Used node express module instance.
+ * @param {expressSession} expressSession Used node expressSession module instance.
+ * @param {request}        request        Current http request object.
+ * @param {response}       response       Current http response object.
  * @return void
  */
 var App = function (http, express, expressSession, request, response) {
-    this._http = http;
-    this._express = express;
-    this._expressSession = expressSession;
+   this.http = http;
+   this.express = express;
+   this.expressSession = expressSession;
 };
 App.prototype = {
-    /**
-     * @summary Method called each request to dispatch request for default directory content containing 
-     *          `index,js` file (also for first time after constructor). 
-     * @param   {request}  request  current http request object
-     * @param   {response} response current http response object
-     * @param   {function} callback callback to do any other node.js operations
-     * @return  void
-     */
-    httpRequestHandler: function (request, response, callback) {
-        this._completeWholeRequestInfo(request, function (requestInfo) {
+   /**
+    * @summary Requests counter.
+    * @var {number}
+    */
+   counter: 0,
+   /**
+    * @summary This method is executed each request to directory with 
+    *          `index.js` script inside (also executed for first time 
+    *          immediately after constructor).
+    * @param {request}  request  Current http request object.
+    * @param {response} response Current http response object.
+    * @return {Promise}
+    */
+    handleHttpRequest: function (request, response) {
+      return new Promise(function (resolve, reject) {
+         
+         // try to uncomment line bellow to see rendered error in browser:
+         //throw new Error("Unhandled test error.");
+
+         // let's do anything asynchronous:
+         fs.readdir(__dirname, {}, function (err, files) {
+	    
+            if (err) {
+               console.log(err);
+               return reject();
+            }
+	       
+            response.send(this.counter++);
+            resolve();
+	       
+         }.bind(this));
             
-            
-            // some demo operation to say hallo world:
-            var staticHtmlFileFullPath = __dirname + '/../static-content/index.html';
-            fs.readFile(staticHtmlFileFullPath, 'utf8', function (err, data) {
-                
-                // try to uncomment line bellow to see rendered error in browser:
-                //throw new Error(":-)");
-                
-                if (err) {
-                    console.log(err);
-                    return callback();
-                }
-                response.send(data.replace(/%requestPath/g, requestInfo.url));
-                callback();
-            });
-            
-            
-        }.bind(this));
-    },
-    /**
-     * @summary Complete whole request body to operate with it later properly (encode json data or anything else...)
-     * @param   {request}  request  current http request
-     * @param   {function} callback callback to execute after whole request body is loaded or request loading failed
-     * @return  void
-     */
-    _completeWholeRequestInfo: function (request, callback) {
-        var basePath = request.basePath === null ? '' : request.basePath,
-            domainUrl = request.protocol + '://' + request.hostname,
-            queryString = '', 
-            delim = '?';
-        for (var paramName in request.query) {
-            queryString += delim + paramName + '=' + request.query[paramName];
-            delim = '&';
-        }
-        var reqInfo = {
-            basePath: basePath,
-            path: request.path,
-            requestPath: basePath + request.path,
-            domainUrl: domainUrl,
-            fullUrl: domainUrl + basePath + request.path + queryString,
-            method: request.method,
-            headers: request.headers,
-            statusCode: request.statusCode,
-            textBody: ''
-        };
-        var bodyArr = [];
-        request.on('error', function (err) {
-            console.error(err);
-        }).on('data', function (chunk) {
-            bodyArr.push(chunk);
-        }).on('end', function () {
-            reqInfo.textBody = Buffer.concat(bodyArr).toString();
-            reqInfo.request = request;
-            callback(reqInfo);
-        }.bind(this));
-    }
+      }.bind(this));
+   }
 };
 module.exports = App;
 ```
