@@ -29,6 +29,7 @@ npm install web-dev-server
 
 
 ## 2. Main Goals
+- Javascript or Typescript projects usage, it doesn't matter.
 - Displaying directories in development mode (development mode is `true` by default, configurable).
 - Serving static content for any existing requested files (with `express` node module).
 - Executing `index.js` files in server side by Node.JS for directory requests as default directory 
