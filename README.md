@@ -102,7 +102,8 @@ WebDevServer.Server.CreateNew()
    })
    // optional, callback called after server has been started or after error ocured
    .Run(function (success, err) {
-      // ...
+      if (!success) console.error(err);
+      console.log("Server is running.");
    });
 ```
 
@@ -158,7 +159,8 @@ WebDevServer.Server.CreateNew()
    })
    // Callback param is optional. called after server has been started or after error ocured.
    .Run((success: boolean, err: Error) => {
-      // ...
+      if (!success) console.error(err);
+      console.log("Server is running.");
    });
 ```
 
@@ -228,8 +230,9 @@ App.prototype = {
                console.log(err);
                return reject();
             }
-	       
-            response.send(this.counter++);
+	    
+            this.counter++;
+            response.send(this.counter.toString());
             resolve();
 	       
          }.bind(this));
@@ -311,7 +314,9 @@ export default class App implements WebDevServer.IApplication {
          });
       });
 
-      response.send(this.counter++);
+
+      this.counter++;
+      response.send(this.counter.toString());
    }
 ```
 
