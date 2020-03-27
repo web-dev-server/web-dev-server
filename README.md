@@ -93,7 +93,7 @@ WebDevServer.Server.CreateNew()
          res.writeHead(200);
          res.end('1');
 	 // Do not anything else in `web-dev-server` module for this request:
-         evnt.preventDefault();
+         evnt.PreventDefault();
       }
       /*setTimeout(() => {
          throw new RangeError("Uncatched test error.");
@@ -156,7 +156,7 @@ WebDevServer.Server.CreateNew()
          res.writeHead(200);
          res.end('1');
 	 // Do not anything else in `web-dev-server` module for this request:
-         evnt.preventDefault();
+         evnt.PreventDefault();
       }
       /*setTimeout(() => {
          throw new RangeError("Uncatched test error.");
