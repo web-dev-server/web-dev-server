@@ -266,7 +266,9 @@ var Server = /** @class */ (function () {
             return this.directoriesHandler.HandleForbidden(res, cb);
         var fullPath = path_1.default.resolve(this.documentRoot + '/' + path).replace(/\\/g, '/');
         fullPath = helpers_1.Helpers.TrimRight(fullPath, '/');
-        req.baseUrl = '/' + this.baseUrl;
+        req.baseUrl = this.baseUrl !== null
+            ? '/' + this.baseUrl
+            : '';
         if (this.development)
             this.errorsHandler.SetHandledRequestProperties(req, res, cb);
         if (this.customHttpHandlers.length > 0) {
@@ -409,7 +411,7 @@ var Server = /** @class */ (function () {
                         _this.errorsHandler.PrintError(err, req, res, 403);
                         return cb();
                     }
-                    _this.directoriesHandler.HandleDirectory(404, lastFoundPathStats, lastFoundPath, fullPath, req, res, cb, dirItems);
+                    _this.directoriesHandler.HandleDirectory(404, lastFoundPathStats, lastFoundPath, newFullPath, req, res, cb, dirItems);
                 });
             }, function (err) {
                 var error = null;
@@ -448,7 +450,7 @@ var Server = /** @class */ (function () {
             }
         });
     };
-    Server.VERSION = '2.0.0';
+    Server.VERSION = '2.0.1';
     Server.DEFAULTS = {
         PORT: 8000,
         DOMAIN: '127.0.0.1',

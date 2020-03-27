@@ -23,7 +23,7 @@ export declare class Helpers {
     static RealTypeOf(obj: any): string;
     static IsPrimitiveType(obj: any): boolean;
     static GetRequireCacheDifferenceKeys(cacheKeysBeforeRequire: string[], cacheKeysAfterRequire: string[], requiredBy: string, doNotIncludePath: string): string[];
-    static ObjectsArraySortByPathProperty(a: DirItem, b: DirItem): 0 | 1 | -1;
+    static ObjectsArraySortByPathProperty(a: DirItem, b: DirItem): 1 | -1 | 0;
     static ObjectToMap<TValue>(obj: object): Map<string, TValue>;
     /**
      * @summary Return found index JS stripts for server side  execution or index HTML static files.

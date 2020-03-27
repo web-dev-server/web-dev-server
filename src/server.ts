@@ -21,7 +21,7 @@ export * from "./event"
 export * from "./logger"
 
 export class Server {
-	public static VERSION: string = '2.0.0';
+	public static VERSION: string = '2.0.1';
 	public static DEFAULTS: {
 		PORT: number, DOMAIN: string, RESPONSES: typeof DefaultResponses
 	} = {
@@ -325,7 +325,9 @@ export class Server {
 
 		var fullPath: string = pathUtil.resolve(this.documentRoot + '/' + path).replace(/\\/g, '/');
 		fullPath = Helpers.TrimRight(fullPath, '/');
-		req.baseUrl = '/' + this.baseUrl;
+		req.baseUrl = this.baseUrl !== null
+			? '/' + this.baseUrl
+			: '';
 
 		if (this.development) 
 			this.errorsHandler.SetHandledRequestProperties(req, res, cb);
@@ -526,7 +528,7 @@ export class Server {
 								return cb();
 							}
 							this.directoriesHandler.HandleDirectory(
-								404, lastFoundPathStats, lastFoundPath, fullPath, req, res, cb, dirItems
+								404, lastFoundPathStats, lastFoundPath, newFullPath, req, res, cb, dirItems
 							)
 						}
 					);
