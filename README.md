@@ -164,7 +164,7 @@ WebDevServer.Server.CreateNew()
       cb();
    })
    // Callback param is optional. called after server has been started or after error ocured.
-   .Run((success: boolean, err: Error) => {
+   .Run((success: boolean, err?: Error) => {
       if (!success) console.error(err);
       console.log("Server is running.");
    });
