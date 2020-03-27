@@ -61,8 +61,11 @@ npm install web-dev-server
 
 #### 3.1.1. Create Server In Javascript
 
-Create web development server instance in `./run.js` file:
-
+- Open command line:
+   - Initialize Node.JS project by `npm init`.
+   - Install package by `npm install -y web-dev-server`
+- Create empty file `./run.js`.
+- Initialize web development server instance in `./run.js`:
 ```js
 var WebDevServer = require("web-dev-server");
 
@@ -166,9 +169,9 @@ WebDevServer.Server.CreateNew()
 
 #### 3.2.1. Create Application In Javascript
 
-Create empty folder `./app`, next to `./run.js` with `./app/index.js`  
-file inside, executed as default directory content later:
-
+- Create empty folder `./app`, next to `./run.js` with new empty file `./app/index.js`  
+  inside, executed as default directory content later.
+- Initialize web application instance in `./app/index.js`:
 ```js
 var fs = require('fs');
 
@@ -317,7 +320,7 @@ export default class App implements WebDevServer.IApplication {
 
 ## 4. Run Application
 
-- Run in command line prepared web server instance in file `run.js` by `node run.js`.
+- Run in command line prepared web server instance in file `./run.js` by `node ./run.js`.
 - Open your browser and visit `http://localhost/` and see, how it works with `index.js` changes and errors.
 
 [go to top](#user-content-outline)
