@@ -45,7 +45,7 @@ npm install web-dev-server
   will dispatch the request in standard way:
     - Posibility to prevent `web-dev-server` request dispatching from custom handler.
 - Configurable session hash salt, forbidden request paths and more.
-- Possibility to use the server under Apache through `mod_proxy`, [read more here](#apache-and-nodejs-configuration-example-in-htaccess).
+- Possibility to use the server under Apache through `mod_proxy`, [read more here](#user-content-5-run-with-apache).
 
 [go to top](#user-content-outline)
 
