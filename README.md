@@ -198,7 +198,7 @@ import * as WebDevServer from "web-dev-server";
 /**
  * @summary Exported class to handle directory requests.
  */
-export default class App extends WebDevServer.Application.Abstract {
+export default class App implements WebDevServer.IApplication {
    
    /** @summary Requests counter. */
    counter: number = 0;
