@@ -32,7 +32,7 @@ npm install web-dev-server
 - Displaying directories in development mode (development mode is `true` by default, configurable).
 - Serving static content for any existing requested files (with `express` node module).
 - Executing `index.js` files in server side by Node.JS for directory requests as default directory 
-  response to serve
+  response to serve:
     - There is necessary to assign into `module.exports` you desired class definition to be executed - [see more](https://github.com/web-dev-server/example-helloworld/blob/master/dynamic-content/index.js).
 - Serving `index.html`, `index.htm`, `default.html`, `default.htm` files as default directory content,  
   if directory doesn't contain any `index.js` file to be executed.
