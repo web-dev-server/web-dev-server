@@ -338,7 +338,7 @@ export default class App implements WebDevServer.IApplication {
 - Open command line:
   - Optionally - build your TypeScript application by `tsc` (or `tsc -w` for continuous development).
   - Run prepared web server instance in file `./run.js` by `node ./run.js`.
-- Open your browser and visit `http://localhost/` and see, how it works with `index.js` changes and errors.
+- Open your browser and visit `http://127.0.0.1:8000/` and see, how it works with `/app/index.js` changes and errors.
 
 [go to top](#user-content-outline)
 
