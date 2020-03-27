@@ -10,7 +10,7 @@ Node.js simple http server for common development or training purposes in Javasc
 
 1. [Installation](#user-content-1-installation)  
 2. [Main Goals](#user-content-2-main-goals)  
-3. [Usage](#user-content-3-usage)  
+3. [Examples](#user-content-3-examples)  
   3.1. [Create Server](#user-content-31-create-server)  
   3.2. [Create Application](#user-content-32-create-application)      
 4. [Run Application](#user-content-4-run-application)  
@@ -46,7 +46,12 @@ npm install web-dev-server
 [go to top](#user-content-outline)
 
 
-## 3. Usage
+## 3. Examples
+
+- [Hello World In Javascript](https://github.com/web-dev-server/example-helloworld)
+- [Hello World In TypeScript](https://github.com/web-dev-server/example-helloworld-typescript)
+- [Chat In Javascript](https://github.com/web-dev-server/example-chat-example-pure-js)
+- [Chat In Angular 1](https://github.com/web-dev-server/example-chat-angular-1)
 
 ### 3.1. Create Server
 
