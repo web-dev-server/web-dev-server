@@ -29,19 +29,23 @@ npm install web-dev-server
 
 
 ## 2. Main Goals
-- displaying directories content in development mode (development mode is true by default, possible to change)
-- serving static content for any existing files by default with `express` node module
-- executing `index.js` file in server side by Node.JS for directory requests as default directory 
+- Displaying directories in development mode (development mode is `true` by default, configurable).
+- Serving static content for any existing requested files (with `express` node module).
+- Executing `index.js` files in server side by Node.JS for directory requests as default directory 
   response to serve
-    - you need to assign into `module.exports` you desired class definition to be executed - [see more](https://github.com/web-dev-server/example-helloworld/blob/master/dynamic-content/index.js)
-- serving `index.html`,`index.htm`,`default.html`,`default.htm` files as default directory content automaticly if no `index.js` file
-- not necessary to kill (`CTRL + C`) and re-run your script(s) again (`node run.js`) for every server script change or for  
-  any uncatched Error inside. You just need to work in development mode and save your `index.js` (`CTRL + S`) or any it's required  
+    - There is necessary to assign into `module.exports` you desired class definition to be executed - [see more](https://github.com/web-dev-server/example-helloworld/blob/master/dynamic-content/index.js).
+- Serving `index.html`, `index.htm`, `default.html`, `default.htm` files as default directory content,  
+  if directory doesn't contain any `index.js` file to be executed.
+- There is not necessary to kill ( by `CTRL + C` in command line) and re-run your script(s) again  
+  (by `node run.js` in command line) for every server script change or for any uncatched Error inside.  
+  You just need to work in development mode and save your `index.js` (`CTRL + S`) or any it's required  
   sub-script(s) and then, you can just refresh browser page and there will be ececuted fresh, realoded `*.js` files. 
-- all errors rendered in browser for development mode
-- posibility to add any custom express req/res dispatching handler to be executed before `web-dev-server` will dispatch the request
-    - posibility to prevent `web-dev-server` request dispatching from custom handler
-- possibility to use under Apache through `mod_proxy`, [read more here](#apache-and-nodejs-configuration-example-in-htaccess)
+- All errors rendered in browser for development mode.
+- Possibility to add any custom express req./res. dispatching handler to be executed before `web-dev-server` 
+  will dispatch the request in standard way:
+    - Posibility to prevent `web-dev-server` request dispatching from custom handler.
+- Configurable session hash salt, forbidden request paths and more.
+- Possibility to use the server under Apache through `mod_proxy`, [read more here](#apache-and-nodejs-configuration-example-in-htaccess).
 
 [go to top](#user-content-outline)
 
