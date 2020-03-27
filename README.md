@@ -232,7 +232,7 @@ App.prototype = {
             }
 	    
             this.counter++;
-            response.send(this.counter.toString());
+            response.send("Hello world (" + this.counter.toString() + "×)");
             resolve();
 	       
          }.bind(this));
@@ -316,7 +316,7 @@ export default class App implements WebDevServer.IApplication {
 
 
       this.counter++;
-      response.send(this.counter.toString());
+      response.send("Hello world (" + this.counter.toString() + "×)");
    }
 ```
 
