@@ -76,7 +76,7 @@ WebDevServer.Server.CreateNew()
    // Optional, 8000 by default.
    .SetPort(8000)
    // Optional, '127.0.0.1' by default.
-   .SetDomain('localhost')
+   //.SetDomain('127.0.0.1')
    // Optional, `true` by default to display Errors and directories.
    //.SetDevelopment(false)
    // Optional, 1 hour by default (seconds).
@@ -115,7 +115,7 @@ WebDevServer.Server.CreateNew()
 - Open command line:
    - Initialize Node.JS project by `npm init`.
    - Initialize TypeScript project by `tsc --init`.
-   - Install package by `npm install -y web-dev-server`.
+   - Install packages by `npm install -y web-dev-server @types/express-serve-static-core`.
 - Create empty file `./run.ts`.
 - Initialize web development server instance in `./run.ts`:
 ```ts
@@ -129,7 +129,7 @@ WebDevServer.Server.CreateNew()
    // Optional, 8000 by default.
    .SetPort(8000)
    // Optional, '127.0.0.1' by default.
-   .SetDomain('localhost')
+   //.SetDomain('127.0.0.1')
    // Optional, `true` by default to display Errors and directories
    //.SetDevelopment(false)
    // Optional, 1 hour by default (seconds).
@@ -254,6 +254,9 @@ module.exports = App;
 
 #### 3.2.2. Create Application In Typescript
 
+- Create empty folder `./app`, next to `./run.ts` with new empty file `./app/index.ts`  
+  inside (`./app/index.js` will be executed as default directory content later).
+- Initialize web application instance in `./app/index.ts`:
 ```ts
 import fs from "fs";
 import http from "http";
@@ -324,6 +327,7 @@ export default class App implements WebDevServer.IApplication {
       this.counter++;
       response.send("Hello world (" + this.counter.toString() + "×)");
    }
+}
 ```
 
 [go to top](#user-content-outline)
@@ -331,7 +335,9 @@ export default class App implements WebDevServer.IApplication {
 
 ## 4. Run Application
 
-- Run in command line prepared web server instance in file `./run.js` by `node ./run.js`.
+- Open command line:
+  - Optionally - build your TypeScript application by `tsc` (or `tsc -w` for continuous development).
+  - Run prepared web server instance in file `./run.js` by `node ./run.js`.
 - Open your browser and visit `http://localhost/` and see, how it works with `index.js` changes and errors.
 
 [go to top](#user-content-outline)
