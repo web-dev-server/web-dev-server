@@ -3,7 +3,7 @@ import http from "http";
 import * as express from "express";
 import * as core from "express-serve-static-core";
 export interface IApplication {
-    handleHttpRequest(request: core.Request<core.ParamsDictionary, any, any>, response: core.Response<any>): Promise<void>;
+    HandleHttpRequest(request: core.Request<core.ParamsDictionary, any, any>, response: core.Response<any>): Promise<void>;
 }
 export declare namespace IApplication {
     interface Constructor {
@@ -16,6 +16,6 @@ export declare namespace Application {
         protected expressApp: core.Express;
         protected sessionParser: express.RequestHandler<core.ParamsDictionary>;
         constructor(httpServer: http.Server, expressApp: core.Express, sessionParser: express.RequestHandler<core.ParamsDictionary>, request: core.Request<core.ParamsDictionary, any, any>, response: core.Response<any>);
-        abstract handleHttpRequest(request: core.Request<core.ParamsDictionary, any, any>, response: core.Response<any>): Promise<void>;
+        abstract HandleHttpRequest(request: core.Request<core.ParamsDictionary, any, any>, response: core.Response<any>): Promise<void>;
     }
 }

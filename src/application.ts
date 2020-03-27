@@ -3,7 +3,7 @@ import * as express from "express";
 import * as core from "express-serve-static-core";
 
 export interface IApplication {
-	handleHttpRequest (
+	HandleHttpRequest (
 		request: core.Request<core.ParamsDictionary, any, any>,
 		response: core.Response<any>
 	): Promise<void>;
@@ -35,7 +35,7 @@ export namespace Application {
 			this.expressApp = expressApp;
 			this.sessionParser = sessionParser;
 		};
-		public abstract async handleHttpRequest (
+		public abstract async HandleHttpRequest (
 			request: core.Request<core.ParamsDictionary, any, any>,
 			response: core.Response<any>
 		): Promise<void>;

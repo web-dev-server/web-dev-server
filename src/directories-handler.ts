@@ -310,7 +310,7 @@ export class DirectoriesHandler {
 		modulefullPath: string
 	): App.IApplication.Constructor {
 		var appDeclaration: App.IApplication.Constructor = null;
-		var handleMethodName: string = 'handleHttpRequest';
+		var handleMethodName: string = 'HandleHttpRequest';
 		var module: any = require(modulefullPath);
 		if (module && module.prototype && handleMethodName in module.prototype) {
 			appDeclaration = module as App.IApplication.Constructor;
@@ -358,7 +358,7 @@ export class DirectoriesHandler {
 	): Promise<void> {
 		if (this.server.IsDevelopment()) {
 			var cacheKeysBeforeRequire = Object.keys(require.cache);
-			await appInstance.handleHttpRequest(
+			await appInstance.HandleHttpRequest(
 				req, res, 
 			);
 			var cacheKeysAfterRequire: string[] = Object.keys(require.cache);
@@ -376,7 +376,7 @@ export class DirectoriesHandler {
 				);
 			}
 		} else {
-			await appInstance.handleHttpRequest(
+			await appInstance.HandleHttpRequest(
 				req, res
 			);
 		}

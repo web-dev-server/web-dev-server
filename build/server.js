@@ -450,7 +450,7 @@ var Server = /** @class */ (function () {
             }
         });
     };
-    Server.VERSION = '2.0.2';
+    Server.VERSION = '2.1.0';
     Server.DEFAULTS = {
         PORT: 8000,
         DOMAIN: '127.0.0.1',

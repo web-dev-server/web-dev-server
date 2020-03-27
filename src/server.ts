@@ -21,7 +21,7 @@ export * from "./event"
 export * from "./logger"
 
 export class Server {
-	public static VERSION: string = '2.0.2';
+	public static VERSION: string = '2.1.0';
 	public static DEFAULTS: {
 		PORT: number, DOMAIN: string, RESPONSES: typeof DefaultResponses
 	} = {

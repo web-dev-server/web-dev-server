@@ -219,7 +219,7 @@ var DirectoriesHandler = /** @class */ (function () {
      */
     DirectoriesHandler.prototype.indexScriptModuleGetDeclaration = function (modulefullPath) {
         var appDeclaration = null;
-        var handleMethodName = 'handleHttpRequest';
+        var handleMethodName = 'HandleHttpRequest';
         var module = require(modulefullPath);
         if (module && module.prototype && handleMethodName in module.prototype) {
             appDeclaration = module;
@@ -261,7 +261,7 @@ var DirectoriesHandler = /** @class */ (function () {
                     case 0:
                         if (!this.server.IsDevelopment()) return [3 /*break*/, 2];
                         cacheKeysBeforeRequire = Object.keys(require.cache);
-                        return [4 /*yield*/, appInstance.handleHttpRequest(req, res)];
+                        return [4 /*yield*/, appInstance.HandleHttpRequest(req, res)];
                     case 1:
                         _a.sent();
                         cacheKeysAfterRequire = Object.keys(require.cache);
@@ -271,7 +271,7 @@ var DirectoriesHandler = /** @class */ (function () {
                             this.cache.InitRequireCacheItemsWatchHandlers(fullPath + '/' + indexScript, cacheKeysToWatch);
                         }
                         return [3 /*break*/, 4];
-                    case 2: return [4 /*yield*/, appInstance.handleHttpRequest(req, res)];
+                    case 2: return [4 /*yield*/, appInstance.HandleHttpRequest(req, res)];
                     case 3:
                         _a.sent();
                         _a.label = 4;
