@@ -65,26 +65,38 @@ Create web development server instance in `./run.js` file:
 
 ```js
 var WebDevServer = require("web-dev-server");
-var devServer = (new WebDevServer())
-    .SetDocumentRoot(__dirname)                       // required
-    //.SetPort(8000)                                  // optional, 8000 by default
-    //.SetDomain('localhost')                         // optional, 'localhost' by default
-    //.SetSessionMaxAge(60 * 60 * 24)                 // optional, 1 hour by default, seconds
-    //.SetSessionHash('SGS2e+9x5$as%SD_AS6s.aHS96s')  // optional, session id hash salt
-    //.SetBasePath('/node')                           // optional, null by default, useful for apache proxy modes
-    //.SetDevelopment(false)                          // optional, true by default to display Errors and directory content
-    // .SetErrorHandler((e,code,req,res) => {})	      // optional, custom place to log any unhandled errors and warnings
-    .AddHandler(function (req, res, e, cb) {          // optional, to prepend any execution before `web-dev-server` module execution
-        if (req.url == '/health') {
-            res.writeHead(200);
-            res.end('1');
-            e.preventDefault();                       // do not anything else in `web-dev-server` module for this request
-        }
-        cb();
-    })
-    .Run(function (success, err) {                    // optional, callback called after server has been started or after error ocured
-		// ...
-	});
+
+WebDevServer.Server.CreateNew()
+   // required
+   .SetDocumentRoot(__dirname)
+   // optional, 8000 by default
+   .SetPort(8000)
+   // optional, '127.0.0.1' by default
+   .SetDomain('localhost')
+   // optional, 1 hour by default (seconds)
+   .SetSessionMaxAge(60 * 60 * 24)
+   // optional, session id hash salt
+   .SetSessionHash('SGS2e+9x5$as%SD_AS6s.aHS96s')
+   // optional, `true` by default to display Errors and directories
+   //.SetDevelopment(false)
+   // optional, null by default, useful for apache proxy modes
+   //.SetBasePath('/node')
+   // optional, custom place to log any unhandled errors
+   //.SetErrorHandler(function (e,code,req,res) {})
+   // optional, to prepend any execution before `web-dev-server` module execution
+   .AddHandler(function (req, res, e, cb) {
+      if (req.url == '/health') {
+         res.writeHead(200);
+         res.end('1');
+	 // do not anything else in `web-dev-server` module for this request
+         e.preventDefault();
+      }
+      cb();
+   })
+   // optional, callback called after server has been started or after error ocured
+   .Run(function (success, err) {
+      // ...
+   });
 ```
 
 [go to top](#user-content-outline)
