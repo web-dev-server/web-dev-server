@@ -18,9 +18,9 @@ Node.js simple http server for common development or training purposes in Javasc
       3.2.1. [Create Application in Javascript](#user-content-321-create-application-in-javascript)  
       3.2.2. [Create Application in Typescript](#user-content-322-create-application-in-typescript)  
 4. [Run Application](#user-content-4-run-application)  
-5. [Run With Apache](#user-content-5-run-witch-apache)  
-   5.1. [Node.JS and Apache with `mod_proxy` extension](#user-content-51-node-js-and-apache-with--mod_proxy--extension)  
-   5.2. [Configuration Example In `.htaccess`](#user-content-52-configuration-example-in---htaccess-)  
+5. [Run With Apache](#user-content-5-run-with-apache)  
+   5.1. [Node.JS and Apache with `mod_proxy` extension](#user-content-51-node-js-and-apache-with-mod_proxy-extension)  
+   5.2. [Configuration Example In `.htaccess`](#user-content-52-configuration-example-in-htaccess)  
 
    
 ## 1. Installation
