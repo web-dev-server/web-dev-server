@@ -36,7 +36,7 @@ var Server = /** @class */ (function () {
         this.customHttpHandlers = [];
         this.forbiddenPaths = [
             '/node_modules',
-            /\/package\.json/g,
+            /\/package(-lock)?\.json/g,
             /\/tsconfig\.json/g,
             /\/\.([^\.]+)/g
         ];

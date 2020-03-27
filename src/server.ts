@@ -68,7 +68,7 @@ export class Server {
 	protected customHttpHandlers: ((req: core.Request<core.ParamsDictionary, any, any>, res: core.Response<any>, e: Evnt.Event, cb: core.NextFunction) => void)[] = [];
 	protected forbiddenPaths: string[] | RegExp[] = [
 		'/node_modules', 
-		/\/package\.json/g,
+		/\/package(-lock)?\.json/g,
 		/\/tsconfig\.json/g,
 		/\/\.([^\.]+)/g
 	] as string[] | RegExp[];
