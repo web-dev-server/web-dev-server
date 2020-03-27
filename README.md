@@ -63,7 +63,7 @@ npm install web-dev-server
 
 - Open command line:
    - Initialize Node.JS project by `npm init`.
-   - Install package by `npm install -y web-dev-server`
+   - Install package by `npm install -y web-dev-server`.
 - Create empty file `./run.js`.
 - Initialize web development server instance in `./run.js`:
 ```js
@@ -88,12 +88,12 @@ WebDevServer.Server.CreateNew()
    // Optional, custom place to log any unhandled errors.
    //.SetErrorHandler(function (e,code,req,res) {})
    // Optional, to prepend any execution before `web-dev-server` module execution.
-   .AddHandler(function (req, res, e, cb) {
+   .AddHandler(function (req, res, evnt, cb) {
       if (req.url == '/health') {
          res.writeHead(200);
          res.end('1');
 	 // Do not anything else in `web-dev-server` module for this request:
-         e.preventDefault();
+         evnt.preventDefault();
       }
       /*setTimeout(() => {
          throw new RangeError("Uncatched test error.");
@@ -112,6 +112,12 @@ WebDevServer.Server.CreateNew()
 
 #### 3.1.2. Create Server In Typescript
 
+- Open command line:
+   - Initialize Node.JS project by `npm init`.
+   - Initialize TypeScript project by `tsc --init`.
+   - Install package by `npm install -y web-dev-server`.
+- Create empty file `./run.ts`.
+- Initialize web development server instance in `./run.ts`:
 ```ts
 import * as core from "express-serve-static-core";
 import * as WebDevServer from "web-dev-server";
@@ -150,7 +156,7 @@ WebDevServer.Server.CreateNew()
          res.writeHead(200);
          res.end('1');
 	 // Do not anything else in `web-dev-server` module for this request:
-         e.preventDefault();
+         evnt.preventDefault();
       }
       /*setTimeout(() => {
          throw new RangeError("Uncatched test error.");
