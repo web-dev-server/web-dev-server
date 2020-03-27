@@ -153,7 +153,7 @@ WebDevServer.Server.CreateNew()
       cb();
    })
    // Callback param is optional. called after server has been started or after error ocured.
-   .Run(function (success, err) {
+   .Run((success: boolean, err: Error) => {
       // ...
    });
 ```
