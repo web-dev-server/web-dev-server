@@ -66,31 +66,35 @@ Create web development server instance in `./run.js` file:
 ```js
 var WebDevServer = require("web-dev-server");
 
+// Create web server instance.
 WebDevServer.Server.CreateNew()
-   // required
+   // Required.
    .SetDocumentRoot(__dirname)
-   // optional, 8000 by default
+   // Optional, 8000 by default.
    .SetPort(8000)
-   // optional, '127.0.0.1' by default
+   // Optional, '127.0.0.1' by default.
    .SetDomain('localhost')
-   // optional, 1 hour by default (seconds)
-   .SetSessionMaxAge(60 * 60 * 24)
-   // optional, session id hash salt
-   .SetSessionHash('SGS2e+9x5$as%SD_AS6s.aHS96s')
-   // optional, `true` by default to display Errors and directories
+   // Optional, `true` by default to display Errors and directories.
    //.SetDevelopment(false)
-   // optional, null by default, useful for apache proxy modes
-   //.SetBasePath('/node')
-   // optional, custom place to log any unhandled errors
+   // Optional, 1 hour by default (seconds).
+   //.SetSessionMaxAge(60 * 60 * 24)
+   // Optional, session id hash salt.
+   //.SetSessionHash('SGS2e+9x5$as%SD_AS6s.aHS96s')
+   // Optional, null by default, useful for apache proxy modes.
+   //.SetBaseUrl('/node')
+   // Optional, custom place to log any unhandled errors.
    //.SetErrorHandler(function (e,code,req,res) {})
-   // optional, to prepend any execution before `web-dev-server` module execution
+   // Optional, to prepend any execution before `web-dev-server` module execution.
    .AddHandler(function (req, res, e, cb) {
       if (req.url == '/health') {
          res.writeHead(200);
          res.end('1');
-	 // do not anything else in `web-dev-server` module for this request
+	 // Do not anything else in `web-dev-server` module for this request:
          e.preventDefault();
       }
+      /*setTimeout(() => {
+         throw new RangeError("Uncatched test error.");
+      }, 1000);*/
       cb();
    })
    // optional, callback called after server has been started or after error ocured
@@ -104,6 +108,55 @@ WebDevServer.Server.CreateNew()
 
 #### 3.1.2. Create Server In Typescript
 
+```ts
+import * as WebDevServer from "web-dev-server";
+
+// Create web server instance.
+WebDevServer.Server.CreateNew()
+   // Required.
+   .SetDocumentRoot(__dirname)
+   // Optional, 8000 by default.
+   .SetPort(8000)
+   // Optional, '127.0.0.1' by default.
+   .SetDomain('localhost')
+   // Optional, `true` by default to display Errors and directories
+   //.SetDevelopment(false)
+   // Optional, 1 hour by default (seconds).
+   //.SetSessionMaxAge(60 * 60 * 24)
+   // Optional, session id hash salt.
+   //.SetSessionHash('SGS2e+9x5$as%SD_AS6s.aHS96s')
+   // Optional, null by default, useful for apache proxy modes.
+   //.SetBaseUrl('/node')
+   // Optional, custom place to log any unhandled errors.
+   /*.SetErrorHandler((
+      err: Error,
+      code: number,
+      req: core.Request<core.ParamsDictionary, any, any>, 
+      res: core.Response<any>, 
+   ) => { })*/
+   // Optional, to prepend any execution before `web-dev-server` module execution.
+   .AddHandler((
+      req: core.Request<core.ParamsDictionary, any, any>, 
+      res: core.Response<any>, 
+      evnt: WebDevServer.Event, 
+      cb: core.NextFunction
+   ) => {
+      if (req.url == '/health') {
+         res.writeHead(200);
+         res.end('1');
+	 // Do not anything else in `web-dev-server` module for this request:
+         e.preventDefault();
+      }
+      /*setTimeout(() => {
+         throw new RangeError("Uncatched test error.");
+      }, 1000);*/
+      cb();
+   })
+   // Callback param is optional. called after server has been started or after error ocured.
+   .Run(function (success, err) {
+      // ...
+   });
+```
 
 [go to top](#user-content-outline)
 
@@ -278,7 +331,7 @@ interactivity to your already existing web applications under Apache server with
 
 Everything you need to do is to redirect some requests in `.htaccess` to Node.JS (for example all `/node(.*)` requests).  
 
-Node.JS web server has to run on the same server machine on different por,  
+Node.JS web server has to run on the same server machine on different port,  
 for example **Apache** on port `:80`, **Node.JS** on port `:8888`.  
 
 Users and their browsers will see the same port as before, the port `:80` with Apache,  
