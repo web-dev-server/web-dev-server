@@ -353,11 +353,11 @@ interactivity to your already existing web applications under Apache server with
 Everything you need to do is to redirect some requests in `.htaccess` to Node.JS (for example all `/node(.*)` requests).  
 
 Node.JS web server has to run on the same server machine on different port,  
-for example **Apache** on port `:80`, **Node.JS** on port `:8888`.  
+for example **Apache** on port `:80`, **Node.JS** on port `:8000`.  
 
 Users and their browsers will see the same port as before, the port `:80` with Apache,  
 but all request starting with substring `/node` will be redirected to **Node.JS** web server  
-application on port `:8888` including websockets.
+application on port `:8000` including websockets.
 
 [go to top](#user-content-outline)
 
@@ -371,16 +371,16 @@ LoadModule proxy_http_module modules/mod_proxy_http.so
 LoadModule proxy_wstunnel_module modules/mod_proxy_wstunnel.so
 ...
 
-<VirtualHost 127.0.0.1:80>
+<VirtualHost "127.0.0.1:80">
     ServerName example.com
     DocumentRoot /var/www/html/example.com
     RewriteEngine on
     # Node.JS proxy - websockets:
     RewriteCond %{HTTP:Upgrade} =websocket [NC]
-    RewriteRule /node/(.*) ws://127.0.0.1:8888/$1 [P,L]
+    RewriteRule /node/(.*) ws://127.0.0.1:8000/$1 [P,L]
     # Node.JS proxy - http/https:
     RewriteCond %{REQUEST_URI} ^/node(.*)$
-    RewriteRule /node(.*) http://127.0.0.1:8888$1 [P,L]
+    RewriteRule /node(.*) http://127.0.0.1:8000$1 [P,L]
 </VirtualHost>
 ```
 Read more here:  
