@@ -12,11 +12,11 @@ Node.js simple http server for common development or training purposes in Javasc
 2. [Main Goals](#user-content-2-main-goals)  
 3. [Usage](#user-content-3-usage)  
    3.1. [Create Server](#user-content-31-create-server)  
-      3.1.1. [Create Server in Javascript](#user-content-31-create-server-in-javascript)  
-      3.1.2. [Create Server in Typescript](#user-content-32-create-server-in-typescript)  
+       3.1.1. [Create Server in Javascript](#user-content-31-create-server-in-javascript)  
+       3.1.2. [Create Server in Typescript](#user-content-32-create-server-in-typescript)  
    3.2. [Create Application](#user-content-31-create-application)  
-      3.2.1. [Create Application in Javascript](#user-content-31-create-application-in-javascript)  
-      3.2.2. [Create Application in Typescript](#user-content-32-create-application-in-typescript)  
+       3.2.1. [Create Application in Javascript](#user-content-31-create-application-in-javascript)  
+       3.2.2. [Create Application in Typescript](#user-content-32-create-application-in-typescript)  
 4. [Run Application](#user-content-4-run-application)  
 5. [Run With Apache](#user-content-4-run-witch-apache)  
    5.1. [Node.JS and Apache with `mod_proxy` extension](#user-content-51-node-js-and-apache-with--mod_proxy--extension)  
@@ -24,9 +24,13 @@ Node.js simple http server for common development or training purposes in Javasc
 
    
 ## 1. Installation
+
 ```shell
 npm install web-dev-server
 ```
+
+[go to top](#user-content-outline)
+
 
 ## 2. Main Goals
 - displaying directories content in development mode (development mode is true by default, possible to change)
@@ -42,6 +46,9 @@ npm install web-dev-server
 - posibility to add any custom express req/res dispatching handler to be executed before `web-dev-server` will dispatch the request
     - posibility to prevent `web-dev-server` request dispatching from custom handler
 - possibility to use under Apache through `mod_proxy`, [read more here](#apache-and-nodejs-configuration-example-in-htaccess)
+
+[go to top](#user-content-outline)
+
 
 ## 3. Usage
 
@@ -75,7 +82,13 @@ var devServer = (new WebDevServer())
 	});
 ```
 
+[go to top](#user-content-outline)
+
+
 #### 3.1.2. Create Server In Typescript
+
+
+[go to top](#user-content-outline)
 
 
 ### 3.2. Create Application
@@ -179,6 +192,8 @@ App.prototype = {
 module.exports = App;
 ```
 
+[go to top](#user-content-outline)
+
 
 #### 3.2.2. Create Application In Typescript
 
@@ -186,11 +201,15 @@ module.exports = App;
 
 ```
 
+[go to top](#user-content-outline)
+
 
 ## 4. Run Application
 
 - Run in command line prepared web server instance in file `run.js` by `node run.js`.
 - Open your browser and visit `http://localhost/` and see, how it works with `index.js` changes and errors.
+
+[go to top](#user-content-outline)
 
 
 ## 5. Run With Apache
@@ -208,6 +227,8 @@ for example **Apache** on port `:80`, **Node.JS** on port `:8888`.
 Users and their browsers will see the same port as before, the port `:80` with Apache,  
 but all request starting with substring `/node` will be redirected to **Node.JS** web server  
 application on port `:8888` including websockets.
+
+[go to top](#user-content-outline)
 
 
 ### 5.2. Configuration Example In `.htaccess`
@@ -233,4 +254,6 @@ LoadModule proxy_wstunnel_module modules/mod_proxy_wstunnel.so
 ```
 Read more here:  
 https://stackoverflow.com/questions/52576182/nodejs-apache-config-for-proxy-pass/58338589#58338589
+
+[go to top](#user-content-outline)
 
