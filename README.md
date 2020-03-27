@@ -319,7 +319,7 @@ export default class App implements WebDevServer.IApplication {
       var files: string[] = await new Promise<string[]>((
          resolve: (files: string[]) => void, reject: (err: Error) => void
       ) => {
-         fs.readdir(__dirname, {}, (err: Error, files: string[]) => {
+         fs.readdir(__dirname, (err: Error | null, files: string[]) => {
             if (err) return reject(err);
             resolve(files);
          });
