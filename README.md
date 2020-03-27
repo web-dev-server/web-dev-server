@@ -190,7 +190,74 @@ module.exports = App;
 #### 3.2.2. Create Application In Typescript
 
 ```ts
+import fs from "fs";
+import http from "http";
+import * as core from "express-serve-static-core";
+import * as WebDevServer from "web-dev-server";
 
+/**
+ * @summary Exported class to handle directory requests.
+ */
+export default class App extends WebDevServer.Application.Abstract {
+   
+   /** @summary Requests counter. */
+   counter: number = 0;
+   
+   /** 
+    * @summary Application constructor, which is executed only once, 
+    *          when there is a request to directory with default `index.js`
+    *          script inside. Then it's automatically created an instance 
+    *          of `module.exports` content. Then it's executed 
+    *          `handleHttpRequest` method on that instance. 
+    *          This is the way, how is directory request handled with 
+    *          default `index.js` file inside. 
+    *          If there is detected any file change inside this file 
+    *          (or inside file included in this file), the module 
+    *          `web-deb-server` automaticly reloads all necesssary 
+    *          dependent source codes and creates this application 
+    *          instance again. The same realoding procedure is executed, 
+    *          if there is any unhandled error inside method 
+    *          `handleHttpRequest` (to develop more comfortably).
+    */
+   public constructor (
+      httpServer: http.Server, 
+      expressApp: core.Express, 
+      sessionParser: core.RequestHandler<core.ParamsDictionary>, 
+      request: core.Request<core.ParamsDictionary, any, any>, 
+      response: core.Response<any>
+   ) {
+      super(httpServer, expressApp, sessionParser, request, response);
+      // Any initializations:
+      
+   }
+
+   /**
+    * @summary This method is executed each request to directory with 
+    *          `index.js` script inside (also executed for first time 
+    *          immediately after constructor).
+    */
+   public async handleHttpRequest(
+      request: core.Request<core.ParamsDictionary, any, any>, 
+      response: core.Response<any>
+   ): Promise<void> {
+      // Called every request:
+      
+      // try to uncomment line bellow to see rendered error in browser:
+      //throw new Error(":-)");
+      
+      // let's do anything asynchronous:
+      //var files: string = await fs.promises.readdir(__dirname, {}); // experimental
+      var files: string[] = await new Promise<string[]>((
+         resolve: (files: string[]) => void, reject: (err: Error) => void
+      ) => {
+         fs.readdir(__dirname, {}, (err: Error, files: string[]) => {
+            if (err) return reject(err);
+            resolve(files);
+         });
+      });
+
+      response.send(this.counter++);
+   }
 ```
 
 [go to top](#user-content-outline)
