@@ -1,4 +1,5 @@
-tests
-gfx/favicon.svg
-gfx/file.svg
-gfx/folder.svg
+node_modules/
+gfx/
+src/
+tests/
+Workspace.code-workspace

@@ -1,9 +1,112 @@
 var FileSystem = require('fs');
+var V8 = require('v8');
+
+Error.prepareStackTrace = function(error, stacks) {
+	var loggerStacks = [],
+		stack = {},
+		loggerStack = {},
+		isToplevel = false,
+		isConstructor = true,
+		fnFullName = '',
+		methodName = '',
+		typeName = '',
+		fn = null,
+		args = [],
+		arg = null,
+		argsStr = '',
+		file = '',
+		separator = '',
+		typeName = '',
+		evalOrigin = '';
+	for (var i = 0, l = stacks.length; i < l; i++) {
+		stack = stacks[i];
+		
+		fn = stack.getFunction();
+		args = [];
+		argsStr = '';
+		argsSer = '';
+		if (fn !== null) {
+			args = [];
+			try {
+				args = fn.arguments ? [].slice.apply(fn.arguments) : [];
+			} catch (e1) {}
+			if (args.length > 0) 
+				argsStr = '[';
+			for (var j = 0, k = args.length; j < k; j++) {
+				arg = args[j];
+				argsStr += separator;
+				try {
+					argsStr += JSON.stringify(arg);
+				} catch (e2) {
+					argsStr += V8.serialize(arg).toString('base64');
+				}
+				separator = ',';
+			}
+			if (args.length > 0) 
+				argsStr += ']';
+		}
+		
+		file = stack.getScriptNameOrSourceURL
+			? stack.getScriptNameOrSourceURL()
+			: stack.getFileName();
+		file = file.replace(/\\/g, '/');
+		
+		evalOrigin = stack.getEvalOrigin();
+		if (evalOrigin !== null)
+			evalOrigin = evalOrigin.replace(/\\/g, '/');
+		
+		isTopLevel = stack.isToplevel();
+		isConstructor = stack.isConstructor();
+		
+		if (isTopLevel) {
+			fnFullName = stack.getFunctionName();
+		} else if (isConstructor) {
+			fnFullName = stack.getTypeName() + '.constructor';
+		} else {
+			methodName = stack.getMethodName();
+			typeName = stack.getTypeName();
+			if (methodName == null && typeName !== null) {
+				fnFullName = typeName + '.' + stack.getFunctionName();
+			} else {
+				fnFullName = stack.getFunctionName();
+			}
+		}
+		
+		loggerStacks.push({
+			scope: stack.getThis(),
+			fnFullName: fnFullName,
+			isConstructor: isConstructor,
+			isNative: stack.isNative(),
+			isToplevel: isTopLevel,
+			isEval: stack.isEval(),
+			args: args,
+			argsStr: argsStr,
+			file: file,
+			line: stack.getLineNumber(),
+			column: stack.getColumnNumber(),
+			evalOrigin: evalOrigin
+			//isAsync: stack.isAsync ? stack.isAsync() : null,
+			//isPromiseAll: stack.isPromiseAll ? stack.isPromiseAll() : null,
+			//promiseIndex: stack.getPromiseIndex ? stack.getPromiseIndex() : null,
+			//position: stack.getPosition ? stack.getPosition() : null,
+		});
+	}
+	error.stacks = loggerStacks;
+	return error.stack;
+}
 
 var Logger = function (dirFullPath) {
 	dirFullPath = dirFullPath.replace(/\\/g, '/');
-	this._errorLogFullPath = dirFullPath + '/errors.log';
-	this._debugLogFullPath = dirFullPath + '/debug.log';
+	for (var i = dirFullPath.length - 1; i > -1; i--) {
+		if (dirFullPath.charAt(i) == '/') {
+			dirFullPath = dirFullPath.substr(0, i);
+        } else {
+			break;
+        }
+	}
+	this._dirFullPath = dirFullPath;
+	this._errorLogFullPath = this._dirFullPath + '/errors.log';
+	this._debugLogFullPath = this._dirFullPath + '/debug.log';
 };
 Logger.prototype = {
 	Error: function (e) {
@@ -22,7 +125,7 @@ Logger.prototype = {
 			var stackStr = this._completeStackTraceWithArgs(stackTraceArr, e, true);
 			var date = new Date();
 			var errorString = '[' + date.toJSON() + '] ' + "\n" + stackStr + "\n\n";
-			console.log(e);
+			console.log(errorString);
 			FileSystem.appendFile(this._errorLogFullPath, errorString, function (err) {
 				if (err) throw err;
 			});
@@ -127,11 +230,14 @@ Logger.prototype = {
 				}
 				if (this._realTypeOf(fileLineAndColumn) === 'Array' && fileLineAndColumn.length > 0) {
 					file = fileLineAndColumn[0];
+					if (file.indexOf(this._dirFullPath) === 0)
+						file = '.' + file.substr(this._dirFullPath.length);
 					line = fileLineAndColumn[1];
 					column = fileLineAndColumn[2];
 				}
 			}
-			if (fnName === 'Module._compile' && file === 'module.js') break;
+			if (fnName === 'Module._compile' && lastFnName === 'Object.<anonymous>') 
+				break;
 			if (
 				fnName === '' ||
 				this._realTypeOf(fnName) === 'Undefined' ||

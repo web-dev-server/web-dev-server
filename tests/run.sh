@@ -1,1 +1,2 @@
-node --inspect run.js
+#node --inspect run.js
+node run.js
