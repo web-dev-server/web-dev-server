@@ -1,16 +1,34 @@
 # Node.js Development HTTP Server
 
 [![Latest Stable Version](https://img.shields.io/badge/Stable-v2.0.0-brightgreen.svg?style=plastic)](https://github.com/web-dev-server/web-dev-server/releases)
+[![Min. TypeScript Version](https://img.shields.io/badge/TypeScript-v3.7.7-brightgreen.svg?style=plastic)](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-7.html)
 [![License](https://img.shields.io/badge/Licence-BSD-brightgreen.svg?style=plastic)](https://github.com/web-dev-server/web-dev-server/blob/master/LICENCE.md)
 
-Node.js simple http server for common development or training purposes.
+Node.js simple http server for common development or training purposes in Javascript or Typescript.
 
-## Instalation
+## Outline  
+
+1. [Installation](#user-content-1-installation)  
+2. [Main Goals](#user-content-2-main-goals)  
+3. [Usage](#user-content-3-usage)  
+   3.1. [Create Server](#user-content-31-create-server)  
+      3.1.1. [Create Server in Javascript](#user-content-31-create-server-in-javascript)  
+      3.1.2. [Create Server in Typescript](#user-content-32-create-server-in-typescript)  
+   3.2. [Create Application](#user-content-31-create-application)  
+      3.2.1. [Create Application in Javascript](#user-content-31-create-application-in-javascript)  
+      3.2.2. [Create Application in Typescript](#user-content-32-create-application-in-typescript)  
+4. [Run Application](#user-content-4-run-application)  
+5. [Run With Apache](#user-content-4-run-witch-apache)  
+   5.1. [Node.JS and Apache with `mod_proxy` extension](#user-content-51-node-js-and-apache-with--mod_proxy--extension)  
+   5.2. [Configuration Example In `.htaccess`](#user-content-52-configuration-example-in---htaccess-)  
+
+   
+## 1. Installation
 ```shell
 npm install web-dev-server
 ```
 
-## Main Goals
+## 2. Main Goals
 - displaying directories content in development mode (development mode is true by default, possible to change)
 - serving static content for any existing files by default with `express` node module
 - executing `index.js` file in server side by Node.JS for directory requests as default directory 
@@ -25,9 +43,15 @@ npm install web-dev-server
     - posibility to prevent `web-dev-server` request dispatching from custom handler
 - possibility to use under Apache through `mod_proxy`, [read more here](#apache-and-nodejs-configuration-example-in-htaccess)
 
-## Usage
-#### 1. Create web development server instance initialization in `run.js` file and run it by `node run.js`:
-```javascript
+## 3. Usage
+
+### 3.1. Create Server
+
+#### 3.1.1. Create Server In Javascript
+
+Create web development server instance in `./run.js` file:
+
+```js
 var WebDevServer = require("web-dev-server");
 var devServer = (new WebDevServer())
     .SetDocumentRoot(__dirname)                       // required
@@ -50,8 +74,18 @@ var devServer = (new WebDevServer())
 		// ...
 	});
 ```
-#### 2. Create empty folder next to `run.js` with `index.js` file inside, executed as default directory content:
-```javascript
+
+#### 3.1.2. Create Server In Typescript
+
+
+### 3.2. Create Application
+
+#### 3.2.1. Create Application In Javascript
+
+Create empty folder `./app`, next to `./run.js` with `./app/index.js`  
+file inside, executed as default directory content later:
+
+```js
 var fs = require('fs');
 
 /**
@@ -144,9 +178,24 @@ App.prototype = {
 };
 module.exports = App;
 ```
-#### 3. Open your browser and visit `http://localhost/` and see how it works with `index.js` changes and errors
 
-## Using Node with Apache with `mod_proxy` extension
+
+#### 3.2.2. Create Application In Typescript
+
+```ts
+
+```
+
+
+## 4. Run Application
+
+- Run in command line prepared web server instance in file `run.js` by `node run.js`.
+- Open your browser and visit `http://localhost/` and see, how it works with `index.js` changes and errors.
+
+
+## 5. Run With Apache
+
+### 5.1. Node.JS and Apache with `mod_proxy` extension
 
 To use **Node.JS** with **Apache** with the same **Session ID** is very usefull, when you need to bring more  
 interactivity to your already existing web applications under Apache server with Node.JS.
@@ -160,7 +209,9 @@ Users and their browsers will see the same port as before, the port `:80` with A
 but all request starting with substring `/node` will be redirected to **Node.JS** web server  
 application on port `:8888` including websockets.
 
-### Apache And Node.JS Configuration Example In `.htaccess`:
+
+### 5.2. Configuration Example In `.htaccess`
+
 ```apache
 ...
 LoadModule proxy_module modules/mod_proxy.so
