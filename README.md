@@ -80,7 +80,7 @@ WebDevServer.Server.CreateNew()
    //.SetSessionMaxAge(60 * 60 * 24)
    // Optional, session id hash salt.
    //.SetSessionHash('SGS2e+9x5$as%SD_AS6s.aHS96s')
-   // Optional, null by default, useful for apache proxy modes.
+   // Optional, `null` by default, useful for apache proxy modes.
    //.SetBaseUrl('/node')
    // Optional, custom place to log any unhandled errors.
    //.SetErrorHandler(function (e,code,req,res) {})
@@ -109,6 +109,7 @@ WebDevServer.Server.CreateNew()
 #### 3.1.2. Create Server In Typescript
 
 ```ts
+import * as core from "express-serve-static-core";
 import * as WebDevServer from "web-dev-server";
 
 // Create web server instance.
@@ -125,7 +126,7 @@ WebDevServer.Server.CreateNew()
    //.SetSessionMaxAge(60 * 60 * 24)
    // Optional, session id hash salt.
    //.SetSessionHash('SGS2e+9x5$as%SD_AS6s.aHS96s')
-   // Optional, null by default, useful for apache proxy modes.
+   // Optional, `null` by default, useful for apache proxy modes.
    //.SetBaseUrl('/node')
    // Optional, custom place to log any unhandled errors.
    /*.SetErrorHandler((
