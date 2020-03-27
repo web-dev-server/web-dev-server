@@ -141,9 +141,8 @@ var fs = require('fs');
  * @return void
  */
 var App = function (http, express, expressSession, request, response) {
-   this.http = http;
-   this.express = express;
-   this.expressSession = expressSession;
+   // Any initializations:
+   
 };
 App.prototype = {
    /**
@@ -226,7 +225,6 @@ export default class App implements WebDevServer.IApplication {
       request: core.Request<core.ParamsDictionary, any, any>, 
       response: core.Response<any>
    ) {
-      super(httpServer, expressApp, sessionParser, request, response);
       // Any initializations:
       
    }
