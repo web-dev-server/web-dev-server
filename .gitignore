@@ -57,3 +57,7 @@ Temporary Items
 
 # third party node modules
 node_modules
+package-lock.json
+
+# log files
+*.log
