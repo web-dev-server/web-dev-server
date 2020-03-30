@@ -2,7 +2,9 @@ src/
 node_modules/
 gfx/
 tests/
-Workspace.code-workspace
+*.code-workspace
+*.njsproj
+*.njsproj.user
 .editorconfig
 *.log
 TODO.md

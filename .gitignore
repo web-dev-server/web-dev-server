@@ -61,3 +61,8 @@ package-lock.json
 
 # log files
 *.log
+
+# projects files
+*.code-workspace
+*.njsproj
+*.njsproj.user
