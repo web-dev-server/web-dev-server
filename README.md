@@ -1,6 +1,6 @@
 # Node.js Development HTTP Server
 
-[![Latest Stable Version](https://img.shields.io/badge/Stable-v2.1.0-brightgreen.svg?style=plastic)](https://github.com/web-dev-server/web-dev-server/releases)
+[![Latest Stable Version](https://img.shields.io/badge/Stable-v2.2.0-brightgreen.svg?style=plastic)](https://github.com/web-dev-server/web-dev-server/releases)
 [![Min. TypeScript Version](https://img.shields.io/badge/TypeScript-v3.7-brightgreen.svg?style=plastic)](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-7.html)
 [![License](https://img.shields.io/badge/Licence-BSD-brightgreen.svg?style=plastic)](https://github.com/web-dev-server/web-dev-server/blob/master/LICENCE.md)
 
@@ -77,7 +77,7 @@ WebDevServer.Server.CreateNew()
    // Optional, 8000 by default.
    .SetPort(8000)
    // Optional, '127.0.0.1' by default.
-   //.SetDomain('127.0.0.1')
+   //.SetHostname('127.0.0.1')
    // Optional, `true` by default to display Errors and directories.
    //.SetDevelopment(false)
    // Optional, 1 hour by default (seconds).
@@ -87,19 +87,18 @@ WebDevServer.Server.CreateNew()
    // Optional, `null` by default, useful for apache proxy modes.
    //.SetBaseUrl('/node')
    // Optional, custom place to log any unhandled errors.
-   //.SetErrorHandler(function (e,code,req,res) {})
+   //.SetErrorHandler(function (err,code,req,res) {})
    // Optional, to prepend any execution before `web-dev-server` module execution.
-   .AddHandler(function (req, res, evnt, cb) {
+   .AddPreHandler(function (req, res, event) {
       if (req.url == '/health') {
          res.writeHead(200);
          res.end('1');
-	 // Do not anything else in `web-dev-server` module for this request:
-         evnt.PreventDefault();
+         // Do not anything else in `web-dev-server` module for this request:
+         event.PreventDefault();
       }
       /*setTimeout(() => {
          throw new RangeError("Uncatched test error.");
       }, 1000);*/
-      cb();
    })
    // optional, callback called after server has been started or after error ocured
    .Run(function (success, err) {
@@ -132,7 +131,7 @@ WebDevServer.Server.CreateNew()
    // Optional, 8000 by default.
    .SetPort(8000)
    // Optional, '127.0.0.1' by default.
-   //.SetDomain('127.0.0.1')
+   //.SetHostname('127.0.0.1')
    // Optional, `true` by default to display Errors and directories
    //.SetDevelopment(false)
    // Optional, 1 hour by default (seconds).
@@ -142,29 +141,27 @@ WebDevServer.Server.CreateNew()
    // Optional, `null` by default, useful for apache proxy modes.
    //.SetBaseUrl('/node')
    // Optional, custom place to log any unhandled errors.
-   /*.SetErrorHandler((
+   /*.SetErrorHandler(async (
       err: Error,
       code: number,
-      req: core.Request<core.ParamsDictionary, any, any>, 
-      res: core.Response<any>, 
+      req: WebDevServer.Request, 
+      res: WebDevServer.Response
    ) => { })*/
    // Optional, to prepend any execution before `web-dev-server` module execution.
-   .AddHandler((
-      req: core.Request<core.ParamsDictionary, any, any>, 
-      res: core.Response<any>, 
-      evnt: WebDevServer.Event, 
-      cb: core.NextFunction
+   .AddPreHandler(async (
+      req: WebDevServer.Request, 
+      res: WebDevServer.Response, 
+      event: WebDevServer.Event
    ) => {
       if (req.url == '/health') {
          res.writeHead(200);
          res.end('1');
-	 // Do not anything else in `web-dev-server` module for this request:
-         evnt.PreventDefault();
+	     // Do not anything else in `web-dev-server` module for this request:
+         event.PreventDefault();
       }
       /*setTimeout(() => {
          throw new RangeError("Uncatched test error.");
       }, 1000);*/
-      cb();
    })
    // Callback param is optional. called after server has been started or after error ocured.
    .Run((success: boolean, err?: Error) => {
@@ -226,7 +223,7 @@ App.prototype = {
     * @param {response} response Current http response object.
     * @return {Promise}
     */
-    handleHttpRequest: function (request, response) {
+    ServerHandler: function (request, response) {
       return new Promise(function (resolve, reject) {
          
          // try to uncomment line bellow to see rendered error in browser:
@@ -241,7 +238,7 @@ App.prototype = {
             }
 	    
             this.counter++;
-            response.send("Hello world (" + this.counter.toString() + "×)");
+            response.Send("Hello world (" + this.counter.toString() + "×)");
             resolve();
 	       
          }.bind(this));
@@ -306,9 +303,9 @@ export default class App implements WebDevServer.IApplication {
     *          `index.js` script inside (also executed for first time 
     *          immediately after constructor).
     */
-   public async handleHttpRequest(
-      request: core.Request<core.ParamsDictionary, any, any>, 
-      response: core.Response<any>
+   public async ServerHandler(
+      request: WebDevServer.Request, 
+      response: WebDevServer.Response
    ): Promise<void> {
       // Called every request:
       
@@ -328,7 +325,7 @@ export default class App implements WebDevServer.IApplication {
 
 
       this.counter++;
-      response.send("Hello world (" + this.counter.toString() + "×)");
+      response.Send("Hello world (" + this.counter.toString() + "×)");
    }
 }
 ```

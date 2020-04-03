@@ -1,5 +1,14 @@
 {
+  "include": [
+    "src/lib",
+    "src/tests"
+  ],
+  "exclude": [                                /* Exclude some of *.d.ts files */
+  ],
+  "mergeReferences": true,                    /* Merge typescript type definitions together */
+  //"compileOnSave": false                    /* Compile project on source file save event. */
   "compilerOptions": {
+    "watch": true,
     /* Basic Options */
     // "incremental": true,                   /* Enable incremental compilation */
     "target": "es5",                          /* Specify ECMAScript target version: 'ES3' (default), 'ES5', 'ES2015', 'ES2016', 'ES2017', 'ES2018', 'ES2019' or 'ESNEXT'. */
@@ -15,7 +24,7 @@
     "outDir": "./build/",                     /* Redirect output structure to the directory. */
     "rootDir": "./src/",                      /* Specify the root directory of input files. Use to control the output directory structure with --outDir. */
     // "composite": true,                     /* Enable project compilation */
-    // "tsBuildInfoFile": "./",               /* Specify file to store incremental compilation information */
+    //"tsBuildInfoFile": "./.tsbuildinfo",    /* Specify file to store incremental compilation information */
     // "removeComments": true,                /* Do not emit comments to output. */
     // "noEmit": true,                        /* Do not emit outputs. */
     "importHelpers": true,                    /* Import emit helpers from 'tslib'. */
@@ -69,12 +78,5 @@
 
     /* Advanced Options */
     "forceConsistentCasingInFileNames": true  /* Disallow inconsistently-cased references to the same file. */
-  },
-  "include": [
-    "src/*"
-  ],
-  "exclude": [                                /* Exclude some of *.d.ts files */
-	"./server.js.orig", "./server.d.ts.manual", "./tests"
-  ],
-  "mergeReferences": true                     /* Merge typescript type definitions together */
+  }
 }

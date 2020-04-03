@@ -1,0 +1,1 @@
+export interface IRequestCookies extends Map<string, string> {}

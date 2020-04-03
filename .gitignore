@@ -64,5 +64,9 @@ package-lock.json
 
 # projects files
 *.code-workspace
+
+# visual studio
+bin/
+obj/
 *.njsproj
 *.njsproj.user
