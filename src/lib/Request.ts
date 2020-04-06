@@ -62,12 +62,11 @@ exports.Request = /** @class */ (function () {
 			var parsedUrl: UrlWithStringQuery = UrlParse(this._url, false);
 			var requestPath: string = parsedUrl.pathname;
 			if (typeof parsedUrl.query == 'string' && parsedUrl.query.length > 0)
-				requestPath += '?' + parsedUrl.query;
+				requestPath += '?' + parsedUrl.query.replace(/\+/g, '%20');
 			while (requestPath.match(/[\%]([0-9]{2,})/g))
 				requestPath = requestPath.replace(/[\%]([0-9]{2,})/g, match => {
 					return decodeURIComponent(match);
 				});
-
 			var appRootPathAndScript: string[] = server.TryToFindIndexPath(requestPath);
 			var basePath: string = server.GetBasePath();
 			if (basePath == null) basePath = '';

@@ -1,0 +1,10 @@
+import { QueryStringCollection } from "./Collection";
+
+
+export interface QueryStringCollectionRecord {
+	collection: QueryStringCollection;
+	parent: any;
+	key: string | number;
+	level: number;
+	id: number;
+}

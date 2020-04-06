@@ -1,17 +1,8 @@
 import { ObjectHelper } from "./ObjectHelper";
-import { NumberHelper } from "./NumberHelper";
+import { QueryStringCollection } from "./StringHelpers/QueryString/Collection";
+import { QueryStringCollectionRecord } from "./StringHelpers/QueryString/CollectionRecord";
+import { QueryStringLastLevel } from "./StringHelpers/QueryString/LastLevel";
 
-
-interface IQsObjectLevel {
-	level: any;
-	key?: any;
-	desc?: string;
-	index: number;
-}
-interface IQsNameLevel {
-	implicitIndex: boolean;
-	value: string;
-}
 
 export class StringHelper {
 	protected static readonly HTML_SPECIAL_CHARS: any = {
@@ -178,194 +169,182 @@ export class StringHelper {
 		}
 	}
 
-	public static QueryStringDecode (queryString: string, decodeAmp: boolean = true): any {
-		if (decodeAmp) 
-			while (queryString.match(/&amp;/g))
-				queryString = queryString.replace(/&amp;/g, '&');
-		queryString = this.Trim(queryString, '&');
-		var result: any = [],
-			items: string[] = queryString.split('&'),
-			allObjectLevels: IQsObjectLevel[] = [],
-			objectLevels: IQsObjectLevel[],
-			objectLevel: IQsObjectLevel,
-			levelKey: string,
-			levelValueToRetype: any;
-		for (var i: number = 0, l: number = items.length; i < l; i++) {
-			objectLevels = this.qsDecodeItem(result, items[i]);
-			if (objectLevels == null) continue;
-			allObjectLevels = [].concat(allObjectLevels, objectLevels);
-		}
-		allObjectLevels = allObjectLevels.sort((a, b) => {
-			return a.index - b.index;
-		});
-		var rootMatched = false;
-		for (var i: number = allObjectLevels.length - 1; i >= 0; i--) {
-			objectLevel = allObjectLevels[i];
-			if (objectLevel.index === 0) {
-				rootMatched = true;
+	public static QueryStringDecode (str: string, autoRetype: boolean = false) {
+		var result: any = {},
+			collections: QueryStringCollectionRecord[] = [],
+			lastCollectionId: number = 0,
+			lastLevel: QueryStringLastLevel,
+			itemsRaw: string[],
+			itemRaw: string[],
+			itemRawKey: string | number,
+			itemRawValue: string,
+			itemKeys: string[],
+			lastLevelObject: any;
+		// trim & from left and right and explode by &?
+		itemsRaw = this.queryStringDecodePrepareItems(str);
+		for (var i: number = 0, l: number = itemsRaw.length; i < l; i++) {
+			itemRaw = this.queryStringDecodeExplodeKeyValue(itemsRaw[i]);
+			itemRawKey = itemRaw[0];
+			itemRawValue = itemRaw[1];
+			// go to next point only if key is valid and if key doesn't start with `[` bracket:
+			if (!(itemRawKey.length > 0 && itemRawKey.charAt(0) !== '[')) 
 				continue;
+			itemKeys = this.queryStringDecodeItemKeys(itemRawKey);
+			// start to assign valu into proper level
+			lastLevel = this.queryStringDecodeGetLastLevel(
+				itemKeys, result, collections, lastCollectionId
+			);
+			lastCollectionId = lastLevel.lastId;
+			lastLevelObject = lastLevel.level;
+			itemRawKey = lastLevel.key;
+			// assign value into proper level collection object:
+			if (autoRetype) {
+				lastLevelObject[itemRawKey] = this.queryStringDecodeRetypeValue(itemRawValue);
+			} else {
+				lastLevelObject[itemRawKey] = itemRawValue;
 			}
-			levelKey = objectLevel.key;
-			levelValueToRetype = objectLevel.level[levelKey];
-			if (levelValueToRetype instanceof Array)
-				objectLevel.level[levelKey] = this.qsRetypeToObject(levelValueToRetype);
 		}
-		if (rootMatched && result instanceof Array)
-			result = this.qsRetypeToObject(result);
+		return this.queryStringDecodeRetypeCollections(result, collections);
+	}
+	protected static queryStringDecodePrepareItems (str: string): string[] {
+		str = String(str).replace(/\+/g, '%20');
+		while (str.match(/[\%]([0-9]{2,})/g))
+			str = str.replace(/[\%]([0-9]{2,})/g, match => {
+				return decodeURIComponent(match);
+			});
+		str = str
+			.replace(/^&/, '')
+			.replace(/&$/, '');
+		return str.split('&');
+	}
+	protected static queryStringDecodeRetypeValue (itemRawValue: string): boolean | number | string | null | undefined {
+		var itemValue: boolean | number | string | null | undefined;
+		if (itemRawValue.match(/^(true|false)$/g)) {
+			itemValue = itemRawValue === "true";
+		} else if (itemRawValue.match(/^(null|undefined)$/g)) {
+			itemValue = itemRawValue === "null" ? null : undefined;
+		} else if (itemRawValue.match(/^([eE0-9\+\-\.]+)$/g)) {
+			itemValue = parseFloat(itemRawValue);
+			if (isNaN(itemValue))
+				itemValue = itemRawValue;
+		} else {
+			itemValue = itemRawValue;
+		}
+		return itemValue;
+	}
+	protected static queryStringDecodeExplodeKeyValue (itemRaw: string): string[] {
+		var itemRawKey: string, 
+			itemRawValue: string, 
+			strPos: number;
+		// explode by first `=`:
+		strPos = itemRaw.indexOf('=');
+		if (strPos == -1) {
+			itemRawKey = itemRaw;
+			itemRawValue = "true";
+		} else {
+			itemRawKey = itemRaw.substr(0, strPos);
+			itemRawValue = itemRaw.substr(strPos + 1);
+		}
+		// trim key with ` ` from left:
+		while (itemRawKey.charAt(0) === ' ') 
+			itemRawKey = itemRawKey.slice(1);
+		// trim key with ` ` from right:
+		while (itemRawKey.charAt(itemRawKey.length - 1) === ' ') 
+			itemRawKey = itemRawKey.slice(0, itemRawKey.length - 1);
+		// discard everything after null char:
+		strPos = itemRawKey.indexOf('\x00');
+		if (strPos != -1) 
+			itemRawKey = itemRawKey.slice(0, strPos);
+		return [itemRawKey, itemRawValue];
+	}
+	protected static queryStringDecodeItemKeys (itemRawKey: string): string[] {
+		var itemRawKeyLength: number = itemRawKey.length,
+			itemKeys: string[] = [],
+			beginPos: number,
+			endPos: number,
+			index: number = 0;
+		beginPos = itemRawKey.indexOf('[');
+		if (beginPos == -1) {
+			itemKeys = [itemRawKey];
+		} else {
+			itemKeys.push(
+				itemRawKey
+					.substr(0, beginPos)
+					.replace(/^['"]/, '')
+					.replace(/['"]$/, '')
+			);
+			index = beginPos;
+			while (index < itemRawKeyLength) {
+				beginPos = itemRawKey.indexOf('[', index);
+				if (beginPos == -1) break;
+				endPos = itemRawKey.indexOf(']', beginPos);
+				if (endPos == -1) break;
+				itemKeys.push(
+					itemRawKey
+						.substr(beginPos + 1, endPos - beginPos - 1)
+						.replace(/^['"]/, '')
+						.replace(/['"]$/, '')
+				);
+				index = endPos + 1;
+			}
+		}
+		return itemKeys;
+	}
+	protected static queryStringDecodeGetLastLevel (itemKeys: string[], result: any, collections: QueryStringCollectionRecord[], lastCollectionId: number): QueryStringLastLevel {
+		var levelObject: any = result,
+			itemCollection: QueryStringCollection,
+			levelObjectValue: any,
+			lastLevelObject: any,
+			itemRawKey: string | number;
+		for (var j: number = 0, k: number = itemKeys.length; j < k; j++) {
+			itemRawKey = itemKeys[j];
+			lastLevelObject = levelObject;
+			// if not root level and key is implicit:
+			if (
+				j !== 0 &&
+				(itemRawKey === '' || itemRawKey === ' ')
+			) 
+				itemRawKey = levelObject.length;
+			// if last key - break, because there will be value assignment only:
+			if (j + 1 === k) break;
+			// if not last key - there will be another collection:
+			levelObjectValue = levelObject[itemRawKey];
+			if (levelObjectValue == null) {
+				// if there is no collection level yet:
+				itemCollection = new QueryStringCollection();
+				collections.push({
+					collection: itemCollection,
+					parent: levelObject,
+					key: itemRawKey,
+					level: j,
+					id: lastCollectionId++
+				});
+				levelObject[itemRawKey] = itemCollection;
+				levelObject = itemCollection;
+			} else {
+				levelObject = levelObjectValue;
+			}
+		}
+		return <QueryStringLastLevel>{
+			level: lastLevelObject,
+			key: itemRawKey,
+			lastId: lastCollectionId
+		};
+	}
+	protected static queryStringDecodeRetypeCollections (result: any, collections: QueryStringCollectionRecord[]): any {
+		// sort all collections reversly
+		var collectionItem: QueryStringCollectionRecord;
+		collections.sort((a, b): number => {
+			var aLevel: number = a.level,
+				bLevel: number = b.level;
+			if (aLevel == bLevel) return b.id - a.id;
+			return bLevel - aLevel;
+		});
+		for (var i: number = 0, l: number = collections.length; i < l; i++) {
+			collectionItem = collections[i];
+			collectionItem.parent[collectionItem.key] = Object.getPrototypeOf(collectionItem.collection);
+		}
 		return result;
-	}
-	protected static qsDecodeItem (result: any[], item: string): IQsObjectLevel[] {
-		var pos: number = item.indexOf('=');
-		if (pos == -1) {
-			result[item] = true;
-			return null;
-		}
-		var rawName: string = item.substr(0, pos),
-			rawValue: string = item.substr(pos + 1),
-			nameLevels: IQsNameLevel[] = [];
-		rawName = this.qsDecodeGetVarNameLevels(rawName, nameLevels);
-		if (rawName == 'push') return null;
-		var value: any = this.qsDecodeGetValue(rawValue),
-			objectLevels: IQsObjectLevel[] = this.qsDecodeValueToLevel(
-			result, rawName, nameLevels, value
-		);
-		if (objectLevels.length > 0) 
-			return objectLevels;
-		return null;
-	}
-	protected static qsDecodeGetVarNameLevels (rawName: string, nameLevels: IQsNameLevel[]): string {
-		var openPos: number,
-			closePos: number,
-			nameLevelValue: string;
-		while (true) {
-			closePos = rawName.lastIndexOf(']', rawName.length);
-			if (closePos == -1 && closePos != rawName.length - 1) break;
-			openPos = rawName.lastIndexOf('[', closePos);
-			if (openPos == -1) break;
-			nameLevelValue = rawName.substr(openPos + 1, closePos - openPos - 1);
-			nameLevels.push({
-				value: nameLevelValue,
-				implicitIndex: Boolean(nameLevelValue === '')
-			});
-			rawName = rawName.substr(0, openPos);
-			if (rawName.length === 0) break;
-		}
-		nameLevels.reverse();
-		return rawName;
-	}
-	protected static qsDecodeGetValue (rawValue: any): any {
-		var value: any;
-		try {
-			value = JSON.parse(rawValue);
-		} catch (e) {
-			value = rawValue;
-		}
-		return value;
-	}
-	protected static qsDecodeValueToLevel (result: any[], rawName: string, nameLevels: IQsNameLevel[], value: any): IQsObjectLevel[] {
-		var lastLocalLevelValue: any[],
-			localLevelValue: any[],
-			nameLevel: { implicitIndex: boolean, value: string },
-			nameLevelKey: string,
-			lastNameLevelKey: string,
-			objectLevels: IQsObjectLevel[] = [];
-		if (rawName === '' || !NumberHelper.IsNumeric(rawName))
-			objectLevels.push({
-				level: result,
-				index: 0
-			});
-		if (nameLevels.length === 0) {
-			if (result[rawName] == null) {
-				result[rawName] = value;
-			} else if (result[rawName] instanceof Array) {
-				result[rawName].push(value);
-			} else {
-				result[rawName] = [result[rawName], value];
-			}
-			return objectLevels;
-		}
-		if (result[rawName] == null) 
-			result[rawName] = [];
-
-		lastLocalLevelValue = result;
-		lastNameLevelKey = rawName;
-
-		localLevelValue = result[rawName];
-
-		for (var j: number = 0, k: number = nameLevels.length; j < k; j++) {
-			nameLevel = nameLevels[j];
-			if (j + 1 === k) {
-				// set last level
-				if (nameLevel.implicitIndex) {
-
-					localLevelValue.push(value);
-				} else {
-					nameLevelKey = nameLevel.value;
-					if (nameLevelKey == 'push') continue;
-
-					if (localLevelValue instanceof Array) 
-						objectLevels.push({
-							level: lastLocalLevelValue,
-							key: lastNameLevelKey,
-							index: j + 1
-						});
-				
-					if (localLevelValue[nameLevelKey] == null) {
-						localLevelValue[nameLevelKey] = value;
-					} else if (ObjectHelper.IsPrimitiveType(localLevelValue[nameLevelKey])) {
-						localLevelValue[nameLevelKey] = [localLevelValue[nameLevelKey], value];
-					} else {
-						localLevelValue[nameLevelKey] = value;
-					}
-				}
-			} else {
-				// get next level
-				if (nameLevel.implicitIndex) {
-					if (localLevelValue.length === 0) 
-						localLevelValue.push([]);
-					if (ObjectHelper.IsPrimitiveType(localLevelValue[localLevelValue.length - 1])) 
-						localLevelValue.push([]);
-
-					lastLocalLevelValue = localLevelValue;
-					lastNameLevelKey = String(localLevelValue.length - 1);
-					
-					localLevelValue = localLevelValue[localLevelValue.length - 1];
-				} else {
-
-					nameLevelKey = nameLevel.value;
-					if (nameLevelKey == 'push') continue;
-					
-					if (localLevelValue[nameLevelKey] == null) {
-						localLevelValue[nameLevelKey] = [];
-					} else if (ObjectHelper.IsPrimitiveType(localLevelValue[nameLevelKey])) {
-						localLevelValue[nameLevelKey] = [localLevelValue[nameLevelKey]];
-					}
-
-					if (localLevelValue instanceof Array) 
-						objectLevels.push({
-							level: lastLocalLevelValue,
-							key: lastNameLevelKey,
-							index: j + 1
-						});
-					
-					lastLocalLevelValue = localLevelValue;
-					lastNameLevelKey = nameLevelKey;
-					
-					localLevelValue = localLevelValue[nameLevelKey];
-				}
-			}
-		}
-		return objectLevels;
-	}
-	protected static qsRetypeToObject (arr: any[]): any {
-		var obj: any = {},
-			key: string,
-			keys: string[] = Object.keys(arr);
-		for (var i: number = 0, l: number = keys.length; i < l; i++) {
-			key = keys[i];
-			obj[key] = arr[key];
-		}
-		return obj;
 	}
 
 	/**

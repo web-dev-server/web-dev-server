@@ -1,7 +1,7 @@
 import * as fs from "fs";
 
 import {
-	Server, Request, Response, Applications, Tools
+	Server, Request, Response, Applications
 } from "../../../lib/Server";
 
 
@@ -30,8 +30,6 @@ class App extends Applications.Abstract {
 		super(server);
 		// Any initializations:
 		
-		request.GetPath();
-		response.IsSentHeaders()
 	}
 	
 	/** @summary Requests counter. */
@@ -80,13 +78,6 @@ class App extends Applications.Abstract {
 			});
 		});
 
-/*
-		var qs = 'arr[]=1&arr[]=2&arr[]=3&obj[x1][y1]=a&obj[x1][y2]=aa&obj[x2][y1]=b&obj[x2][y2]=bb';
-		var qs = 'obj[x2][y2]=bb&arr[]=1&arr[]=2';
-		var qs = 'arr[]=1&arr[]=2&arr[]=3&obj[x1][y1][]=a&obj[x1][y2][]=aa&obj[x2][y1][]=b&obj[x2][y2][]=bb';
-		var qs = 'arr[]=1&arr[]=2&arr[]=3&obj[][x1][y1]=a&obj[][x1][y2]=aa&obj[][x2][y1]=b&obj[][x2][y2]=bb';
-*/
-		
 		response.SetBody(data.replace(
 			/%code%/g, JSON.stringify({
 				basePath: request.GetBasePath(),
@@ -101,8 +92,6 @@ class App extends Applications.Abstract {
 			}, null, "\t")
 		)).Send();
 	}
-	
-	
 }
 
 export default App;

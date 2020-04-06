@@ -128,12 +128,16 @@ public static CleanParamValue (
 		patternRegExp = new RegExp("[^" + replaceFilter.toString() + "]", "g");
 		resultValue = rawValueStr.replace(patternRegExp, replaceStr);
 	}
-	if (resultValue === rawValueStr) {
-		try {
-			resultValue = JSON.parse(rawValue);
-		} catch (e) {
-			resultValue = rawValue;
-		}
+	if (rawValue.match(/^(true|false)$/g)) {
+		resultValue = rawValue === "true";
+	} else if (rawValue.match(/^(null|undefined)$/g)) {
+		resultValue = rawValue === "null" ? null : undefined;
+	} else if (rawValue.match(/^([eE0-9\+\-\.]+)$/g)) {
+		resultValue = parseFloat(rawValue);
+		if (isNaN(resultValue))
+		resultValue = rawValue;
+	} else {
+		resultValue = rawValue;
 	}
 	return resultValue;
 }

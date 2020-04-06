@@ -1,6 +1,5 @@
 import { IncomingMessage } from "http";
-import { UrlWithParsedQuery, parse as UrlParse } from "url";
-import { ParsedUrlQuery } from "querystring";
+//import { UrlWithParsedQuery, parse as UrlParse } from "url";
 import { Request } from "../Request";
 import { StringHelper } from "../Tools/Helpers/StringHelper";
 import { Protected } from "./Protected";
@@ -98,13 +97,13 @@ export class Params {
 			postParams: any,
 			getParams: any,
 			method: string;
-		try { 
+		//try { 
 			var queryString: string = this['GetQuery'](false, true),
-			getParams = StringHelper.QueryStringDecode(queryString, true);
-		} catch (e) {
+			getParams = StringHelper.QueryStringDecode(queryString, false);
+		/*} catch (e) {
 			var parsedUrlWithJsonQuery: UrlWithParsedQuery = UrlParse(this['_url'], true),
 			getParams = parsedUrlWithJsonQuery.query as any;
-		}
+		}*/
 		this.params = getParams;
 		if (!httpReq.complete) return;
 		method = httpReq.method.toUpperCase();
@@ -132,16 +131,16 @@ export class Params {
 			}
 		}
 		if (!probablyAJsonType) {
-			try {
-				result = StringHelper.QueryStringDecode(rawInput, true);
-			} catch (e) {
+			//try {
+				result = StringHelper.QueryStringDecode(rawInput, false);
+			/*} catch (e) {
 				rawInput = 'http://localhost/?' + StringHelper.TrimLeft(StringHelper.Trim(rawInput, '&='), '');
 				var parsedBodyAsJsonQuery: UrlWithParsedQuery = UrlParse(rawInput, true);
 				if (parsedBodyAsJsonQuery && parsedBodyAsJsonQuery.query)
 					result = parsedBodyAsJsonQuery.query as any;
 				if (parsedBodyAsJsonQuery && parsedBodyAsJsonQuery.query)
 					result = parsedBodyAsJsonQuery.query as any;
-			}
+			}*/
 		}
 		return result;
 	}

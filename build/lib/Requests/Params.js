@@ -1,6 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var tslib_1 = require("tslib");
-var url_1 = require("url");
 var StringHelper_1 = require("../Tools/Helpers/StringHelper");
 var Protected_1 = require("./Protected");
 var Params = /** @class */ (function () {
@@ -88,12 +87,12 @@ var Params = /** @class */ (function () {
      */
     Params.prototype.initParams = function () {
         var httpReq = this['http'], postParams, getParams, method;
-        try {
-            var queryString = this['GetQuery'](false, true), getParams = StringHelper_1.StringHelper.QueryStringDecode(queryString, true);
-        }
-        catch (e) {
-            var parsedUrlWithJsonQuery = url_1.parse(this['_url'], true), getParams = parsedUrlWithJsonQuery.query;
-        }
+        //try { 
+        var queryString = this['GetQuery'](false, true), getParams = StringHelper_1.StringHelper.QueryStringDecode(queryString, false);
+        /*} catch (e) {
+            var parsedUrlWithJsonQuery: UrlWithParsedQuery = UrlParse(this['_url'], true),
+            getParams = parsedUrlWithJsonQuery.query as any;
+        }*/
         this.params = getParams;
         if (!httpReq.complete)
             return;
@@ -125,17 +124,16 @@ var Params = /** @class */ (function () {
             }
         }
         if (!probablyAJsonType) {
-            try {
-                result = StringHelper_1.StringHelper.QueryStringDecode(rawInput, true);
-            }
-            catch (e) {
-                rawInput = 'http://localhost/?' + StringHelper_1.StringHelper.TrimLeft(StringHelper_1.StringHelper.Trim(rawInput, '&='), '');
-                var parsedBodyAsJsonQuery = url_1.parse(rawInput, true);
+            //try {
+            result = StringHelper_1.StringHelper.QueryStringDecode(rawInput, false);
+            /*} catch (e) {
+                rawInput = 'http://localhost/?' + StringHelper.TrimLeft(StringHelper.Trim(rawInput, '&='), '');
+                var parsedBodyAsJsonQuery: UrlWithParsedQuery = UrlParse(rawInput, true);
                 if (parsedBodyAsJsonQuery && parsedBodyAsJsonQuery.query)
-                    result = parsedBodyAsJsonQuery.query;
+                    result = parsedBodyAsJsonQuery.query as any;
                 if (parsedBodyAsJsonQuery && parsedBodyAsJsonQuery.query)
-                    result = parsedBodyAsJsonQuery.query;
-            }
+                    result = parsedBodyAsJsonQuery.query as any;
+            }*/
         }
         return result;
     };

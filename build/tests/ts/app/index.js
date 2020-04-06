@@ -27,10 +27,8 @@ var App = /** @class */ (function (_super) {
         var _this = _super.call(this, server) || this;
         /** @summary Requests counter. */
         _this.counter = 0;
-        // Any initializations:
-        request.GetPath();
-        response.IsSentHeaders();
         return _this;
+        // Any initializations:
     }
     /**
      * @summary This method is executed each request to directory with
@@ -76,12 +74,6 @@ var App = /** @class */ (function (_super) {
                             })];
                     case 4:
                         data = _a.sent();
-                        /*
-                                var qs = 'arr[]=1&arr[]=2&arr[]=3&obj[x1][y1]=a&obj[x1][y2]=aa&obj[x2][y1]=b&obj[x2][y2]=bb';
-                                var qs = 'obj[x2][y2]=bb&arr[]=1&arr[]=2';
-                                var qs = 'arr[]=1&arr[]=2&arr[]=3&obj[x1][y1][]=a&obj[x1][y2][]=aa&obj[x2][y1][]=b&obj[x2][y2][]=bb';
-                                var qs = 'arr[]=1&arr[]=2&arr[]=3&obj[][x1][y1]=a&obj[][x1][y2]=aa&obj[][x2][y1]=b&obj[][x2][y2]=bb';
-                        */
                         response.SetBody(data.replace(/%code%/g, JSON.stringify({
                             basePath: request.GetBasePath(),
                             path: request.GetPath(),

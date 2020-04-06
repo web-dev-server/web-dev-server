@@ -1,6 +1,6 @@
-import * as fs from "fs";
+var fs = require("fs");
 
-import * as WebDevServer from "../../lib/Server";
+var WebDevServer = require("../../../lib/Server");
 
 
 /**
@@ -24,55 +24,72 @@ class App extends WebDevServer.Applications.Abstract {
 	 * 			if there is any unhandled error inside method 
 	 * 			`handleHttpRequest` (to develop more comfortably).
 	 */
-	public constructor (
-		server: WebDevServer.Server, 
-		request: WebDevServer.Request, 
-		response: WebDevServer.Response
-	) {
+	constructor (server, request, response) {
 		super(server);
+		/** 
+		 * @summary Requests counter.
+		 * @var {number}
+		 */
+		this.counter = 0;
 		// Any initializations:
 		
-		request.GetPath();
-		response.IsSentHeaders()
 	}
-	
-	/** @summary Requests counter. */
-	protected counter: number = 0;
 
 	/**
 	 * @summary This method is executed each request to directory with 
 	 * 			`index.js` script inside (also executed for first time 
 	 * 			immediately after constructor).
+	 * @public
+	 * @return {Promise<void>}
 	 */
-	public async ServerHandler(
-		request: WebDevServer.Request, 
-		response: WebDevServer.Response
-	): Promise<void> {
+	async ServerHandler(request, response) {
 
 		// increase request counter:
 		this.counter++;
+
+		var sessionExists = WebDevServer.Applications.Session.Exists(request);
+		var sessionInitParam = request.GetParam('session_init', '\\d');
+		if (!sessionExists) {
+			if (!sessionInitParam) return response.Redirect('?session_init=1');
+			(await WebDevServer.Applications.Session.Start(request, response)).GetNamespace("test").value = 0;
+			return response.Redirect(request.GetRequestUrl());
+		}
+		var session = await WebDevServer.Applications.Session.Start(request, response);
+		var sessionNamespace = session.GetNamespace("test").SetExpirationSeconds(30);
+		sessionNamespace.value += 1;
 		
 		// some demo operation to say hallo world:
-		var staticHtmlFileFullPath = __dirname + '/../../../src/tests/app/index.html';
+		var staticHtmlFileFullPath = this.server.GetDocumentRoot() + "/src/tests/assets/index.html";
 		
 		// try to uncomment line bellow to see rendered error in browser:
-		//throw new Error("Uncatched test error.");
-		
-		//var data: string = await fs.promises.readFile(staticHtmlFileFullPath, 'utf8'); // experimental
-		var data: string = await new Promise<string>((
-			resolve: (data: string) => void, reject: (err: Error) => void
-		) => {
-			fs.readFile(staticHtmlFileFullPath, 'utf8', (err: Error, data: string) => {
+		//throw new Error("Uncatched test error 1.");
+
+		//var data = await fs.promises.readFile(staticHtmlFileFullPath, 'utf8'); // experimental
+		var data = await new Promise(function(resolve, reject) {
+			fs.readFile(staticHtmlFileFullPath, 'utf8', function (err, data) {
 				// try to uncomment line bellow to see rendered error in browser:
-				//throw new Error("Uncatched test error.");
+				try {
+					//throw new Error("Uncatched test error 2.");
+				} catch (e) {
+					err = e;
+				}
 				if (err) return reject(err);
 				resolve(data);
 			});
 		});
-		
+
 		response.SetBody(data.replace(
-			/%requestPath/g, 
-			request.GetPath() + " (" + this.counter.toString() + "×)"
+			/%code%/g, JSON.stringify({
+				basePath: request.GetBasePath(),
+				path: request.GetPath(),
+				domainUrl: request.GetDomainUrl(),
+				baseUrl: request.GetBaseUrl(),
+				requestUrl: request.GetRequestUrl(),
+				fullUrl: request.GetFullUrl(),
+				params: request.GetParams(false, false),
+				appRequests: this.counter,
+				sessionTestValue: sessionNamespace.value
+			}, null, "\t")
 		)).Send();
 	}
 }

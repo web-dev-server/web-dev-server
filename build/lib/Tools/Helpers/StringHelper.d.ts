@@ -1,13 +1,5 @@
-interface IQsObjectLevel {
-    level: any;
-    key?: any;
-    desc?: string;
-    index: number;
-}
-interface IQsNameLevel {
-    implicitIndex: boolean;
-    value: string;
-}
+import { QueryStringCollectionRecord } from "./StringHelpers/QueryString/CollectionRecord";
+import { QueryStringLastLevel } from "./StringHelpers/QueryString/LastLevel";
 export declare class StringHelper {
     protected static readonly HTML_SPECIAL_CHARS: any;
     protected static readonly HTML_SPECIAL_CHARS_WITHOUT_AMP: any;
@@ -25,12 +17,13 @@ export declare class StringHelper {
     static RawUrlDecode(str: string): string;
     static QueryStringEncode(obj: any, encodeAmp?: boolean): string;
     protected static encodeQueryStringRecursive(prefix: string, keys: string[], value: any, items: string[], level: number): void;
-    static QueryStringDecode(queryString: string, decodeAmp?: boolean): any;
-    protected static qsDecodeItem(result: any[], item: string): IQsObjectLevel[];
-    protected static qsDecodeGetVarNameLevels(rawName: string, nameLevels: IQsNameLevel[]): string;
-    protected static qsDecodeGetValue(rawValue: any): any;
-    protected static qsDecodeValueToLevel(result: any[], rawName: string, nameLevels: IQsNameLevel[], value: any): IQsObjectLevel[];
-    protected static qsRetypeToObject(arr: any[]): any;
+    static QueryStringDecode(str: string, autoRetype?: boolean): any;
+    protected static queryStringDecodePrepareItems(str: string): string[];
+    protected static queryStringDecodeRetypeValue(itemRawValue: string): boolean | number | string | null | undefined;
+    protected static queryStringDecodeExplodeKeyValue(itemRaw: string): string[];
+    protected static queryStringDecodeItemKeys(itemRawKey: string): string[];
+    protected static queryStringDecodeGetLastLevel(itemKeys: string[], result: any, collections: QueryStringCollectionRecord[], lastCollectionId: number): QueryStringLastLevel;
+    protected static queryStringDecodeRetypeCollections(result: any, collections: QueryStringCollectionRecord[]): any;
     /**
      * Recognize if given string is JSON or not without JSON parsing.
      * @see https://www.ietf.org/rfc/rfc4627.txt
@@ -53,4 +46,3 @@ export declare class StringHelper {
      */
     static IsQueryString(queryStr: string): boolean;
 }
-export {};

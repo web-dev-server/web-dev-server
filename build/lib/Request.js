@@ -51,7 +51,7 @@ exports.Request = /** @class */ (function () {
             var parsedUrl = url_1.parse(this._url, false);
             var requestPath = parsedUrl.pathname;
             if (typeof parsedUrl.query == 'string' && parsedUrl.query.length > 0)
-                requestPath += '?' + parsedUrl.query;
+                requestPath += '?' + parsedUrl.query.replace(/\+/g, '%20');
             while (requestPath.match(/[\%]([0-9]{2,})/g))
                 requestPath = requestPath.replace(/[\%]([0-9]{2,})/g, function (match) {
                     return decodeURIComponent(match);

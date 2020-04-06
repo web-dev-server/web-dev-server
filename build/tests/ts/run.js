@@ -6,11 +6,11 @@ var rootDir = __dirname + '/../../..';
 var logger = Server_1.Tools.Logger.CreateNew(rootDir, rootDir)
     .SetStackTraceWriting(true, true);
 Server_1.Server.CreateNew()
-    .SetDocumentRoot(rootDir) // required
-    .SetPort(8000) // optional, 8000 by default
+    .SetDocumentRoot(rootDir)
+    .SetPort(8000)
     .SetHostname('web-dev-server.local') // optional, localhost by default
-    .SetDevelopment(true) // optional, true by default to display Errors and directory content
-    //.SetBasePath('/node')					// optional, null by default, useful for apache proxy modes
+    .SetDevelopment(true)
+    //.SetBasePath('/node')
     .SetErrorHandler(function (err, code, req, res) { return tslib_1.__awaiter(_this, void 0, void 0, function () {
     return tslib_1.__generator(this, function (_a) {
         console.error(err);
@@ -22,7 +22,7 @@ Server_1.Server.CreateNew()
     return tslib_1.__generator(this, function (_a) {
         if (req.GetPath() == '/health') {
             res.SetCode(200).SetBody('1').Send();
-            event.PreventDefault(); // do not anything else in `web-dev-server` module for this request
+            event.PreventDefault();
         }
         return [2 /*return*/];
     });
