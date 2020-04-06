@@ -1,9 +1,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var Abstract = /** @class */ (function () {
-    function Abstract(server) {
-        this.server = server;
+    function Abstract() {
     }
-    ;
     return Abstract;
 }());
 exports.Abstract = Abstract;

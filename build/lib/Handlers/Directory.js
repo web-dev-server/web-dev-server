@@ -7,7 +7,7 @@ var DirItem_1 = require("./Directories/DirItem");
 var StringHelper_1 = require("../Tools/Helpers/StringHelper");
 var NumberHelper_1 = require("../Tools/Helpers/NumberHelper");
 var DateHelper_1 = require("../Tools/Helpers/DateHelper");
-var Cache_1 = require("../Applications/Cache");
+var Register_1 = require("../Applications/Register");
 var DirectoriesHandler = /** @class */ (function () {
     function DirectoriesHandler(server, cache, filesHandler, errorsHandler) {
         this.indexFiles = new Map();
@@ -90,64 +90,126 @@ var DirectoriesHandler = /** @class */ (function () {
     DirectoriesHandler.prototype.HandleIndexScript = function (dirFullPath, indexScript, indexScriptModTime, req, res) {
         var _this = this;
         (function () { return tslib_1.__awaiter(_this, void 0, void 0, function () {
-            var cachedModule, moduleInstance, requireCacheKey, e_1, e_2, e_3;
+            var cachedModule, moduleInstance, requireCacheKey, e1_1, e2_1, e3_1, e4_1, e5_1, e6_1, e7_1;
             return tslib_1.__generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
                         cachedModule = this.cache.GetIndexScriptModuleRecord(dirFullPath);
                         // set up request before index script execution:
                         req['setUpIndexScriptExec'](this.server.GetDocumentRoot(), dirFullPath, indexScript, this.server.GetBasePath());
-                        if (!(cachedModule !== null)) return [3 /*break*/, 9];
-                        if (!this.server.IsDevelopment()) return [3 /*break*/, 5];
+                        if (!(cachedModule != null)) return [3 /*break*/, 24];
+                        if (!this.server.IsDevelopment()) return [3 /*break*/, 16];
                         _a.label = 1;
                     case 1:
-                        _a.trys.push([1, 3, , 4]);
+                        _a.trys.push([1, 10, , 15]);
                         requireCacheKey = path_1.resolve(dirFullPath + '/' + indexScript);
-                        moduleInstance = cachedModule.instance;
-                        if (indexScriptModTime > cachedModule.modTime ||
-                            !require.cache[requireCacheKey]) {
-                            this.cache.ClearModuleInstanceCacheAndRequireCache(dirFullPath);
-                            moduleInstance = this.indexScriptModuleCreate(dirFullPath, indexScript, indexScriptModTime, req, res);
-                        }
-                        else {
-                            moduleInstance = cachedModule.instance;
-                        }
-                        return [4 /*yield*/, this.indexScriptModuleExecute(dirFullPath, indexScript, moduleInstance, req, res)];
+                        if (!(indexScriptModTime > cachedModule.modTime ||
+                            !require.cache[requireCacheKey])) return [3 /*break*/, 7];
+                        _a.label = 2;
                     case 2:
-                        _a.sent();
-                        return [3 /*break*/, 4];
+                        _a.trys.push([2, 4, , 5]);
+                        return [4 /*yield*/, cachedModule.instance.Stop(this.server)];
                     case 3:
-                        e_1 = _a.sent();
-                        this.errorsHandler.PrintError(e_1, req, res, 500);
-                        this.cache.ClearModuleInstanceCacheAndRequireCache(dirFullPath);
-                        return [3 /*break*/, 4];
-                    case 4: return [3 /*break*/, 8];
-                    case 5:
-                        _a.trys.push([5, 7, , 8]);
-                        moduleInstance = cachedModule.instance;
-                        return [4 /*yield*/, this.indexScriptModuleExecute(dirFullPath, indexScript, moduleInstance, req, res)];
-                    case 6:
                         _a.sent();
+                        return [3 /*break*/, 5];
+                    case 4:
+                        e1_1 = _a.sent();
+                        this.errorsHandler.LogError(e1_1, 500, req, res);
+                        return [3 /*break*/, 5];
+                    case 5:
+                        cachedModule.instance = null;
+                        this.cache.ClearModuleInstanceCacheAndRequireCache(dirFullPath);
+                        cachedModule = null;
+                        return [4 /*yield*/, this.indexScriptModuleCreate(dirFullPath, indexScript, indexScriptModTime, req, res)];
+                    case 6:
+                        moduleInstance = _a.sent();
                         return [3 /*break*/, 8];
                     case 7:
-                        e_2 = _a.sent();
-                        this.errorsHandler.PrintError(e_2, req, res, 500);
-                        this.cache.ClearModuleInstanceCacheAndRequireCache(dirFullPath);
-                        return [3 /*break*/, 8];
-                    case 8: return [3 /*break*/, 12];
+                        moduleInstance = cachedModule.instance;
+                        _a.label = 8;
+                    case 8: return [4 /*yield*/, this.indexScriptModuleExecute(dirFullPath, indexScript, moduleInstance, req, res)];
                     case 9:
-                        _a.trys.push([9, 11, , 12]);
-                        moduleInstance = this.indexScriptModuleCreate(dirFullPath, indexScript, indexScriptModTime, req, res);
-                        return [4 /*yield*/, this.indexScriptModuleExecute(dirFullPath, indexScript, moduleInstance, req, res)];
-                    case 10:
                         _a.sent();
-                        return [3 /*break*/, 12];
+                        return [3 /*break*/, 15];
+                    case 10:
+                        e2_1 = _a.sent();
+                        this.errorsHandler
+                            .LogError(e2_1, 500, req, res)
+                            .PrintError(e2_1, 500, req, res);
+                        if (!(moduleInstance != null)) return [3 /*break*/, 14];
+                        _a.label = 11;
                     case 11:
-                        e_3 = _a.sent();
-                        this.errorsHandler.PrintError(e_3, req, res, 500);
+                        _a.trys.push([11, 13, , 14]);
+                        return [4 /*yield*/, moduleInstance.Stop(this.server)];
+                    case 12:
+                        _a.sent();
+                        return [3 /*break*/, 14];
+                    case 13:
+                        e3_1 = _a.sent();
+                        this.errorsHandler.LogError(e3_1, 500, req, res);
+                        return [3 /*break*/, 14];
+                    case 14:
                         this.cache.ClearModuleInstanceCacheAndRequireCache(dirFullPath);
-                        return [3 /*break*/, 12];
-                    case 12: return [2 /*return*/];
+                        return [3 /*break*/, 15];
+                    case 15: return [3 /*break*/, 23];
+                    case 16:
+                        _a.trys.push([16, 18, , 23]);
+                        moduleInstance = cachedModule.instance;
+                        return [4 /*yield*/, this.indexScriptModuleExecute(dirFullPath, indexScript, moduleInstance, req, res)];
+                    case 17:
+                        _a.sent();
+                        return [3 /*break*/, 23];
+                    case 18:
+                        e4_1 = _a.sent();
+                        this.errorsHandler
+                            .LogError(e4_1, 500, req, res)
+                            .PrintError(e4_1, 500, req, res);
+                        if (!(moduleInstance != null)) return [3 /*break*/, 22];
+                        _a.label = 19;
+                    case 19:
+                        _a.trys.push([19, 21, , 22]);
+                        return [4 /*yield*/, moduleInstance.Stop(this.server)];
+                    case 20:
+                        _a.sent();
+                        return [3 /*break*/, 22];
+                    case 21:
+                        e5_1 = _a.sent();
+                        this.errorsHandler.LogError(e5_1, 500, req, res);
+                        return [3 /*break*/, 22];
+                    case 22:
+                        this.cache.ClearModuleInstanceCacheAndRequireCache(dirFullPath);
+                        return [3 /*break*/, 23];
+                    case 23: return [3 /*break*/, 32];
+                    case 24:
+                        _a.trys.push([24, 27, , 32]);
+                        return [4 /*yield*/, this.indexScriptModuleCreate(dirFullPath, indexScript, indexScriptModTime, req, res)];
+                    case 25:
+                        moduleInstance = _a.sent();
+                        return [4 /*yield*/, this.indexScriptModuleExecute(dirFullPath, indexScript, moduleInstance, req, res)];
+                    case 26:
+                        _a.sent();
+                        return [3 /*break*/, 32];
+                    case 27:
+                        e6_1 = _a.sent();
+                        this.errorsHandler
+                            .LogError(e6_1, 500, req, res)
+                            .PrintError(e6_1, 500, req, res);
+                        if (!(moduleInstance != null)) return [3 /*break*/, 31];
+                        _a.label = 28;
+                    case 28:
+                        _a.trys.push([28, 30, , 31]);
+                        return [4 /*yield*/, moduleInstance.Stop(this.server)];
+                    case 29:
+                        _a.sent();
+                        return [3 /*break*/, 31];
+                    case 30:
+                        e7_1 = _a.sent();
+                        this.errorsHandler.LogError(e7_1, 500, req, res);
+                        return [3 /*break*/, 31];
+                    case 31:
+                        this.cache.ClearModuleInstanceCacheAndRequireCache(dirFullPath);
+                        return [3 /*break*/, 32];
+                    case 32: return [2 /*return*/];
                 }
             });
         }); })();
@@ -191,39 +253,50 @@ var DirectoriesHandler = /** @class */ (function () {
      * @summary Create directory index.js script module instance with optional development require cache resolving:
      */
     DirectoriesHandler.prototype.indexScriptModuleCreate = function (dirFullPath, indexScript, indexScriptModTime, req, res) {
-        var appDeclaration;
-        if (this.server.IsDevelopment()) {
-            var cacheKeysBeforeRequire = Object.keys(require.cache);
-            appDeclaration = this.indexScriptModuleGetDeclaration(dirFullPath + '/' + indexScript);
-            var cacheKeysAfterRequire = Object.keys(require.cache);
-            if (cacheKeysBeforeRequire.length != cacheKeysAfterRequire.length) {
-                var cacheKeysToWatch = Cache_1.Cache.GetRequireCacheDifferenceKeys(cacheKeysBeforeRequire, cacheKeysAfterRequire, dirFullPath + '/' + indexScript, dirFullPath + '/node_modules/');
-                this.cache.InitRequireCacheItemsWatchHandlers(dirFullPath + '/' + indexScript, cacheKeysToWatch);
-            }
-        }
-        else {
-            appDeclaration = this.indexScriptModuleGetDeclaration(dirFullPath + '/' + indexScript);
-        }
-        var appInstance = new appDeclaration(this.server, req, res);
-        this.cache.SetNewIndexScriptModuleRecord(appInstance, indexScriptModTime, indexScript, dirFullPath);
-        return appInstance;
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var appDeclaration, cacheKeysBeforeRequire, cacheKeysAfterRequire, cacheKeysToWatch, appInstance;
+            return tslib_1.__generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        if (this.server.IsDevelopment()) {
+                            cacheKeysBeforeRequire = Object.keys(require.cache);
+                            appDeclaration = this.indexScriptModuleGetDeclaration(dirFullPath + '/' + indexScript);
+                            cacheKeysAfterRequire = Object.keys(require.cache);
+                            if (cacheKeysBeforeRequire.length != cacheKeysAfterRequire.length) {
+                                cacheKeysToWatch = Register_1.Register.GetRequireCacheDifferenceKeys(cacheKeysBeforeRequire, cacheKeysAfterRequire, dirFullPath + '/' + indexScript, dirFullPath + '/node_modules/');
+                                this.cache.InitRequireCacheItemsWatchHandlers(dirFullPath + '/' + indexScript, cacheKeysToWatch);
+                            }
+                        }
+                        else {
+                            appDeclaration = this.indexScriptModuleGetDeclaration(dirFullPath + '/' + indexScript);
+                        }
+                        appInstance = new appDeclaration();
+                        return [4 /*yield*/, appInstance.Start(this.server, req, res)];
+                    case 1:
+                        _a.sent();
+                        this.cache.SetNewIndexScriptModuleRecord(appInstance, indexScriptModTime, indexScript, dirFullPath);
+                        return [2 /*return*/, appInstance];
+                }
+            });
+        });
     };
     /**
      * @summary Create directory index.js script module instance with optional development require cache resolving:
      */
     DirectoriesHandler.prototype.indexScriptModuleGetDeclaration = function (modulefullPath) {
-        var appDeclaration = null;
-        var handleMethodName = 'ServerHandler';
-        var module = require(modulefullPath);
+        var appDeclaration = null, startMethodName = 'Start', handleMethodName = 'HttpHandle', stopMethodName = 'Stop', module = require(modulefullPath);
         if (module && module.prototype && handleMethodName in module.prototype) {
             appDeclaration = module;
         }
         else if (module && module.__esModule) {
             var moduleKeys = Object.keys(module);
+            var moduleDefaultPrototype = module.default && module.default.prototype
+                ? module.default.prototype
+                : {};
             if (moduleKeys.indexOf('default') != -1 &&
-                module.default &&
-                module.default.prototype &&
-                handleMethodName in module.default.prototype) {
+                moduleDefaultPrototype && (startMethodName in moduleDefaultPrototype ||
+                handleMethodName in moduleDefaultPrototype ||
+                stopMethodName in moduleDefaultPrototype)) {
                 appDeclaration = module.default;
             }
             else {
@@ -232,8 +305,9 @@ var DirectoriesHandler = /** @class */ (function () {
                     moduleKey = moduleKeys[i];
                     moduleItem = module[moduleKey];
                     if (moduleItem &&
-                        moduleItem.prototype &&
-                        handleMethodName in moduleItem) {
+                        moduleItem.prototype && (startMethodName in moduleItem ||
+                        handleMethodName in moduleItem ||
+                        stopMethodName in moduleItem)) {
                         appDeclaration = moduleItem;
                         break;
                     }
@@ -255,16 +329,16 @@ var DirectoriesHandler = /** @class */ (function () {
                     case 0:
                         if (!this.server.IsDevelopment()) return [3 /*break*/, 2];
                         cacheKeysBeforeRequire = Object.keys(require.cache);
-                        return [4 /*yield*/, appInstance.ServerHandler(req, res)];
+                        return [4 /*yield*/, appInstance.HttpHandle(req, res)];
                     case 1:
                         _a.sent();
                         cacheKeysAfterRequire = Object.keys(require.cache);
                         if (cacheKeysBeforeRequire.length != cacheKeysAfterRequire.length) {
-                            cacheKeysToWatch = Cache_1.Cache.GetRequireCacheDifferenceKeys(cacheKeysBeforeRequire, cacheKeysAfterRequire, fullPath + '/' + indexScript, fullPath + '/node_modules/');
+                            cacheKeysToWatch = Register_1.Register.GetRequireCacheDifferenceKeys(cacheKeysBeforeRequire, cacheKeysAfterRequire, fullPath + '/' + indexScript, fullPath + '/node_modules/');
                             this.cache.InitRequireCacheItemsWatchHandlers(fullPath + '/' + indexScript, cacheKeysToWatch);
                         }
                         return [3 /*break*/, 4];
-                    case 2: return [4 /*yield*/, appInstance.ServerHandler(req, res)];
+                    case 2: return [4 /*yield*/, appInstance.HttpHandle(req, res)];
                     case 3:
                         _a.sent();
                         _a.label = 4;

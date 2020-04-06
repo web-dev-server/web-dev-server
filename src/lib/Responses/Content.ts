@@ -42,15 +42,15 @@ export class Content {
 		var httpRes: HttpServerResponse = this['http'];
 		return httpRes.finished;
 	}
-	public Send (end: boolean = true): Response {
-		return this['SendHeaders']().SendBody(end);
+	public Send (end: boolean = true, cb?: () => void): Response {
+		return this['SendHeaders']().SendBody(end, cb);
 	}
-	public SendBody (end: boolean = true): Response {
+	public SendBody (end: boolean = true, cb?: () => void): Response {
 		var httpRes: HttpServerResponse = this['http'];
 		if (this.IsSentBody()) return this as any;
 		httpRes.write(this.body);
 		if (end) {
-			this['End']();
+			this['endHttpRequest'](cb);
 		} else {
 			httpRes.write(this.body);
 		}

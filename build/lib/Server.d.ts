@@ -1,8 +1,9 @@
 /// <reference types="node" />
 import { Server as HttpServer, RequestListener as HttpRequestListener } from "http";
+import { Socket } from "net";
 import { Stats as FsStats } from "fs";
 import { Defaults } from "./Handlers/Defaults";
-import { Cache } from "./Applications/Cache";
+import { Register } from "./Applications/Register";
 import { ErrorsHandler } from "./Handlers/Error";
 import { FilesHandler } from "./Handlers/File";
 import { DirectoriesHandler } from "./Handlers/Directory";
@@ -13,30 +14,42 @@ export * from "./Request";
 export * from "./Response";
 export * from "./Event";
 export * from "./Tools/Namespace";
-export * from "./Applications/Namespace";
+export * from "./Applications/IApplication";
+import { Session as _Session } from "./Applications/Session";
+export declare class Session extends _Session {
+}
+import { INamespace as _INamespace } from "./Applications/Sessions/INamespace";
+export declare namespace Session {
+    interface INamespace extends _INamespace {
+    }
+}
 export declare class Server {
-    static VERSION: string;
+    static readonly VERSION: string;
+    static readonly STATES: {
+        CLOSED: number;
+        STARTING: number;
+        CLOSING: number;
+        STARTED: number;
+    };
     static DEFAULTS: {
         PORT: number;
         DOMAIN: string;
         RESPONSES: typeof Defaults;
     };
-    static SESSION: {
-        HASH: string;
-        ID_MAX_AGE: number;
-    };
     static INDEX: {
         SCRIPTS: string[];
         FILES: string[];
     };
+    protected state: number;
     protected documentRoot?: string;
     protected basePath?: string;
     protected port?: number;
     protected hostName?: string;
     protected development: boolean;
     protected httpServer?: HttpServer;
+    protected netSockets?: Set<Socket>;
     protected customServerHandler?: HttpRequestListener;
-    protected cache?: Cache;
+    protected register?: Register;
     protected errorsHandler?: ErrorsHandler;
     protected filesHandler?: FilesHandler;
     protected directoriesHandler?: DirectoriesHandler;
@@ -122,9 +135,17 @@ export declare class Server {
      */
     GetForbiddenPaths(): string[] | RegExp[];
     /**
-     * @summary Return used http server instance
+     * @summary Return used http server instance.
      */
     GetHttpServer(): HttpServer | null;
+    /**
+     * @summary Return set of connected sockets.
+     */
+    GetNetSockets(): Set<Socket>;
+    /**
+     * @summary Return server running state (`Server.STATES.<state>`).
+     */
+    GetState(): number;
     /**
      * @summary Try to find cached record by server document root and requested path
      * 			and return directory full path from the cache record.
@@ -134,11 +155,21 @@ export declare class Server {
     /**
      * @summary Start HTTP server
      */
-    Run(callback?: (success: boolean, error?: Error) => void): Server;
+    Start(callback?: (success?: boolean, error?: Error) => void): Server;
+    /**
+     * @summary Close all registered app instances, close and destroy all connected sockets and stop http server.
+     * @param callback
+     */
+    Stop(callback?: (success?: boolean, error?: Error) => void): Server;
     /**
      * @summary Handle all HTTP requests
      */
     protected handleReq(req: Request, res: Response): Promise<void>;
+    /**
+     * @summary Close all registered app instances, close and destroy all connected sockets and stop http server.
+     * @param callback
+     */
+    protected stopHandler(callback?: (success?: boolean, error?: Error) => void): void;
     /**
      * Get if path is allowed by `this.forbiddenPaths` configuration.
      * @param path Path including start slash, excluding base url and excluding params.

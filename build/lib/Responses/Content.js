@@ -39,18 +39,18 @@ var Content = /** @class */ (function () {
         var httpRes = this['http'];
         return httpRes.finished;
     };
-    Content.prototype.Send = function (end) {
+    Content.prototype.Send = function (end, cb) {
         if (end === void 0) { end = true; }
-        return this['SendHeaders']().SendBody(end);
+        return this['SendHeaders']().SendBody(end, cb);
     };
-    Content.prototype.SendBody = function (end) {
+    Content.prototype.SendBody = function (end, cb) {
         if (end === void 0) { end = true; }
         var httpRes = this['http'];
         if (this.IsSentBody())
             return this;
         httpRes.write(this.body);
         if (end) {
-            this['End']();
+            this['endHttpRequest'](cb);
         }
         else {
             httpRes.write(this.body);

@@ -8,16 +8,17 @@ import { DirItem } from "./Directories/DirItem";
 import { StringHelper } from "../Tools/Helpers/StringHelper";
 import { NumberHelper } from "../Tools/Helpers/NumberHelper";
 import { DateHelper } from "../Tools/Helpers/DateHelper";
-import { IApplication, IApplicationConstructor } from "../Applications/IApplication";
-import { Cache } from "../Applications/Cache";
-import { Record } from "../Applications/Caches/Record";
+import { IApplication } from "../Applications/IApplication";
+import { IApplicationConstructor } from "../Applications/IApplicationConstructor";
+import { Register } from "../Applications/Register";
+import { Record } from "../Applications/Registers/Record";
 import { FilesHandler } from "./File";
 import { ErrorsHandler } from "./Error";
 
 
 export class DirectoriesHandler {
 	protected server: Server;
-	protected cache: Cache;
+	protected cache: Register;
 	protected filesHandler: FilesHandler;
 	protected errorsHandler: ErrorsHandler;
 
@@ -26,7 +27,7 @@ export class DirectoriesHandler {
 	
 	constructor (
 		server: Server, 
-		cache: Cache, 
+		cache: Register, 
 		filesHandler: FilesHandler, 
 		errorsHandler: ErrorsHandler
 	) {
@@ -153,18 +154,24 @@ export class DirectoriesHandler {
 				indexScript,
 				this.server.GetBasePath()
 			);
-			if (cachedModule !== null) {
+			if (cachedModule != null) {
 				// instance of index.js class already exists:
 				if (this.server.IsDevelopment()) {
 					try {
 						var requireCacheKey: string = PathResolve(dirFullPath + '/' + indexScript);
-						moduleInstance = cachedModule.instance;
 						if (
 							indexScriptModTime > cachedModule.modTime || 
 							!require.cache[requireCacheKey]
 						) {
+							try {
+								await cachedModule.instance.Stop(this.server);
+							} catch (e1) {
+								this.errorsHandler.LogError(e1, 500, req, res);
+							}
+							cachedModule.instance = null;
 							this.cache.ClearModuleInstanceCacheAndRequireCache(dirFullPath);
-							moduleInstance = this.indexScriptModuleCreate(
+							cachedModule = null;
+							moduleInstance = await this.indexScriptModuleCreate(
 								dirFullPath, indexScript, indexScriptModTime, req, res
 							);
 						} else {
@@ -173,8 +180,17 @@ export class DirectoriesHandler {
 						await this.indexScriptModuleExecute(
 							dirFullPath, indexScript, moduleInstance, req, res
 						);
-					} catch (e) {
-						this.errorsHandler.PrintError(e, req, res, 500);
+					} catch (e2) {
+						this.errorsHandler
+							.LogError(e2, 500, req, res)
+							.PrintError(e2, 500, req, res);
+						if (moduleInstance != null) {
+							try {
+								await moduleInstance.Stop(this.server);
+							} catch (e3) {
+								this.errorsHandler.LogError(e3, 500, req, res);
+							}
+						}
 						this.cache.ClearModuleInstanceCacheAndRequireCache(dirFullPath);
 					}
 				} else {
@@ -183,22 +199,40 @@ export class DirectoriesHandler {
 						await this.indexScriptModuleExecute(
 							dirFullPath, indexScript, moduleInstance, req, res
 						);
-					} catch (e) {
-						this.errorsHandler.PrintError(e, req, res, 500);
+					} catch (e4) {
+						this.errorsHandler
+							.LogError(e4, 500, req, res)
+							.PrintError(e4, 500, req, res);
+						if (moduleInstance != null) {
+							try {
+								await moduleInstance.Stop(this.server);
+							} catch (e5) {
+								this.errorsHandler.LogError(e5, 500, req, res);
+							}
+						}
 						this.cache.ClearModuleInstanceCacheAndRequireCache(dirFullPath);
 					}
 				}
 			} else {
 				// create instance and handle request by index.js class:
 				try {
-					moduleInstance = this.indexScriptModuleCreate(
+					moduleInstance = await this.indexScriptModuleCreate(
 						dirFullPath, indexScript, indexScriptModTime, req, res
 					);
 					await this.indexScriptModuleExecute(
 						dirFullPath, indexScript, moduleInstance, req, res
 					);
-				} catch (e) {
-					this.errorsHandler.PrintError(e, req, res, 500);
+				} catch (e6) {
+					this.errorsHandler
+						.LogError(e6, 500, req, res)
+						.PrintError(e6, 500, req, res);
+					if (moduleInstance != null) {
+						try {
+							await moduleInstance.Stop(this.server);
+						} catch (e7) {
+							this.errorsHandler.LogError(e7, 500, req, res);
+						}
+					}
 					this.cache.ClearModuleInstanceCacheAndRequireCache(dirFullPath);
 				}
 			}
@@ -251,13 +285,13 @@ export class DirectoriesHandler {
 	/**
 	 * @summary Create directory index.js script module instance with optional development require cache resolving:
 	 */
-	protected indexScriptModuleCreate (
+	protected async indexScriptModuleCreate (
 		dirFullPath: string, 
 		indexScript: string, 
 		indexScriptModTime: number, 
 		req: Request, 
 		res: Response
-	): IApplication {
+	): Promise<IApplication> {
 		var appDeclaration: IApplicationConstructor;
 		if (this.server.IsDevelopment()) {
 			var cacheKeysBeforeRequire: string[] = Object.keys(require.cache);
@@ -266,7 +300,7 @@ export class DirectoriesHandler {
 			);
 			var cacheKeysAfterRequire: string[] = Object.keys(require.cache);
 			if (cacheKeysBeforeRequire.length != cacheKeysAfterRequire.length) {
-				var cacheKeysToWatch = Cache.GetRequireCacheDifferenceKeys(
+				var cacheKeysToWatch = Register.GetRequireCacheDifferenceKeys(
 					cacheKeysBeforeRequire, 
 					cacheKeysAfterRequire, 
 					dirFullPath + '/' + indexScript, 
@@ -282,11 +316,8 @@ export class DirectoriesHandler {
 			);
 		}
 
-		var appInstance: IApplication = new appDeclaration(
-			this.server, 
-			req, 
-			res
-		);
+		var appInstance: IApplication = new appDeclaration();
+		await appInstance.Start(this.server, req, res);
 
 		this.cache.SetNewIndexScriptModuleRecord (
 			appInstance,
@@ -303,18 +334,25 @@ export class DirectoriesHandler {
 	protected indexScriptModuleGetDeclaration (
 		modulefullPath: string
 	): IApplicationConstructor {
-		var appDeclaration: IApplicationConstructor = null;
-		var handleMethodName: string = 'ServerHandler';
-		var module: any = require(modulefullPath);
+		var appDeclaration: IApplicationConstructor = null,
+			startMethodName: string = 'Start',
+			handleMethodName: string = 'HttpHandle',
+			stopMethodName: string = 'Stop',
+			module: any = require(modulefullPath);
 		if (module && module.prototype && handleMethodName in module.prototype) {
 			appDeclaration = module as IApplicationConstructor;
 		} else if (module && module.__esModule) {
 			var moduleKeys: string[] = Object.keys(module);
+			var moduleDefaultPrototype = module.default && module.default.prototype
+				? module.default.prototype
+				: {};
 			if (
 				moduleKeys.indexOf('default') != -1 && 
-				module.default &&
-				module.default.prototype &&
-				handleMethodName in module.default.prototype
+				moduleDefaultPrototype && (
+					startMethodName in moduleDefaultPrototype ||
+					handleMethodName in moduleDefaultPrototype ||
+					stopMethodName in moduleDefaultPrototype
+				)
 			) {
 				appDeclaration = module.default as IApplicationConstructor;
 			} else {
@@ -325,8 +363,11 @@ export class DirectoriesHandler {
 					moduleItem = module[moduleKey];
 					if (
 						moduleItem &&
-						moduleItem.prototype &&
-						handleMethodName in moduleItem
+						moduleItem.prototype && (
+							startMethodName in moduleItem ||
+							handleMethodName in moduleItem ||
+							stopMethodName in moduleItem
+						)
 					) {
 						appDeclaration = moduleItem as IApplicationConstructor;
 						break;
@@ -352,12 +393,12 @@ export class DirectoriesHandler {
 	): Promise<void> {
 		if (this.server.IsDevelopment()) {
 			var cacheKeysBeforeRequire = Object.keys(require.cache);
-			await appInstance.ServerHandler(
+			await appInstance.HttpHandle(
 				req, res, 
 			);
 			var cacheKeysAfterRequire: string[] = Object.keys(require.cache);
 			if (cacheKeysBeforeRequire.length != cacheKeysAfterRequire.length) {
-				var cacheKeysToWatch: string[] = Cache.GetRequireCacheDifferenceKeys(
+				var cacheKeysToWatch: string[] = Register.GetRequireCacheDifferenceKeys(
 					cacheKeysBeforeRequire, 
 					cacheKeysAfterRequire, 
 					fullPath + '/' + indexScript, 
@@ -369,7 +410,7 @@ export class DirectoriesHandler {
 				);
 			}
 		} else {
-			await appInstance.ServerHandler(
+			await appInstance.HttpHandle(
 				req, res
 			);
 		}

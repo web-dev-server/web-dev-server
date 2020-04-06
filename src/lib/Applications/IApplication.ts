@@ -4,12 +4,7 @@ import { Response } from "../Response";
 
 
 export interface IApplication {
-	ServerHandler (
-		request: Request,
-		response: Response
-	): Promise<void>;
-}
-
-export interface IApplicationConstructor {
-	new (Server: Server, request: Request, response: Response): IApplication;
+	Start? (server: Server, firstRequest: Request, firstResponse: Response): Promise<void>;
+	HttpHandle? (request: Request, response: Response): Promise<void>;
+	Stop? (server: Server): Promise<void>;
 }

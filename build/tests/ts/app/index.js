@@ -5,10 +5,13 @@ var Server_1 = require("../../../lib/Server");
 /**
  * @summary Exported class to handle directory requests.
  */
-var App = /** @class */ (function (_super) {
-    tslib_1.__extends(App, _super);
+var App = /** @class */ (function () {
+    function App() {
+        /** @summary Requests counter. */
+        this.counter = 0;
+    }
     /**
-     * @summary Application constructor, which is executed only once,
+     * @summary Application start point, which is executed only once,
      * 			when there is a request to directory with default `index.js`
      * 			script inside. Then it's automatically created an instance
      * 			of `module.exports` content. Then it's executed
@@ -23,36 +26,64 @@ var App = /** @class */ (function (_super) {
      * 			if there is any unhandled error inside method
      * 			`handleHttpRequest` (to develop more comfortably).
      */
-    function App(server, request, response) {
-        var _this = _super.call(this, server) || this;
-        /** @summary Requests counter. */
-        _this.counter = 0;
-        return _this;
-        // Any initializations:
-    }
+    App.prototype.Start = function (server, firstRequest, firstResponse) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            return tslib_1.__generator(this, function (_a) {
+                this.server = server;
+                // Any initializations:
+                console.log("App start.");
+                return [2 /*return*/];
+            });
+        });
+    };
+    /**
+     *
+     * @param server
+     */
+    App.prototype.Stop = function (server) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            return tslib_1.__generator(this, function (_a) {
+                // Any destructions:
+                console.log("App stop.");
+                return [2 /*return*/];
+            });
+        });
+    };
     /**
      * @summary This method is executed each request to directory with
      * 			`index.js` script inside (also executed for first time
      * 			immediately after constructor).
      */
-    App.prototype.ServerHandler = function (request, response) {
+    App.prototype.HttpHandle = function (request, response) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var sessionExists, sessionInitParam, session, sessionNamespace, staticHtmlFileFullPath, data;
+            var stopParam, sessionExists, sessionInitParam, session, sessionNamespace, staticHtmlFileFullPath, data;
+            var _this = this;
             return tslib_1.__generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
+                        console.log("App http handle.", request.GetFullUrl());
+                        stopParam = request.GetParam('stop', '0-9');
+                        if (stopParam) {
+                            response
+                                .SetHeader('connection', 'close')
+                                .SetBody("stopped")
+                                .Send(true, function () {
+                                _this.server.Stop();
+                            });
+                            return [2 /*return*/];
+                        }
                         // increase request counter:
                         this.counter++;
-                        sessionExists = Server_1.Applications.Session.Exists(request);
+                        sessionExists = Server_1.Session.Exists(request);
                         sessionInitParam = request.GetParam('session_init', '\\d');
                         if (!!sessionExists) return [3 /*break*/, 2];
                         if (!sessionInitParam)
                             return [2 /*return*/, response.Redirect('?session_init=1')];
-                        return [4 /*yield*/, Server_1.Applications.Session.Start(request, response)];
+                        return [4 /*yield*/, Server_1.Session.Start(request, response)];
                     case 1:
                         (_a.sent()).GetNamespace("test").value = 0;
                         return [2 /*return*/, response.Redirect(request.GetRequestUrl())];
-                    case 2: return [4 /*yield*/, Server_1.Applications.Session.Start(request, response)];
+                    case 2: return [4 /*yield*/, Server_1.Session.Start(request, response)];
                     case 3:
                         session = _a.sent();
                         sessionNamespace = session.GetNamespace("test").SetExpirationSeconds(30);
@@ -91,6 +122,6 @@ var App = /** @class */ (function (_super) {
         });
     };
     return App;
-}(Server_1.Applications.Abstract));
+}());
 exports.default = App;
 //# sourceMappingURL=index.js.map

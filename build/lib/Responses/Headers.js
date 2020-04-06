@@ -222,7 +222,7 @@ var Headers = /** @class */ (function () {
         });
         httpRes.writeHead(httpRes.statusCode);
         if (end)
-            this.End();
+            this.endHttpRequest();
         return this;
     };
     Headers.prototype.Redirect = function (location, code, reason, end) {
@@ -233,10 +233,10 @@ var Headers = /** @class */ (function () {
             this.SetHeader('X-Redirect-Reason', reason);
         this.SendHeaders(code);
         if (end)
-            this.End();
+            this.endHttpRequest();
         return this;
     };
-    Headers.prototype.End = function (cb) {
+    Headers.prototype.endHttpRequest = function (cb) {
         var httpRes = this['http'];
         httpRes.end(function () {
             httpRes.emit('session-unlock');

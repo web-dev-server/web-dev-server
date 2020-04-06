@@ -1,0 +1,6 @@
+import { IApplication } from "./IApplication";
+
+
+export interface IApplicationConstructor {
+	new (): IApplication;
+}

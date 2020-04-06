@@ -16,12 +16,9 @@ var ErrorsHandler = /** @class */ (function () {
         return this;
     };
     /**
-     * @summary Print exception in command line a little more nicely and send error in response:
+     * @summary Print error in command line a little more nicely or log error by custom error log handler:
      */
-    ErrorsHandler.prototype.PrintError = function (e, req, res, code) {
-        if (req === void 0) { req = null; }
-        if (res === void 0) { res = null; }
-        if (code === void 0) { code = 500; }
+    ErrorsHandler.prototype.LogError = function (e, code, req, res) {
         var development = this.server.IsDevelopment(), customErrorHandler = this.server.GetErrorHandler(), noErrorHandler = customErrorHandler === null, errorText = (development || noErrorHandler)
             ? this.renderErrorText(e)
             : '';
@@ -44,8 +41,20 @@ var ErrorsHandler = /** @class */ (function () {
                     console.info("\n");
             }
         }
+        return this;
+    };
+    /**
+     * @summary Print exception in command line a little more nicely in response:
+     */
+    ErrorsHandler.prototype.PrintError = function (e, code, req, res) {
+        if (code === void 0) { code = 500; }
+        if (req === void 0) { req = null; }
+        if (res === void 0) { res = null; }
+        var development = this.server.IsDevelopment(), errorText = development
+            ? this.renderErrorText(e)
+            : '';
         if (!res || (res && res.IsSent()))
-            return;
+            return this;
         if (!res.IsSentHeaders()) {
             res.SetHeader('Content-Type', development ? 'text/plain; charset=utf-8' : 'text/html; charset=utf-8');
             res.SendHeaders(code);
@@ -69,6 +78,7 @@ var ErrorsHandler = /** @class */ (function () {
             res.SetBody(outputStr);
         }
         res.Send();
+        return this;
     };
     /**
      * @summary Initialize uncatch error and uncatch warning handlers
@@ -110,7 +120,9 @@ var ErrorsHandler = /** @class */ (function () {
             for (var i = 0, l = requireCacheKeys.length; i < l; i++)
                 delete require.cache[requireCacheKeys[i]];
         }
-        this.PrintError(error, this.request, this.response, 500);
+        this
+            .LogError(error, 500, this.request, this.response)
+            .PrintError(error, 500, this.request, this.response);
     };
     /**
      * @summary Render error as text for development purposes:

@@ -22,7 +22,7 @@ var FilesHandler = /** @class */ (function () {
             .SendHeaders(200);
         readStream.pipe(res, { end: true });
         readStream.on('end', function () {
-            res.End();
+            res['endHttpRequest']();
         });
     };
     return FilesHandler;

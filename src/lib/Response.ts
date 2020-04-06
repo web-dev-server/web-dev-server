@@ -133,13 +133,15 @@ declare class Response {
 	/**
 	 * @summary Send all HTTP headers and send response body.
 	 * @param end `true` by default.
+	 * @param cb Callback, used only if end param is `true`.
 	 */
-	public Send (end?: boolean): this;
+	public Send (end?: boolean, cb?: () => void): this;
 	/**
 	 * @summary Send response body.
 	 * @param end `true` by default.
+	 * @param cb Callback, used only if end param is `true`.
 	 */
-	public SendBody (end?: boolean): this;
+	public SendBody (end?: boolean, cb?: () => void): this;
 
 	/**
 	 * @summary Set response cookie.
@@ -343,8 +345,8 @@ declare class Response {
 	public RemoveListener(event: "unpipe", listener: (src: StreamReadable) => void): this;
 	public RemoveListener(event: string | symbol, listener: (...args: any[]) => void): this;
 
-	Write (chunk: any, encoding: string, cb?: (error: Error | null | undefined) => void): boolean;
-	Pipe <T extends NodeJS.WritableStream> (destination: T, options?: { end?: boolean; }): T;
+	public Write (chunk: any, encoding: string, cb?: (error: Error | null | undefined) => void): boolean;
+	public Pipe <T extends NodeJS.WritableStream> (destination: T, options?: { end?: boolean; }): T;
 }
 
 export { Response, IResponseHeaders, IResponseCookie };

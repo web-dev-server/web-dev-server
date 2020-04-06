@@ -29,5 +29,5 @@ WebDevServer.Server.CreateNew()
         });
     });
 })
-    .Run();
+    .Start();
 //# sourceMappingURL=run.js.map

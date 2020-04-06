@@ -6,7 +6,7 @@ var path_1 = require("path");
 var url_1 = require("url");
 var StringHelper_1 = require("./Tools/Helpers/StringHelper");
 var Defaults_1 = require("./Handlers/Defaults");
-var Cache_1 = require("./Applications/Cache");
+var Register_1 = require("./Applications/Register");
 var Error_1 = require("./Handlers/Error");
 var File_1 = require("./Handlers/File");
 var Directory_1 = require("./Handlers/Directory");
@@ -17,17 +17,32 @@ tslib_1.__exportStar(require("./Request"), exports);
 tslib_1.__exportStar(require("./Response"), exports);
 tslib_1.__exportStar(require("./Event"), exports);
 tslib_1.__exportStar(require("./Tools/Namespace"), exports);
-tslib_1.__exportStar(require("./Applications/Namespace"), exports);
+var Session_1 = require("./Applications/Session");
+var Session = /** @class */ (function (_super) {
+    tslib_1.__extends(Session, _super);
+    function Session() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    return Session;
+}(Session_1.Session));
+exports.Session = Session;
+;
+(function (Session) {
+    ;
+})(Session = exports.Session || (exports.Session = {}));
+exports.Session = Session;
 var Server = /** @class */ (function () {
     function Server() {
+        this.state = 0;
         this.documentRoot = null;
         this.basePath = null;
         this.port = null;
         this.hostName = null;
         this.development = true;
         this.httpServer = null;
+        this.netSockets = null;
         this.customServerHandler = null;
-        this.cache = null;
+        this.register = null;
         this.errorsHandler = null;
         this.filesHandler = null;
         this.directoriesHandler = null;
@@ -165,10 +180,22 @@ var Server = /** @class */ (function () {
         return this.forbiddenPaths;
     };
     /**
-     * @summary Return used http server instance
+     * @summary Return used http server instance.
      */
     Server.prototype.GetHttpServer = function () {
         return this.httpServer;
+    };
+    /**
+     * @summary Return set of connected sockets.
+     */
+    Server.prototype.GetNetSockets = function () {
+        return this.netSockets;
+    };
+    /**
+     * @summary Return server running state (`Server.STATES.<state>`).
+     */
+    Server.prototype.GetState = function () {
+        return this.state;
     };
     /**
      * @summary Try to find cached record by server document root and requested path
@@ -181,7 +208,7 @@ var Server = /** @class */ (function () {
         if (qmPos !== -1)
             rawRequestUrl = rawRequestUrl.substr(0, qmPos);
         var searchingRequestPaths = this.getSearchingRequestPaths(rawRequestUrl);
-        var parentDirIndexScriptModule = this.cache
+        var parentDirIndexScriptModule = this.register
             .TryToFindParentDirectoryIndexScriptModule(searchingRequestPaths);
         if (parentDirIndexScriptModule !== null)
             result = [
@@ -193,16 +220,19 @@ var Server = /** @class */ (function () {
     /**
      * @summary Start HTTP server
      */
-    Server.prototype.Run = function (callback) {
+    Server.prototype.Start = function (callback) {
         var _this = this;
-        if (callback === void 0) { callback = null; }
+        if (this.state !== Server.STATES.CLOSED)
+            return this;
+        this.state = Server.STATES.STARTING;
         this.documentRoot = path_1.resolve(this.documentRoot || __dirname).replace(/\\/g, '/');
         this.port = this.port || Server.DEFAULTS.PORT;
         this.hostName = this.hostName || Server.DEFAULTS.DOMAIN;
-        this.cache = new Cache_1.Cache(this);
-        this.errorsHandler = new Error_1.ErrorsHandler(this, this.cache);
+        this.register = new Register_1.Register(this);
+        this.errorsHandler = new Error_1.ErrorsHandler(this, this.register);
         this.filesHandler = new File_1.FilesHandler(this.errorsHandler);
-        this.directoriesHandler = new Directory_1.DirectoriesHandler(this, this.cache, this.filesHandler, this.errorsHandler);
+        this.directoriesHandler = new Directory_1.DirectoriesHandler(this, this.register, this.filesHandler, this.errorsHandler);
+        this.netSockets = new Set();
         var serverOptions = {
             // @ts-ignore
             IncomingMessage: Request_1.Request,
@@ -215,6 +245,19 @@ var Server = /** @class */ (function () {
         else {
             this.httpServer = http_1.createServer(serverOptions);
         }
+        this.httpServer.on('connection', function (socket) {
+            _this.netSockets.add(socket);
+            socket.on('close', function () { return _this.netSockets.delete(socket); });
+        });
+        this.httpServer.on('close', function (req, res) { return tslib_1.__awaiter(_this, void 0, void 0, function () {
+            return tslib_1.__generator(this, function (_a) {
+                if (this.state === Server.STATES.CLOSING)
+                    return [2 /*return*/];
+                this.state = Server.STATES.CLOSING;
+                this.stopHandler(callback);
+                return [2 /*return*/];
+            });
+        }); });
         this.httpServer.on('request', function (req, res) { return tslib_1.__awaiter(_this, void 0, void 0, function () {
             return tslib_1.__generator(this, function (_a) {
                 switch (_a.label) {
@@ -226,6 +269,7 @@ var Server = /** @class */ (function () {
             });
         }); });
         this.httpServer.on('error', function (err) {
+            _this.state = Server.STATES.CLOSED;
             if (!callback) {
                 console.error(err);
             }
@@ -236,16 +280,27 @@ var Server = /** @class */ (function () {
         });
         this.httpServer['__wds'] = this;
         this.httpServer.listen(this.port, this.hostName, function () {
+            _this.state = Server.STATES.STARTED;
             if (!callback) {
-                console.info("HTTP server has been started at: 'http://" + _this.hostName + ":"
-                    + _this.port.toString() + "' to serve directory: \n'" + _this.documentRoot
-                    + "'.\nEnjoy browsing:-) To stop the server, pres CTRL + C or close this command line window.");
+                console.info("HTTP server has been started. \n" +
+                    "(`" + _this.documentRoot + "` => `http://" + _this.hostName + ":" + _this.port.toString() + "`).");
             }
             else {
                 callback(true, null);
                 callback = null;
             }
         });
+        return this;
+    };
+    /**
+     * @summary Close all registered app instances, close and destroy all connected sockets and stop http server.
+     * @param callback
+     */
+    Server.prototype.Stop = function (callback) {
+        if (this.state !== Server.STATES.STARTED)
+            return this;
+        this.state = Server.STATES.CLOSING;
+        this.stopHandler(callback);
         return this;
     };
     /**
@@ -290,7 +345,9 @@ var Server = /** @class */ (function () {
                                 return [3 /*break*/, 5];
                             case 4:
                                 err_1 = _a.sent();
-                                this.errorsHandler.PrintError(err_1, req, res, 500);
+                                this.errorsHandler
+                                    .LogError(err_1, 500, req, res)
+                                    .PrintError(err_1, 500, req, res);
                                 event.PreventDefault();
                                 return [3 /*break*/, 5];
                             case 5:
@@ -333,6 +390,29 @@ var Server = /** @class */ (function () {
         });
     };
     /**
+     * @summary Close all registered app instances, close and destroy all connected sockets and stop http server.
+     * @param callback
+     */
+    Server.prototype.stopHandler = function (callback) {
+        var _this = this;
+        this.register.StopAll(function () {
+            _this.netSockets.forEach(function (socket) {
+                socket.destroy();
+                _this.netSockets.delete(socket);
+            });
+            _this.httpServer.close(function (err) {
+                _this.state = Server.STATES.CLOSED;
+                if (!callback) {
+                    console.info("HTTP server has been closed. \n" +
+                        "(`http://" + _this.hostName + ":" + _this.port.toString() + "`).");
+                }
+                else {
+                    callback(err == null, err);
+                }
+            });
+        });
+    };
+    /**
      * Get if path is allowed by `this.forbiddenPaths` configuration.
      * @param path Path including start slash, excluding base url and excluding params.
      */
@@ -370,8 +450,12 @@ var Server = /** @class */ (function () {
             }
             else {
                 fs_1.readdir(fullPath, function (err, dirItems) {
-                    if (err != null)
-                        return _this.errorsHandler.PrintError(err, req, res, 403);
+                    if (err != null) {
+                        _this.errorsHandler
+                            .LogError(err, 403, req, res)
+                            .PrintError(err, 403, req, res);
+                        return;
+                    }
                     _this.directoriesHandler.HandleDirectory(fullPath, requestPath, stats, dirItems, 200, req, res);
                 });
             }
@@ -410,7 +494,7 @@ var Server = /** @class */ (function () {
     Server.prototype.handleReqNonExistingPath = function (requestPath, req, res) {
         var _this = this;
         var searchingRequestPaths = this.getSearchingRequestPaths(requestPath);
-        var parentDirIndexScriptModule = this.cache
+        var parentDirIndexScriptModule = this.register
             .TryToFindParentDirectoryIndexScriptModule(searchingRequestPaths);
         if (parentDirIndexScriptModule != null) {
             if (!this.development) {
@@ -428,8 +512,12 @@ var Server = /** @class */ (function () {
         else {
             this.handleReqNonExistPath(searchingRequestPaths, 0, function (newFullPath, newRequestPath, foundParentDirStats) {
                 fs_1.readdir(newFullPath, function (err, dirItems) {
-                    if (err != null)
-                        return _this.errorsHandler.PrintError(err, req, res, 403);
+                    if (err != null) {
+                        _this.errorsHandler
+                            .LogError(err, 403, req, res)
+                            .PrintError(err, 403, req, res);
+                        return;
+                    }
                     _this.directoriesHandler.HandleDirectory(newFullPath, newRequestPath, foundParentDirStats, dirItems, 404, req, res);
                 });
             }, function (err) {
@@ -440,7 +528,9 @@ var Server = /** @class */ (function () {
                 catch (e) {
                     error = e;
                 }
-                _this.errorsHandler.PrintError(error, req, res, 404);
+                _this.errorsHandler
+                    .LogError(error, 404, req, res)
+                    .PrintError(error, 404, req, res);
             });
         }
     };
@@ -479,14 +569,13 @@ var Server = /** @class */ (function () {
         return searchingRequestPaths;
     };
     Server.VERSION = '2.2.0';
+    Server.STATES = {
+        CLOSED: 0, STARTING: 1, CLOSING: 2, STARTED: 4
+    };
     Server.DEFAULTS = {
         PORT: 8000,
         DOMAIN: '127.0.0.1',
         RESPONSES: Defaults_1.Defaults
-    };
-    Server.SESSION = {
-        HASH: "35$%d9wZfw256SAsMGá/@#$%&",
-        ID_MAX_AGE: 3600 // hour
     };
     Server.INDEX = {
         SCRIPTS: ['index.js'],

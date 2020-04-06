@@ -1,9 +1,8 @@
 export default App;
-declare const App_base: typeof import("../../../lib/Server").Applications.Abstract;
 /**
  * @summary Exported class to handle directory requests.
  */
-declare class App extends App_base {
+declare class App {
     /**
      * @summary Application constructor, which is executed only once,
      * 			when there is a request to directory with default `index.js`
@@ -20,12 +19,12 @@ declare class App extends App_base {
      * 			if there is any unhandled error inside method
      * 			`handleHttpRequest` (to develop more comfortably).
      */
-    constructor(server: any, request: any, response: any);
-    /**
-     * @summary Requests counter.
-     * @var {number}
-     */
+    Start(server: any, firstRequest: any, firstResponse: any): Promise<void>;
+    /** @summary WebDevServer server instance. @var {WebDevServer.Server} */
+    server: any;
+    /** @summary Requests counter. @var {number} */
     counter: number;
+    Stop(server: any): Promise<void>;
     /**
      * @summary This method is executed each request to directory with
      * 			`index.js` script inside (also executed for first time
@@ -33,5 +32,5 @@ declare class App extends App_base {
      * @public
      * @return {Promise<void>}
      */
-    ServerHandler(request: any, response: any): Promise<void>;
+    HttpHandle(request: any, response: any): Promise<void>;
 }

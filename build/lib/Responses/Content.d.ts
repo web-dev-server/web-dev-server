@@ -12,6 +12,6 @@ export declare class Content {
     IsHtmlOutput(): boolean;
     IsXmlOutput(): boolean;
     IsSentBody(): boolean;
-    Send(end?: boolean): Response;
-    SendBody(end?: boolean): Response;
+    Send(end?: boolean, cb?: () => void): Response;
+    SendBody(end?: boolean, cb?: () => void): Response;
 }

@@ -66,13 +66,15 @@ declare class Response {
     /**
      * @summary Send all HTTP headers and send response body.
      * @param end `true` by default.
+     * @param cb Callback, used only if end param is `true`.
      */
-    Send(end?: boolean): this;
+    Send(end?: boolean, cb?: () => void): this;
     /**
      * @summary Send response body.
      * @param end `true` by default.
+     * @param cb Callback, used only if end param is `true`.
      */
-    SendBody(end?: boolean): this;
+    SendBody(end?: boolean, cb?: () => void): this;
     /**
      * @summary Set response cookie.
      * @param cfg

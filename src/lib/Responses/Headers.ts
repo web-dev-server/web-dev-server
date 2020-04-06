@@ -222,7 +222,7 @@ export class Headers {
 			httpRes.removeHeader(name);
 		});
 		httpRes.writeHead(httpRes.statusCode);
-		if (end) this.End();
+		if (end) this.endHttpRequest();
 		return this as any;
 	}
 	public Redirect (location: string, code: number = Constants.CODES.SEE_OTHER, reason?: string, end: boolean = true): void {
@@ -230,10 +230,10 @@ export class Headers {
 		if (reason && reason.length > 0)
 			this.SetHeader('X-Redirect-Reason', reason);
 		this.SendHeaders(code);
-		if (end) this.End();
+		if (end) this.endHttpRequest();
 		return this as any;
 	}
-	public End (cb?: () => void): void {
+	private endHttpRequest (cb?: () => void): void {
 		var httpRes: HttpServerResponse = this['http'];
 		httpRes.end(() => {
 			httpRes.emit('session-unlock');

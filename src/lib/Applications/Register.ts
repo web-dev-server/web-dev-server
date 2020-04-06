@@ -3,13 +3,13 @@ import pathUtil from "path";
 
 import { IApplication } from "./IApplication";
 import { Server } from "../Server";
-import { Record } from "./Caches/Record";
+import { Record } from "./Registers/Record";
 
 
-export class Cache {
+export class Register {
 	protected server: Server;
 
-	protected dirIndexScriptModules: Map<string, Record> = new Map<string, Record> ();
+	protected store: Map<string, Record> = new Map<string, Record> ();
 	protected requireCacheWatched: Map<string, boolean> = new Map<string, boolean>();
 	protected requireCacheDependencies: Map<string, Map<string, boolean>> = new Map<string, Map<string, boolean>>();
 
@@ -65,8 +65,8 @@ export class Cache {
 			documentRoot: string = this.server.GetDocumentRoot();
 		for (var i:number = 0, l:number = pathsToFound.length; i < l; i += 1) {
 			pathToFound = pathUtil.resolve(documentRoot + pathsToFound[i]).replace(/\\/g, '/');
-			if (this.dirIndexScriptModules.has(pathToFound)) {
-				dirIndexScriptsModule = this.dirIndexScriptModules.get(pathToFound);
+			if (this.store.has(pathToFound)) {
+				dirIndexScriptsModule = this.store.get(pathToFound);
 				break;
 			}
 		}
@@ -75,8 +75,8 @@ export class Cache {
 
 	public GetIndexScriptModuleRecord (fullPath: string): Record | null {
 		var indexScriptModuleRecord: Record = null;
-		if (this.dirIndexScriptModules.has(fullPath)) 
-			indexScriptModuleRecord = this.dirIndexScriptModules.get(fullPath);
+		if (this.store.has(fullPath)) 
+			indexScriptModuleRecord = this.store.get(fullPath);
 		return indexScriptModuleRecord;
 	}
 
@@ -85,14 +85,45 @@ export class Cache {
 		indexScriptModTime: number,
 		indexScript: string,
 		dirFullPath: string
-	): Cache {
-		this.dirIndexScriptModules.set(dirFullPath, new Record (
+	): Register {
+		this.store.set(dirFullPath, new Record (
 			appInstance,
 			indexScriptModTime,
 			indexScript,
 			dirFullPath
 		));
 		return this;
+	}
+
+	/**
+	 * @summary Get registered running apps count.
+	 * @param cb 
+	 */
+	public GetSize (): number {
+		return this.store.size;
+	}
+	/**
+	 * @summary Stop all running registered app instances.
+	 * @param cb 
+	 */
+	public StopAll (cb: () => void): void {
+		var promises: Promise<void>[] = [];
+		if (this.store.size === 0) return cb();
+		this.store.forEach((record: Record, fullPath: string) => {
+			promises.push(new Promise<void>(
+				(resolve: (() => void), reject: ((reason: Error) => void)) => {
+					if (!record.instance) return resolve();
+					(async () => {
+						await record.instance.Stop(this.server);
+						var fullPathResolved: string = require.resolve(fullPath);
+						if (typeof(require.cache[fullPathResolved]) != 'undefined') 
+							delete require.cache[fullPathResolved];
+						resolve();
+					})();
+				}
+			));
+		});
+		Promise.all(promises).then(cb);
 	}
 
 	/**
@@ -106,11 +137,11 @@ export class Cache {
 				'Module cache cleaned for: "' + fullPathResolved + '"'
 			);
 		}
-		this.dirIndexScriptModules.delete(fullPath);
+		this.store.delete(fullPath);
 	}
 
-	public ClearDirectoryModules (): Cache {
-		this.dirIndexScriptModules = new Map<string, Record>();
+	public ClearDirectoryModules (): Register {
+		this.store = new Map<string, Record>();
 		return this;
 	}
 
@@ -125,7 +156,7 @@ export class Cache {
 				'Module cache cleaned for: "' + fullPath + '"'
 			);
 		}
-		this.dirIndexScriptModules.delete(fullPath);
+		this.store.delete(fullPath);
 		if (this.requireCacheDependencies.has(fullPath)) {
 			var dependencies: Map<string, boolean> = this.requireCacheDependencies.get(fullPath);
 			this.requireCacheDependencies.delete(fullPath);

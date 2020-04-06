@@ -33,7 +33,7 @@ export class FilesHandler {
 			.SendHeaders(200);
 		readStream.pipe(res as any, { end: true });
 		readStream.on('end', () => {
-			res.End();
+			res['endHttpRequest']();
 		});
 	}
 }

@@ -4,18 +4,19 @@ import { Server } from "../Server";
 import { Request } from "../Request";
 import { Response } from "../Response";
 import { DirItem } from "./Directories/DirItem";
-import { IApplication, IApplicationConstructor } from "../Applications/IApplication";
-import { Cache } from "../Applications/Cache";
+import { IApplication } from "../Applications/IApplication";
+import { IApplicationConstructor } from "../Applications/IApplicationConstructor";
+import { Register } from "../Applications/Register";
 import { FilesHandler } from "./File";
 import { ErrorsHandler } from "./Error";
 export declare class DirectoriesHandler {
     protected server: Server;
-    protected cache: Cache;
+    protected cache: Register;
     protected filesHandler: FilesHandler;
     protected errorsHandler: ErrorsHandler;
     protected indexFiles: Map<string, number>;
     protected indexScripts: Map<string, number>;
-    constructor(server: Server, cache: Cache, filesHandler: FilesHandler, errorsHandler: ErrorsHandler);
+    constructor(server: Server, cache: Register, filesHandler: FilesHandler, errorsHandler: ErrorsHandler);
     /**
      * @summary Display directory content or send index.html file:
      */
@@ -35,7 +36,7 @@ export declare class DirectoriesHandler {
     /**
      * @summary Create directory index.js script module instance with optional development require cache resolving:
      */
-    protected indexScriptModuleCreate(dirFullPath: string, indexScript: string, indexScriptModTime: number, req: Request, res: Response): IApplication;
+    protected indexScriptModuleCreate(dirFullPath: string, indexScript: string, indexScriptModTime: number, req: Request, res: Response): Promise<IApplication>;
     /**
      * @summary Create directory index.js script module instance with optional development require cache resolving:
      */

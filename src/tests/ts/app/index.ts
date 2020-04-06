@@ -1,17 +1,23 @@
 import * as fs from "fs";
 
 import {
-	Server, Request, Response, Applications
+	Server, Request, Response, Session, IApplication
 } from "../../../lib/Server";
 
 
 /**
  * @summary Exported class to handle directory requests.
  */
-class App extends Applications.Abstract {
+class App implements IApplication {
 	
+	/** @summary WebDevServer server instance. */
+	protected server: Server;
+	
+	/** @summary Requests counter. */
+	protected counter: number = 0;
+
 	/** 
-	 * @summary Application constructor, which is executed only once, 
+	 * @summary Application start point, which is executed only once, 
 	 * 			when there is a request to directory with default `index.js`
 	 * 			script inside. Then it's automatically created an instance 
 	 * 			of `module.exports` content. Then it's executed 
@@ -26,34 +32,53 @@ class App extends Applications.Abstract {
 	 * 			if there is any unhandled error inside method 
 	 * 			`handleHttpRequest` (to develop more comfortably).
 	 */
-	public constructor (server: Server, request: Request, response: Response) {
-		super(server);
+	public async Start (server: Server, firstRequest: Request, firstResponse: Response): Promise<void> {
+		this.server = server;
 		// Any initializations:
-		
+		console.log("App start.");
 	}
-	
-	/** @summary Requests counter. */
-	protected counter: number = 0;
+
+	/**
+	 * 
+	 * @param server
+	 */
+	public async Stop (server: Server): Promise<void> {
+		// Any destructions:
+		console.log("App stop.");
+
+	}
 
 	/**
 	 * @summary This method is executed each request to directory with 
 	 * 			`index.js` script inside (also executed for first time 
 	 * 			immediately after constructor).
 	 */
-	public async ServerHandler(request: Request, response: Response): Promise<void> {
+	public async HttpHandle (request: Request, response: Response): Promise<void> {
+		console.log("App http handle.", request.GetFullUrl());
+
+		var stopParam = request.GetParam('stop', '0-9');
+		if (stopParam) {
+			response
+				.SetHeader('connection', 'close')
+				.SetBody("stopped")
+				.Send(true, () => {
+					this.server.Stop();
+				});
+			return;
+		}
 
 		// increase request counter:
 		this.counter++;
 
-		var sessionExists = Applications.Session.Exists(request);
+		var sessionExists = Session.Exists(request);
 		var sessionInitParam = request.GetParam('session_init', '\\d');
 		if (!sessionExists) {
 			if (!sessionInitParam) return response.Redirect('?session_init=1');
-			(await Applications.Session.Start(request, response)).GetNamespace("test").value = 0;
+			(await Session.Start(request, response)).GetNamespace("test").value = 0;
 			return response.Redirect(request.GetRequestUrl());
 		}
-		var session = await Applications.Session.Start(request, response);
-		var sessionNamespace = session.GetNamespace("test").SetExpirationSeconds(30);
+		var session = await Session.Start(request, response);
+		var sessionNamespace: Session.INamespace = session.GetNamespace("test").SetExpirationSeconds(30);
 		sessionNamespace.value += 1;
 		
 		// some demo operation to say hallo world:

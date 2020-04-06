@@ -1,10 +1,14 @@
-import { Server, Request, Response, Applications } from "../../../lib/Server";
+import { Server, Request, Response, IApplication } from "../../../lib/Server";
 /**
  * @summary Exported class to handle directory requests.
  */
-declare class App extends Applications.Abstract {
+declare class App implements IApplication {
+    /** @summary WebDevServer server instance. */
+    protected server: Server;
+    /** @summary Requests counter. */
+    protected counter: number;
     /**
-     * @summary Application constructor, which is executed only once,
+     * @summary Application start point, which is executed only once,
      * 			when there is a request to directory with default `index.js`
      * 			script inside. Then it's automatically created an instance
      * 			of `module.exports` content. Then it's executed
@@ -19,14 +23,17 @@ declare class App extends Applications.Abstract {
      * 			if there is any unhandled error inside method
      * 			`handleHttpRequest` (to develop more comfortably).
      */
-    constructor(server: Server, request: Request, response: Response);
-    /** @summary Requests counter. */
-    protected counter: number;
+    Start(server: Server, firstRequest: Request, firstResponse: Response): Promise<void>;
+    /**
+     *
+     * @param server
+     */
+    Stop(server: Server): Promise<void>;
     /**
      * @summary This method is executed each request to directory with
      * 			`index.js` script inside (also executed for first time
      * 			immediately after constructor).
      */
-    ServerHandler(request: Request, response: Response): Promise<void>;
+    HttpHandle(request: Request, response: Response): Promise<void>;
 }
 export default App;

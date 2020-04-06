@@ -1,19 +1,19 @@
 import { Server } from "../Server";
 import { Request } from "../Request";
 import { Response } from "../Response";
-import { Cache } from "../Applications/Cache";
+import { Register } from "../Applications/Register";
 import { StringHelper } from "../Tools/Helpers/StringHelper";
 
 
 export class ErrorsHandler {
 	protected server: Server;
-	protected cache: Cache;
+	protected cache: Register;
 
 	// development purposes:
 	protected request?: Request = null;
 	protected response?: Response = null;
 
-	constructor (server: Server, cache: Cache) {
+	constructor (server: Server, cache: Register) {
 		this.server = server;
 		this.cache = cache;
 		this.initErrorsHandlers();
@@ -29,14 +29,9 @@ export class ErrorsHandler {
 	}
 
 	/**
-	 * @summary Print exception in command line a little more nicely and send error in response:
+	 * @summary Print error in command line a little more nicely or log error by custom error log handler:
 	 */
-	public PrintError (
-		e: Error, 
-		req: Request = null, 
-		res: Response = null, 
-		code: number = 500
-	): void {
+	public LogError (e: Error, code: number, req: Request, res: Response): ErrorsHandler {
 		var development: boolean = this.server.IsDevelopment(),
 			customErrorHandler: (
 				err: Error, 
@@ -61,7 +56,19 @@ export class ErrorsHandler {
 				if (development) console.info("\n");
 			}
 		}
-		if (!res || (res && res.IsSent())) return;
+		return this;
+	}
+
+	/**
+	 * @summary Print exception in command line a little more nicely in response:
+	 */
+	public PrintError (e: Error, code: number = 500, req: Request = null, res: Response = null): ErrorsHandler {
+		var development: boolean = this.server.IsDevelopment(),
+			errorText: string = development
+				? this.renderErrorText(e)
+				: '';
+		if (!res || (res && res.IsSent())) 
+			return this;
 		if (!res.IsSentHeaders()) {
 			res.SetHeader('Content-Type', development ? 'text/plain; charset=utf-8' : 'text/html; charset=utf-8');
 			res.SendHeaders(code);
@@ -85,6 +92,7 @@ export class ErrorsHandler {
 			res.SetBody(outputStr)
 		}
 		res.Send();
+		return this;
 	}
 
 	/**
@@ -124,7 +132,9 @@ export class ErrorsHandler {
 			for (var i:number = 0, l:number = requireCacheKeys.length; i < l; i++) 
 				delete require.cache[requireCacheKeys[i]];
 		}
-		this.PrintError(error, this.request, this.response, 500);
+		this
+			.LogError(error, 500, this.request, this.response)
+			.PrintError(error, 500, this.request, this.response);
 	}
 	
 	/**

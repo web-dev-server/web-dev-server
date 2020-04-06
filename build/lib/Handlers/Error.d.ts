@@ -1,18 +1,22 @@
 import { Server } from "../Server";
 import { Request } from "../Request";
 import { Response } from "../Response";
-import { Cache } from "../Applications/Cache";
+import { Register } from "../Applications/Register";
 export declare class ErrorsHandler {
     protected server: Server;
-    protected cache: Cache;
+    protected cache: Register;
     protected request?: Request;
     protected response?: Response;
-    constructor(server: Server, cache: Cache);
+    constructor(server: Server, cache: Register);
     SetHandledRequestProperties(req: Request, res: Response): ErrorsHandler;
     /**
-     * @summary Print exception in command line a little more nicely and send error in response:
+     * @summary Print error in command line a little more nicely or log error by custom error log handler:
      */
-    PrintError(e: Error, req?: Request, res?: Response, code?: number): void;
+    LogError(e: Error, code: number, req: Request, res: Response): ErrorsHandler;
+    /**
+     * @summary Print exception in command line a little more nicely in response:
+     */
+    PrintError(e: Error, code?: number, req?: Request, res?: Response): ErrorsHandler;
     /**
      * @summary Initialize uncatch error and uncatch warning handlers
      */

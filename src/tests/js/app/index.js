@@ -2,11 +2,10 @@ var fs = require("fs");
 
 var WebDevServer = require("../../../lib/Server");
 
-
 /**
  * @summary Exported class to handle directory requests.
  */
-class App extends WebDevServer.Applications.Abstract {
+class App {
 	
 	/** 
 	 * @summary Application constructor, which is executed only once, 
@@ -24,15 +23,21 @@ class App extends WebDevServer.Applications.Abstract {
 	 * 			if there is any unhandled error inside method 
 	 * 			`handleHttpRequest` (to develop more comfortably).
 	 */
-	constructor (server, request, response) {
-		super(server);
-		/** 
-		 * @summary Requests counter.
-		 * @var {number}
-		 */
+	async Start (server, firstRequest, firstResponse) {
+		/** @summary WebDevServer server instance. @var {WebDevServer.Server} */
+		this.server = server;
+		/** @summary Requests counter. @var {number} */
 		this.counter = 0;
+
 		// Any initializations:
-		
+		console.log("App start.");
+
+	}
+
+	async Stop (server) {
+		// Any destructions:
+		console.log("App stop.");
+
 	}
 
 	/**
@@ -42,19 +47,31 @@ class App extends WebDevServer.Applications.Abstract {
 	 * @public
 	 * @return {Promise<void>}
 	 */
-	async ServerHandler(request, response) {
+	async HttpHandle (request, response) {
+		console.log("App http handle.", request.GetFullUrl());
 
 		// increase request counter:
 		this.counter++;
 
-		var sessionExists = WebDevServer.Applications.Session.Exists(request);
+		var stopParam = request.GetParam('stop', '0-9');
+		if (stopParam) {
+			response
+				.SetHeader('connection', 'close')
+				.SetBody("stopped")
+				.Send(true, () => {
+					this.server.Stop();
+				});
+			return;
+		}
+
+		var sessionExists = WebDevServer.Session.Exists(request);
 		var sessionInitParam = request.GetParam('session_init', '\\d');
 		if (!sessionExists) {
 			if (!sessionInitParam) return response.Redirect('?session_init=1');
-			(await WebDevServer.Applications.Session.Start(request, response)).GetNamespace("test").value = 0;
+			(await WebDevServer.Session.Start(request, response)).GetNamespace("test").value = 0;
 			return response.Redirect(request.GetRequestUrl());
 		}
-		var session = await WebDevServer.Applications.Session.Start(request, response);
+		var session = await WebDevServer.Session.Start(request, response);
 		var sessionNamespace = session.GetNamespace("test").SetExpirationSeconds(30);
 		sessionNamespace.value += 1;
 		

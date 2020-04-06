@@ -27,5 +27,5 @@ Server_1.Server.CreateNew()
         return [2 /*return*/];
     });
 }); })
-    .Run();
+    .Start();
 //# sourceMappingURL=run.js.map

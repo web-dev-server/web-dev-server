@@ -5,6 +5,7 @@ import {
 	createServer as HttpCreateServer,
 	IncomingMessage as HttpIncomingMessage
 } from "http";
+import { Socket } from "net";
 import {
 	Stats as FsStats,
 	readdir as FsReadDir,
@@ -15,8 +16,8 @@ import { parse as UrlParse } from "url";
 
 import { StringHelper } from "./Tools/Helpers/StringHelper";
 import { Defaults } from "./Handlers/Defaults";
-import { Cache } from "./Applications/Cache";
-import { Record } from "./Applications/Caches/Record";
+import { Register } from "./Applications/Register";
+import { Record } from "./Applications/Registers/Record";
 import { ErrorsHandler } from "./Handlers/Error";
 import { FilesHandler } from "./Handlers/File";
 import { DirectoriesHandler } from "./Handlers/Directory";
@@ -30,24 +31,31 @@ export * from "./Request";
 export * from "./Response";
 export * from "./Event";
 export * from "./Tools/Namespace";
+export * from "./Applications/IApplication";
 
-export * from "./Applications/Namespace";
+
+import { Session as _Session } from "./Applications/Session";
+export class Session extends _Session {};
+
+import { INamespace as _INamespace } from "./Applications/Sessions/INamespace";
+export namespace Session { 
+	export interface INamespace extends _INamespace {};
+}
 
 
 export class Server {
-	public static VERSION: string = '2.2.0';
+	public static readonly VERSION: string = '2.2.0';
+	public static readonly STATES: {
+		CLOSED: number, STARTING: number, CLOSING: number, STARTED: number
+	} = {
+		CLOSED: 0, STARTING: 1, CLOSING: 2, STARTED: 4
+	}
 	public static DEFAULTS: {
 		PORT: number, DOMAIN: string, RESPONSES: typeof Defaults
 	} = {
 		PORT: 8000,
 		DOMAIN: '127.0.0.1',
 		RESPONSES: Defaults
-	};
-	public static SESSION: {
-		HASH: string; ID_MAX_AGE: number;
-	} = {
-		HASH: "35$%d9wZfw256SAsMGá/@#$%&",
-		ID_MAX_AGE: 3600 // hour
 	};
 	public static INDEX: {
 		SCRIPTS: string[]; FILES: string[];
@@ -56,6 +64,7 @@ export class Server {
 		FILES: ['index.html','index.htm','default.html','default.htm']
 	};
 	
+	protected state: number = 0;
 	protected documentRoot?: string = null;
 	protected basePath?: string = null;
 	protected port?: number = null;
@@ -63,8 +72,9 @@ export class Server {
 	protected development: boolean = true;
 
 	protected httpServer?: HttpServer = null;
+	protected netSockets?: Set<Socket> = null;
 	protected customServerHandler?: HttpRequestListener = null;
-	protected cache?: Cache = null;
+	protected register?: Register = null;
 	protected errorsHandler?: ErrorsHandler = null;
 	protected filesHandler?: FilesHandler = null;
 	protected directoriesHandler?: DirectoriesHandler = null;
@@ -218,10 +228,22 @@ export class Server {
 		return this.forbiddenPaths;
 	}
 	/**
-	 * @summary Return used http server instance
+	 * @summary Return used http server instance.
 	 */
 	public GetHttpServer (): HttpServer | null {
 		return this.httpServer;
+	}
+	/**
+	 * @summary Return set of connected sockets.
+	 */
+	public GetNetSockets (): Set<Socket> {
+		return this.netSockets;
+	}
+	/**
+	 * @summary Return server running state (`Server.STATES.<state>`).
+	 */
+	public GetState (): number {
+		return this.state;
 	}
 
 	/**
@@ -235,7 +257,7 @@ export class Server {
 		if (qmPos !== -1)
 			rawRequestUrl = rawRequestUrl.substr(0, qmPos);
 		var searchingRequestPaths: string[] = this.getSearchingRequestPaths(rawRequestUrl);
-		var parentDirIndexScriptModule: Record = this.cache
+		var parentDirIndexScriptModule: Record = this.register
 			.TryToFindParentDirectoryIndexScriptModule(searchingRequestPaths);
 		if (parentDirIndexScriptModule !== null) 
 			result = [
@@ -248,17 +270,21 @@ export class Server {
 	/**
 	 * @summary Start HTTP server
 	 */
-	public Run(callback: (success: boolean, error?: Error) => void = null): Server {
+	public Start (callback?: (success?: boolean, error?: Error) => void): Server {
+		if (this.state !== Server.STATES.CLOSED) return this;
+		this.state = Server.STATES.STARTING;
 		this.documentRoot = PathResolve(this.documentRoot || __dirname).replace(/\\/g, '/');
 		this.port = this.port || Server.DEFAULTS.PORT;
 		this.hostName = this.hostName || Server.DEFAULTS.DOMAIN;
 
-		this.cache = new Cache(this);
-		this.errorsHandler = new ErrorsHandler(this, this.cache);
+		this.register = new Register(this);
+		this.errorsHandler = new ErrorsHandler(this, this.register);
 		this.filesHandler = new FilesHandler(this.errorsHandler);
 		this.directoriesHandler = new DirectoriesHandler(
-			this, this.cache, this.filesHandler, this.errorsHandler
+			this, this.register, this.filesHandler, this.errorsHandler
 		);
+
+		this.netSockets = new Set<Socket>();
 
 		var serverOptions: HttpServerOptions = {
 			// @ts-ignore
@@ -271,10 +297,21 @@ export class Server {
 		} else {
 			this.httpServer = HttpCreateServer(serverOptions);
 		}
+		
+		this.httpServer.on('connection', (socket: Socket) => {
+			this.netSockets.add(socket);
+			socket.on('close', () => this.netSockets.delete(socket));
+		});
+		this.httpServer.on('close', async (req: Request, res: Response) => {
+			if (this.state === Server.STATES.CLOSING) return;
+			this.state = Server.STATES.CLOSING;
+			this.stopHandler(callback);
+		});
 		this.httpServer.on('request', async (req: Request, res: Response) => {
 			await this.handleReq(req, res);
 		});
 		this.httpServer.on('error', (err: Error) => {
+			this.state = Server.STATES.CLOSED;
 			if (!callback) {
 				console.error(err);
 			} else {
@@ -284,17 +321,28 @@ export class Server {
 		});
 		this.httpServer['__wds'] = this;
 		this.httpServer.listen(this.port, this.hostName, () => {
+			this.state = Server.STATES.STARTED;
 			if (!callback) {
 				console.info(
-					"HTTP server has been started at: 'http://" + this.hostName + ":" 
-					+ this.port.toString() + "' to serve directory: \n'" + this.documentRoot 
-					+ "'.\nEnjoy browsing:-) To stop the server, pres CTRL + C or close this command line window."
+					"HTTP server has been started. \n" + 
+					"(`" + this.documentRoot + "` => `http://" + this.hostName + ":" + this.port.toString() + "`)."
 				);
 			} else {
 				callback(true, null);
 				callback = null;
 			}
 		});
+		return this;
+	}
+
+	/**
+	 * @summary Close all registered app instances, close and destroy all connected sockets and stop http server.
+	 * @param callback 
+	 */
+	public Stop (callback?: (success?: boolean, error?: Error) => void): Server {
+		if (this.state !== Server.STATES.STARTED) return this;
+		this.state = Server.STATES.CLOSING;
+		this.stopHandler(callback);
 		return this;
 	}
 
@@ -310,10 +358,6 @@ export class Server {
 		var requestPath: string = '/' + StringHelper.Trim(
 			UrlParse(httpReq.url).pathname, '/'
 		);
-		/*console.log([
-			requestPath,
-			req.GetRequestPath()
-		]);*/
 		
 		var qmPos: number = requestPath.indexOf('?');
 		if (qmPos !== -1)
@@ -339,7 +383,9 @@ export class Server {
 					try {
 						await preHandler.call(null, req, res, event);
 					} catch (err) {
-						this.errorsHandler.PrintError(err, req, res, 500);
+						this.errorsHandler
+							.LogError(err, 500, req, res)
+							.PrintError(err, 500, req, res);
 						event.PreventDefault();
 					}
 					if (event.IsPreventDefault()) break;
@@ -363,6 +409,31 @@ export class Server {
 			}
 		})();
 	}
+
+	/**
+	 * @summary Close all registered app instances, close and destroy all connected sockets and stop http server.
+	 * @param callback 
+	 */
+	protected stopHandler (callback?: (success?: boolean, error?: Error) => void): void {
+		this.register.StopAll(() => {
+			this.netSockets.forEach (socket => {
+				socket.destroy();
+				this.netSockets.delete(socket);
+			});
+			this.httpServer.close((err?: Error) => {
+				this.state = Server.STATES.CLOSED;
+				if (!callback) {
+					console.info(
+						"HTTP server has been closed. \n" + 
+						"(`http://" + this.hostName + ":" + this.port.toString() + "`)."
+					);
+				} else {
+					callback(err == null, err);
+				}
+			});
+		});
+	}
+
 	/**
 	 * Get if path is allowed by `this.forbiddenPaths` configuration.
 	 * @param path Path including start slash, excluding base url and excluding params.
@@ -408,8 +479,12 @@ export class Server {
 			} else {
 				FsReadDir(
 					fullPath, (err: Error, dirItems: string[]) => {
-						if (err != null) 
-							return this.errorsHandler.PrintError(err, req, res, 403);
+						if (err != null) {
+							this.errorsHandler
+								.LogError(err, 403, req, res)
+								.PrintError(err, 403, req, res);
+							return;
+						}
 						this.directoriesHandler.HandleDirectory(
 							fullPath, requestPath, stats, dirItems, 200, req, res
 						)
@@ -456,7 +531,7 @@ export class Server {
 	) {
 		var searchingRequestPaths: string[] = this.getSearchingRequestPaths(requestPath);
 		
-		var parentDirIndexScriptModule: Record = this.cache
+		var parentDirIndexScriptModule: Record = this.register
 			.TryToFindParentDirectoryIndexScriptModule(searchingRequestPaths);
 
 		if (parentDirIndexScriptModule != null) {
@@ -488,8 +563,12 @@ export class Server {
 					FsReadDir(
 						newFullPath, 
 						(err: Error, dirItems: string[]) => {
-							if (err != null) 
-								return this.errorsHandler.PrintError(err, req, res, 403);
+							if (err != null) {
+								this.errorsHandler
+									.LogError(err, 403, req, res)
+									.PrintError(err, 403, req, res);
+								return;
+							}
 							this.directoriesHandler.HandleDirectory(
 								newFullPath, newRequestPath, foundParentDirStats, dirItems, 404, req, res
 							)
@@ -503,7 +582,9 @@ export class Server {
 					} catch (e) {
 						error = e;
 					}
-					this.errorsHandler.PrintError(error, req, res, 404);
+					this.errorsHandler
+						.LogError(error, 404, req, res)
+						.PrintError(error, 404, req, res);
 				}
 			);
 		}

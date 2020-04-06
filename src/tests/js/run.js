@@ -26,4 +26,4 @@ WebDevServer.Server.CreateNew()
 			throw new Error("Test error:-)");
 		}, 1000);*/
 	})
-	.Run();
+	.Start();

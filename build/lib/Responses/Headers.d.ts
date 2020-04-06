@@ -45,5 +45,5 @@ export declare class Headers {
     IsSent(): boolean;
     SendHeaders(code?: number, end?: boolean): Response;
     Redirect(location: string, code?: number, reason?: string, end?: boolean): void;
-    End(cb?: () => void): void;
+    private endHttpRequest;
 }
