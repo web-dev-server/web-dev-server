@@ -97,7 +97,7 @@ export class Session {
 	 * @param request 
 	 * @param response 
 	 */
-	public static async Start (request: Request, response: Response): Promise<Session> {
+	public static async Start (request: Request, response: Response = null): Promise<Session> {
 		var session: Session,
 			id: string = this.getRequestIdOrNew(request);
 		if (!this.store.has(id) && this.loadHandler) 
@@ -119,7 +119,7 @@ export class Session {
 		if (session == null || (session && session.locked)) 
 			session = await this.waitForUnlock(id);
 		session.init();
-		this.setResponseCookie(response, session);
+		if (response) this.setResponseCookie(response, session);
 		this.runGarbageCollectingIfNecessary();
 		return session;
 	}

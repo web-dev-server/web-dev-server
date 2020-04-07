@@ -69,7 +69,7 @@ export declare class Session {
      * @param request
      * @param response
      */
-    static Start(request: Request, response: Response): Promise<Session>;
+    static Start(request: Request, response?: Response): Promise<Session>;
     /**
      * @summary Check if any session data exists for given request.
      * @param request

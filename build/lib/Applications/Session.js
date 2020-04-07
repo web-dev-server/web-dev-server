@@ -89,6 +89,7 @@ var Session = /** @class */ (function () {
      * @param response
      */
     Session.Start = function (request, response) {
+        if (response === void 0) { response = null; }
         return tslib_1.__awaiter(this, void 0, void 0, function () {
             var session, id;
             return tslib_1.__generator(this, function (_a) {
@@ -121,7 +122,8 @@ var Session = /** @class */ (function () {
                         _a.label = 4;
                     case 4:
                         session.init();
-                        this.setResponseCookie(response, session);
+                        if (response)
+                            this.setResponseCookie(response, session);
                         this.runGarbageCollectingIfNecessary();
                         return [2 /*return*/, session];
                 }
