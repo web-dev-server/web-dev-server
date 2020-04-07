@@ -52,7 +52,7 @@ exports.Request = /** @class */ (function () {
         Request.prototype._urlInit = function (server) {
             var serverDocumentRoot = server.GetDocumentRoot();
             var parsedUrl = url_1.parse(this._url, false);
-            var requestPath = parsedUrl.pathname;
+            var requestPath = parsedUrl.pathname.replace(/[\/]+/g, '/');
             if (typeof parsedUrl.query == 'string' && parsedUrl.query.length > 0)
                 requestPath += '?' + parsedUrl.query.replace(/\+/g, '%20');
             requestPath = StringHelper_1.StringHelper.DecodeUri(requestPath);

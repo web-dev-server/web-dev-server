@@ -63,7 +63,7 @@ exports.Request = /** @class */ (function () {
 		private _urlInit (server: Server) {
 			var serverDocumentRoot: string = server.GetDocumentRoot();
 			var parsedUrl: UrlWithStringQuery = UrlParse(this._url, false);
-			var requestPath: string = parsedUrl.pathname;
+			var requestPath: string = parsedUrl.pathname.replace(/[\/]+/g, '/');
 			if (typeof parsedUrl.query == 'string' && parsedUrl.query.length > 0)
 				requestPath += '?' + parsedUrl.query.replace(/\+/g, '%20');
 			requestPath = StringHelper.DecodeUri(requestPath);

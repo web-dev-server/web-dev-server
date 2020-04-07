@@ -632,7 +632,7 @@ var Server = /** @class */ (function () {
             searchingRequestPaths.push('/');
         return searchingRequestPaths;
     };
-    Server.VERSION = '3.0.3';
+    Server.VERSION = '3.0.4';
     Server.STATES = {
         CLOSED: 0, STARTING: 1, CLOSING: 2, STARTED: 4
     };
