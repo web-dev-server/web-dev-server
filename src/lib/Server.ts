@@ -44,7 +44,7 @@ export namespace Session {
 
 
 export class Server {
-	public static readonly VERSION: string = '3.0.2';
+	public static readonly VERSION: string = '3.0.3';
 	public static readonly STATES: {
 		CLOSED: number, STARTING: number, CLOSING: number, STARTED: number
 	} = {
@@ -427,7 +427,7 @@ export class Server {
 		if (qmPos !== -1)
 			requestPath = requestPath.substr(0, qmPos);
 		
-		var pathAllowed: boolean = this.isPathAllowed('/' + requestPath);
+		var pathAllowed: boolean = this.isPathAllowed(requestPath);
 		if (!pathAllowed) {
 			return this.directoriesHandler.HandleForbidden(res);
 		}
