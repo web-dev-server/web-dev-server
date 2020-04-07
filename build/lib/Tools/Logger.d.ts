@@ -30,11 +30,11 @@ export declare class Logger {
      */
     static CreateNew(logsDirFullPath: string, documentRoot: string): Logger;
     /**
-     * Get logger instance as singleton.
+     * @summary Get logger instance as singleton.
      */
     static GetInstance(): Logger;
     /**
-     * Set logger instance as singleton.
+     * @summary Set logger instance as singleton.
      * @param loggetInstance Logger instance.
      */
     static SetInstance(loggetInstance: Logger): Logger;
@@ -45,7 +45,7 @@ export declare class Logger {
      */
     constructor(logsDirFullPath: string, documentRoot: string);
     /**
-     * Set max. bytes for each log file. 50 MB by default.
+     * @summary Set max. bytes for each log file. 50 MB by default.
      * @see https://convertlive.com/u/convert/megabytes/to/bytes
      * @param maxBytes Max bytes to create another log file (as number of bytes or as string like: 1K, 5M, 1G or 1T).
      */
@@ -56,12 +56,12 @@ export declare class Logger {
      */
     SetStreamWriting(streamWriting?: boolean): Logger;
     /**
-     * Allowed levels to log. Rest of not presented levels are automatically disallowed.
+     * @summary Allowed levels to log. Rest of not presented levels are automatically disallowed.
      * @param allowedLevels Allowed levels to log like: `[Logger.LEVEL.ERROR, Logger.LEVEL.DEBUG, 'customname', ...]`
      */
     SetAllowedLevels(allowedLevels: string[]): Logger;
     /**
-     * Set how to write stack trace.
+     * @summary Set how to write stack trace.
      * @param writeStackTrace If `true`, stack trace will be written into all log types, `false` otherwise, default `true`.
      * @param writeStackTraceFuncArgs If `true`, stack trace will be written with called functions arguments into all log types, `false` otherwise, default `true`. Arguments serialization could be very large.
      */
