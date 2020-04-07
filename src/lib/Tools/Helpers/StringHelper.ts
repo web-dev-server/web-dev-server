@@ -72,6 +72,34 @@ export class StringHelper {
 		}
 		return newStr;
 	}
+	public static DecodeUri (str: string): string {
+		var result: string = str;
+		try {
+			result = decodeURIComponent(str);
+		} catch (e) {
+			var index: number = 0,
+				lastIndex: number = 0,
+				safePart: string;
+			while (true) {
+				if (index >= result.length) break;
+				safePart = result.substr(index);
+				if (!safePart.match(/[\%]([0-9]{2,})/g)) break;
+				safePart = safePart.replace(/[\%]([0-9]{2,})/g, (wholeMatch: string, groupMatch: string, indexLocal: number) => {
+					var result: string = wholeMatch;
+					try {
+						result = decodeURIComponent(result);
+						index = indexLocal + result.length;
+					} catch (e) {
+						index = indexLocal + wholeMatch.length;
+					}
+					return result;
+				});
+				result = result.substr(0, lastIndex) + safePart;
+				lastIndex = index;
+			}
+		}
+		return result;
+	}
 	public static Strtr (str: string, dic: any): string { 
 		var makeToken = (inx) => `{{###~${inx}~###}}`,
 			tokens = Object.keys(dic).map(
@@ -208,10 +236,7 @@ export class StringHelper {
 	}
 	protected static queryStringDecodePrepareItems (str: string): string[] {
 		str = String(str).replace(/\+/g, '%20');
-		while (str.match(/[\%]([0-9]{2,})/g))
-			str = str.replace(/[\%]([0-9]{2,})/g, match => {
-				return decodeURIComponent(match);
-			});
+		str = StringHelper.DecodeUri(str);
 		str = str
 			.replace(/^&/, '')
 			.replace(/&$/, '');
