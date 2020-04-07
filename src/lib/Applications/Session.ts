@@ -13,11 +13,15 @@ export class Session {
 	} = {
 		MINUTE: 60, HOUR: 3600, DAY: 86400, WEEK: 604800, MONTH: 2592000, YEAR: 31557600
 	}
+	public static GC_INTERVAL: number = 60 * 60 * 1000; // once per hour
+	public static LOCK_CHECK_INTERVAL: number = 100;
 	protected static store: Map<string, Session> = new Map<string, Session>();
-	protected static maxLockWaitTime: number = 30000; // 30 seconds
+	protected static maxLockWaitTime: number = 30 * 1000; // 30 seconds
 	protected static cookieName: string = 'sessionid';
-	protected static maxLifeTimeMiliSeconds: number = 0;
-	protected static hashSalt: string = '';
+	protected static maxLifeTimeMiliSeconds: number = 30 * 24 * 60 * 60 * 1000;
+	protected static garbageCollecting: NodeJS.Timeout = null;
+	protected static loadHandler: (id: string, store: Map<string, Session>, exists: boolean) => Promise<void> = null;
+	protected static writeHandler: (id: string, store: Map<string, Session>) => Promise<void> = null
 	/**
 	 * @summary Set max waiting time in seconds to unlock session for another request.
 	 * @param maxLockWaitTime 
@@ -27,7 +31,13 @@ export class Session {
 		return this;
 	}
 	/**
-	 * @summary Set used cookie name to identify session.
+	 * @summary Get max waiting time in seconds to unlock session for another request.
+	 */
+	public static GetMaxLockWaitTime (): number {
+		return this.maxLockWaitTime;
+	}
+	/**
+	 * @summary Set used cookie name to identify user session.
 	 * @param cookieName 
 	 */
 	public static SetCookieName (cookieName: string): typeof Session {
@@ -35,7 +45,14 @@ export class Session {
 		return this;
 	}
 	/**
-	 * @summary Set max. lifetime for all sessions and it's namespaces.
+	 * @summary Get used cookie name to identify user session.
+	 */
+	public static GetCookieName (): string {
+		return this.cookieName;
+	}
+	/**
+	 * @summary Set max. lifetime for all sessions and it's namespaces. 
+	 * `0` means unlimited, 30 days by default.
 	 * @param maxLifeTimeSeconds 
 	 */
 	public static SetMaxLifeTime (maxLifeTimeSeconds: number): typeof Session {
@@ -58,6 +75,24 @@ export class Session {
 		return this;
 	}
 	/**
+	 * @summary Set custom session load handler. 
+	 * Implement any functionality to assign session instance under it's id into given store.
+	 * @param loadHandler 
+	 */
+	public static SetLoadHandler (loadHandler: (id: string, store: Map<string, Session>, exists: boolean) => Promise<void>): typeof Session {
+		this.loadHandler = loadHandler;
+		return this;
+	}
+	/**
+	 * @summary Set custom session write handler. 
+	 * Implement any functionality to store session instance under it's id from given store anywhere else.
+	 * @param writeHandler 
+	 */
+	public static SetWriteHandler (writeHandler: (id: string, store: Map<string, Session>) => Promise<void>): typeof Session {
+		this.writeHandler = writeHandler;
+		return this;
+	}
+	/**
 	 * Start session based on cookies and data stored in current process.
 	 * @param request 
 	 * @param response 
@@ -65,32 +100,39 @@ export class Session {
 	public static async Start (request: Request, response: Response): Promise<Session> {
 		var session: Session,
 			id: string = this.getRequestIdOrNew(request);
+		if (!this.store.has(id) && this.loadHandler) 
+			await this.loadHandler(id, this.store, false);
 		if (this.store.has(id)) {
 			session = this.store.get(id);
 			if (
+				session != null &&
 				this.maxLifeTimeMiliSeconds !== 0 &&
 				session.lastAccessTime + this.maxLifeTimeMiliSeconds < (+new Date)
 			) {
-				session = new Session(id);
+				session = new Session(id, false);
 				this.store.set(id, session);
 			}
 		} else {
-			session = new Session(id);
+			session = new Session(id, false);
 			this.store.set(id, session);
 		}
-		if (session.locked) 
-			await session.waitForUnlock();
+		if (session == null || (session && session.locked)) 
+			session = await this.waitForUnlock(id);
 		session.init();
 		this.setResponseCookie(response, session);
+		this.runGarbageCollectingIfNecessary();
 		return session;
 	}
 	/**
 	 * @summary Check if any session data exists for given request.
 	 * @param request 
 	 */
-	public static Exists (request: Request): boolean {
+	public static async Exists (request: Request): Promise<boolean> {
 		var id: string = request.GetCookie(this.cookieName, "a-zA-Z0-9");
-		return this.store.has(id);
+		if (this.store.has(id)) return true;
+		if (this.loadHandler) 
+			await this.loadHandler(id, this.store, true);
+		return this.store.has(id) && this.store.get(id) != null;
 	}
 	protected static setResponseCookie (response: Response, session: Session): void {
 		session.lastAccessTime = +new Date;
@@ -99,9 +141,11 @@ export class Session {
 			expireDate = new Date();
 			expireDate.setTime(session.lastAccessTime + this.maxLifeTimeMiliSeconds);
 		}
-		response.On("session-unlock", () => {
+		response.On("session-unlock", async () => {
 			session.lastAccessTime = +new Date;
 			session.locked = false;
+			if (this.writeHandler) 
+				await this.writeHandler(session.GetId(), this.store);
 		});
 		response.SetCookie(<IResponseCookie>{
 			name: this.cookieName,
@@ -123,6 +167,42 @@ export class Session {
 		}
 		return id;
 	}
+	protected static runGarbageCollectingIfNecessary(): void {
+		if (this.garbageCollecting !== null) return;
+		this.garbageCollecting = setInterval(() => {
+			if (this.maxLifeTimeMiliSeconds === 0) 
+				return;
+			var nowTime: number = +new Date;
+			this.store.forEach(session => {
+				if (session.lastAccessTime + this.maxLifeTimeMiliSeconds < nowTime) 
+					session.Destroy();
+			});
+		}, this.GC_INTERVAL);
+	}
+	protected static async waitForUnlock (id: string): Promise<Session> {
+		var session: Session = this.store.get(id);
+		if (session && !session.locked) return session;
+		var maxWaitingTime: number = Session.maxLockWaitTime;
+		var startTime: number = +new Date;
+		var timeoutHandler = (resolve) => {
+			var session: Session = this.store.get(id);
+			if (session && !session.locked) {
+				session.locked = true;
+				return resolve(session);
+			}
+			var nowTime: number = +new Date;
+			if (startTime + maxWaitingTime < nowTime) 
+				return resolve(session);
+			setTimeout(() => {
+				timeoutHandler(resolve);
+			}, this.LOCK_CHECK_INTERVAL);
+		};
+		return new Promise((resolve, reject) => {
+			setTimeout(() => {
+				timeoutHandler(resolve);
+			}, this.LOCK_CHECK_INTERVAL);
+		});
+	}
 	/**
 	 * @summary Get session id string.
 	 */
@@ -130,7 +210,7 @@ export class Session {
 		return this.id;
 	}
 	/**
-	 * Get new or existing session namespace instance.
+	 * @summary Get new or existing session namespace instance.
 	 * @param name Session namespace unique name.
 	 */
 	public GetNamespace (name: string = 'default'): INamespace {
@@ -149,30 +229,10 @@ export class Session {
 	public Destroy (): void {
 		Session.store.delete(this.id);
 		this.id = null;
+		this.locked = null;
 		this.lastAccessTime = null;
+		this.namespacesExpirations = null;
 		this.namespaces = null;
-	}
-	protected async waitForUnlock(): Promise<void> {
-		if (!this.locked) return;
-		var maxWaitingTime: number = Session.maxLockWaitTime;
-		var startTime: number = +new Date;
-		var timeoutHandler = (resolve) => {
-			if (!this.locked) {
-				this.locked = true;
-				return resolve();
-			}
-			var nowTime: number = +new Date;
-			if (startTime + maxWaitingTime < nowTime) 
-				return resolve();
-			setTimeout(() => {
-				timeoutHandler(resolve);
-			}, 100);
-		};
-		return new Promise((resolve, reject) => {
-			setTimeout(() => {
-				timeoutHandler(resolve);
-			}, 1000);
-		});
 	}
 	protected setLastAccessTime (lastAccessTime: number): Session {
 		this.lastAccessTime;
@@ -227,9 +287,9 @@ export class Session {
 	protected namespacesHoops: Map<string, number>;
 	protected namespacesExpirations: Map<string, number>;
 	protected namespaces: Map<string, INamespace>;
-	protected constructor (id: string) {
+	public constructor (id: string, locked: boolean = true) {
 		this.id = id;
-		this.locked = false;
+		this.locked = locked;
 		this.lastAccessTime = +new Date;
 		this.namespacesHoops = new Map<string, number>();
 		this.namespacesExpirations = new Map<string, number>();
