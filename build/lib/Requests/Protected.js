@@ -61,7 +61,7 @@ var Protected = /** @class */ (function () {
             valueReplaceFilter === '' ||
             valueReplaceFilter === '.*') {
             // if there is something in target collection and all chars are allowed
-            return result;
+            return rawValue;
         }
         else if (rawValue instanceof Object) {
             // if there is something in target collection and it's an array

@@ -71,7 +71,7 @@ public static GetParamItem (
 		valueReplaceFilter === '.*'
 	) {
 		// if there is something in target collection and all chars are allowed
-		return result;
+		return rawValue;
 	} else if (rawValue instanceof Object) {	
 		// if there is something in target collection and it's an array
 		if (rawValue.constructor.name.indexOf('Array') != -1) {
