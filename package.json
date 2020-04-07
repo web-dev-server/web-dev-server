@@ -33,9 +33,7 @@
   },
   "dependencies": {
     "tslib": "^1.10",
-    "http": "^0.0.0",
-    "mime-db": "^1.43.0",
-    "ws": "^7.0"
+    "mime-db": "^1.43.0"
   },
   "devDependencies": {
     "typescript": "^3.7.5",
