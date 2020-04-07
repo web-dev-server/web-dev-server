@@ -140,8 +140,8 @@ WebDevServer.Server.CreateNew()
 - Open command line:
    - Initialize Node.JS project by `npm init`.
    - Initialize TypeScript project by `tsc --init`.
-   - Install packages by `npm install -y web-dev-server`.
-   - Install packages by `npm install -y --save-dev @types/express-serve-static-core`.
+   - Install packages by `npm install -y web-dev-server tslib`.
+   - Install packages by `npm install -y --save-dev typescript @types/node`.
    
 - Create empty file `./run.ts`.
 - Initialize web development server instance in `./run.ts`:
@@ -183,7 +183,7 @@ Server.CreateNew()
       }, 1000);*/
    })
    // Callback param is optional. called after server has been started or after error ocured.
-   .Start((success: boolean, err?: Error) => {
+   .Start((success?: boolean, err?: Error) => {
       if (!success) return console.error(err);
       console.log("Server is running.");
    });
@@ -329,7 +329,7 @@ import { Server, Request, Response, IApplication } from "web-dev-server";
 export default class App implements IApplication {
 
    /** @summary WebDevServer server instance. */
-   protected server: Server;
+   protected server?: Server;
    
    /** @summary Requests counter. */
    protected counter: number = 0;
