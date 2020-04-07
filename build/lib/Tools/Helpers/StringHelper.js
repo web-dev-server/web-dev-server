@@ -62,6 +62,36 @@ var StringHelper = /** @class */ (function () {
         }
         return newStr;
     };
+    StringHelper.DecodeUri = function (str) {
+        var result = str;
+        try {
+            result = decodeURIComponent(str);
+        }
+        catch (e) {
+            var index = 0, lastIndex = 0, safePart;
+            while (true) {
+                if (index >= result.length)
+                    break;
+                safePart = result.substr(index);
+                if (!safePart.match(/[\%]([0-9]{2,})/g))
+                    break;
+                safePart = safePart.replace(/[\%]([0-9]{2,})/g, function (wholeMatch, groupMatch, indexLocal) {
+                    var result = wholeMatch;
+                    try {
+                        result = decodeURIComponent(result);
+                        index = indexLocal + result.length;
+                    }
+                    catch (e) {
+                        index = indexLocal + wholeMatch.length;
+                    }
+                    return result;
+                });
+                result = result.substr(0, lastIndex) + safePart;
+                lastIndex = index;
+            }
+        }
+        return result;
+    };
     StringHelper.Strtr = function (str, dic) {
         var makeToken = function (inx) { return "{{###~" + inx + "~###}}"; }, tokens = Object.keys(dic).map(function (key, inx) { return ({
             key: key,
@@ -180,10 +210,7 @@ var StringHelper = /** @class */ (function () {
     };
     StringHelper.queryStringDecodePrepareItems = function (str) {
         str = String(str).replace(/\+/g, '%20');
-        while (str.match(/[\%]([0-9]{2,})/g))
-            str = str.replace(/[\%]([0-9]{2,})/g, function (match) {
-                return decodeURIComponent(match);
-            });
+        str = StringHelper.DecodeUri(str);
         str = str
             .replace(/^&/, '')
             .replace(/&$/, '');

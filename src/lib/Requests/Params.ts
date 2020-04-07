@@ -1,19 +1,22 @@
 import { IncomingMessage } from "http";
-//import { UrlWithParsedQuery, parse as UrlParse } from "url";
+import { Server } from "../Server";
+import { ErrorsHandler } from "../Handlers/Error";
 import { Request } from "../Request";
 import { StringHelper } from "../Tools/Helpers/StringHelper";
 import { Protected } from "./Protected";
+import { Response } from '../Response';
 
 
 export class Params {
 	protected params?: any;
 	protected body?: string;
+	protected response?: Response;
 
 	public IsCompleted (): boolean {
 		var httpReq: IncomingMessage = this['http'];
 		return httpReq.complete;
 	}
-	public async LoadBody (): Promise<string> {
+	public async GetBody (): Promise<string> {
 		var httpReq: IncomingMessage = this['http'];
 		return new Promise<string>((
 			resolve: (textBody: string) => void, reject: (err: Error) => void
@@ -97,50 +100,71 @@ export class Params {
 			postParams: any,
 			getParams: any,
 			method: string;
-		//try { 
-			var queryString: string = this['GetQuery'](false, true),
-			getParams = StringHelper.QueryStringDecode(queryString, false);
-		/*} catch (e) {
-			var parsedUrlWithJsonQuery: UrlWithParsedQuery = UrlParse(this['_url'], true),
-			getParams = parsedUrlWithJsonQuery.query as any;
-		}*/
+		getParams = StringHelper.QueryStringDecode(this['query'], false);
 		this.params = getParams;
 		if (!httpReq.complete) return;
 		method = httpReq.method.toUpperCase();
 		if (method != 'POST' && method != 'PUT') return;
-		postParams = this.initParamsCompletePostData();
+		var contentType: string = this['GetHeader']('content-type');
+		var multiPartHeader: string = 'multipart/form-data';
+		var multiPartContent: boolean = contentType.indexOf(multiPartHeader) != -1;
+		// @see https://stackoverflow.com/a/37046109/7032987
+		if (!multiPartContent) 
+			postParams = this.parseBodyParams(contentType);
 		if (postParams == null) return;
 		for (var key in postParams)
 			this.params[key] = postParams[key];
 	}
 
 	/**
-	 * Read and return unserialized POST/PUT request body.
+	 * @summary Read and return unserialized POST/PUT request body by "content-type" header.
 	 */
-	protected initParamsCompletePostData (): any {
+	protected parseBodyParams (contentType: string): any {
 		if (this.body == null) return null;
-		var result: any = null;
-		var rawInput: string = this.body;
-		// try first JSON decoding, then fallback to query string
-		var probablyAJsonType: boolean = !StringHelper.IsQueryString(rawInput);
-		if (probablyAJsonType) {
+		var result: any = null,
+			httpReq: IncomingMessage = this['http'] as IncomingMessage,
+			server: Server = httpReq.socket['server']['__wds'],
+			// @ts-ignore
+			errorsHandler: ErrorsHandler = server.errorsHandler;
+		var urlEncType: boolean = contentType.indexOf('application/x-www-form-url-encoded') != -1;
+		if (urlEncType) {
 			try {
-				result = JSON.parse(rawInput);
-			} catch (e) {
-				probablyAJsonType = false; // fall back to query string parsing
+				result = StringHelper.QueryStringDecode(this.body, false);
+			} catch (e1) {
+				errorsHandler.LogError(e1, 500, this as any, this.response);
 			}
-		}
-		if (!probablyAJsonType) {
-			//try {
-				result = StringHelper.QueryStringDecode(rawInput, false);
-			/*} catch (e) {
-				rawInput = 'http://localhost/?' + StringHelper.TrimLeft(StringHelper.Trim(rawInput, '&='), '');
-				var parsedBodyAsJsonQuery: UrlWithParsedQuery = UrlParse(rawInput, true);
-				if (parsedBodyAsJsonQuery && parsedBodyAsJsonQuery.query)
-					result = parsedBodyAsJsonQuery.query as any;
-				if (parsedBodyAsJsonQuery && parsedBodyAsJsonQuery.query)
-					result = parsedBodyAsJsonQuery.query as any;
-			}*/
+		} else {
+			var jsonType: boolean = (
+				contentType.indexOf('application/json') != -1 ||
+				contentType.indexOf('text/javascript') != -1 ||
+				contentType.indexOf('application/ld+json') != -1
+			);
+			if (jsonType) {
+				try {
+					result = JSON.parse(this.body);
+				} catch (e2) {
+					errorsHandler.LogError(e2, 500, this as any, this.response);
+				}
+			} else {
+				// if content type header is not recognized,
+				// try JSON decoding first, then fallback to query string:
+				var probablyAJsonType: boolean = !StringHelper.IsQueryString(this.body);
+				if (probablyAJsonType) {
+					try {
+						result = JSON.parse(this.body);
+					} catch (e3) {
+						errorsHandler.LogError(e3, 500, this as any, this.response);
+						probablyAJsonType = false; // fall back to query string parsing
+					}
+				}
+				if (!probablyAJsonType) {
+					try {
+						result = StringHelper.QueryStringDecode(this.body, false);
+					} catch (e4) {
+						errorsHandler.LogError(e4, 500, this as any, this.response);
+					}
+				}
+			}
 		}
 		return result;
 	}

@@ -6,6 +6,7 @@ export declare class StringHelper {
     static Trim(str: string, chars: string): string;
     static TrimLeft(str: string, chars: string): string;
     static TrimRight(str: string, chars: string): string;
+    static DecodeUri(str: string): string;
     static Strtr(str: string, dic: any): string;
     /**
      * Convert special characters to HTML entities except ampersand `&`.

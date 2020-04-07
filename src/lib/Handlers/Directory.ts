@@ -148,11 +148,13 @@ export class DirectoriesHandler {
 			var cachedModule: Record = this.cache.GetIndexScriptModuleRecord(dirFullPath),
 				moduleInstance: IApplication;
 			// set up request before index script execution:
-			req['setUpIndexScriptExec'](
+			// @ts-ignore
+			req.setUpIndexScriptExec(
 				this.server.GetDocumentRoot(), 
 				dirFullPath, 
 				indexScript,
-				this.server.GetBasePath()
+				this.server.GetBasePath(),
+				res
 			);
 			if (cachedModule != null) {
 				// instance of index.js class already exists:

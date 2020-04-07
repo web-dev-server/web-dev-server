@@ -96,7 +96,8 @@ var DirectoriesHandler = /** @class */ (function () {
                     case 0:
                         cachedModule = this.cache.GetIndexScriptModuleRecord(dirFullPath);
                         // set up request before index script execution:
-                        req['setUpIndexScriptExec'](this.server.GetDocumentRoot(), dirFullPath, indexScript, this.server.GetBasePath());
+                        // @ts-ignore
+                        req.setUpIndexScriptExec(this.server.GetDocumentRoot(), dirFullPath, indexScript, this.server.GetBasePath(), res);
                         if (!(cachedModule != null)) return [3 /*break*/, 24];
                         if (!this.server.IsDevelopment()) return [3 /*break*/, 16];
                         _a.label = 1;

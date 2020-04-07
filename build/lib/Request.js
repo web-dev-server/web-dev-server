@@ -11,6 +11,7 @@ var Stream_1 = require("./Requests/Stream");
 var Cookies_1 = require("./Requests/Cookies");
 var Url_1 = require("./Requests/Url");
 var Other_1 = require("./Requests/Other");
+var StringHelper_1 = require("./Tools/Helpers/StringHelper");
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Request = /** @class */ (function () {
     var Request = /** @class */ (function () {
@@ -20,13 +21,15 @@ exports.Request = /** @class */ (function () {
             // @ts-ignore
             http_1.IncomingMessage.call(this, socket);
             this.http = this;
-            this['startTime'] = (new Date()).getTime();
+            // @ts-ignore
+            this.startTime = (new Date()).getTime();
             var urlInitLocal = false;
             var bodyArr = [];
             this.http.on('data', function (chunk) {
                 bodyArr.push(chunk);
             }).on('end', function () {
-                _this['body'] = Buffer.concat(bodyArr).toString();
+                // @ts-ignore
+                _this.body = Buffer.concat(bodyArr).toString();
                 _this.http.complete = true;
                 _this.http.emit('body-loaded');
             });
@@ -52,10 +55,7 @@ exports.Request = /** @class */ (function () {
             var requestPath = parsedUrl.pathname;
             if (typeof parsedUrl.query == 'string' && parsedUrl.query.length > 0)
                 requestPath += '?' + parsedUrl.query.replace(/\+/g, '%20');
-            while (requestPath.match(/[\%]([0-9]{2,})/g))
-                requestPath = requestPath.replace(/[\%]([0-9]{2,})/g, function (match) {
-                    return decodeURIComponent(match);
-                });
+            requestPath = StringHelper_1.StringHelper.DecodeUri(requestPath);
             var basePath = '';
             var appRootPathAndScript = server.TryToFindIndexPath(requestPath);
             if (appRootPathAndScript.length > 0) {
@@ -68,7 +68,8 @@ exports.Request = /** @class */ (function () {
             var serverBasePath = server.GetBasePath();
             if (serverBasePath != null)
                 basePath = serverBasePath + basePath;
-            this['initUrlSegments'](appRootFullPath, basePath, indexScript, requestPath);
+            // @ts-ignore
+            this.initUrlSegments(appRootFullPath, basePath, indexScript, requestPath);
         };
         Request.prototype.AddListener = function () {
             return this.http.addListener.apply(this, [].slice.apply(arguments));

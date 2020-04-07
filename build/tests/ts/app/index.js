@@ -90,6 +90,12 @@ var App = /** @class */ (function () {
                         session = _a.sent();
                         sessionNamespace = session.GetNamespace("test").SetExpirationSeconds(30);
                         sessionNamespace.value += 1;
+                        if (!!request.IsCompleted()) return [3 /*break*/, 6];
+                        return [4 /*yield*/, request.GetBody()];
+                    case 5:
+                        _a.sent();
+                        _a.label = 6;
+                    case 6:
                         staticHtmlFileFullPath = this.server.GetDocumentRoot() + "/src/tests/assets/index.html";
                         return [4 /*yield*/, new Promise(function (resolve, reject) {
                                 fs.readFile(staticHtmlFileFullPath, 'utf8', function (err, data) {
@@ -105,7 +111,7 @@ var App = /** @class */ (function () {
                                     resolve(data);
                                 });
                             })];
-                    case 5:
+                    case 7:
                         data = _a.sent();
                         response.SetBody(data.replace(/%code%/g, JSON.stringify({
                             basePath: request.GetBasePath(),

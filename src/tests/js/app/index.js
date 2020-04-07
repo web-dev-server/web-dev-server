@@ -43,7 +43,6 @@ class App {
 
 		// Any initializations:
 		console.log("App start.");
-
 	}
 
 	/** 
@@ -56,7 +55,6 @@ class App {
 	async Stop (server) {
 		// Any destructions:
 		console.log("App stop.");
-
 	}
 
 	/**
@@ -102,6 +100,8 @@ class App {
 		
 		// try to uncomment line bellow to see rendered error in browser:
 		//throw new Error("Uncatched test error 1.");
+
+		if (!request.IsCompleted()) await request.GetBody();
 
 		//var data = await fs.promises.readFile(staticHtmlFileFullPath, 'utf8'); // experimental
 		var data = await new Promise(function(resolve, reject) {

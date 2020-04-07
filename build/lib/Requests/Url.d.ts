@@ -1,4 +1,5 @@
 import { Request } from "../Request";
+import { Response } from "../Response";
 export declare class Url {
     /**
      * Http scheme: `"http:" | "https:"`
@@ -125,7 +126,7 @@ export declare class Url {
      * @param indexScript
      * @param serverBasePath
      */
-    protected setUpIndexScriptExec(serverDocRoot: string, appRootFullPath: string, indexScript: string, serverBasePath: string): void;
+    protected setUpIndexScriptExec(serverDocRoot: string, appRootFullPath: string, indexScript: string, serverBasePath: string, response: Response): void;
     /**
      * Initialize URI segments parsed by `url.parse()`: path, query and fragment.
      */

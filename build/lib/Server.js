@@ -369,11 +369,14 @@ var Server = /** @class */ (function () {
      */
     Server.prototype.handleReq = function (req, res) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var httpReq, requestPath, qmPos, pathAllowed, fullPathVirtual;
+            var basePath, requestPath, qmPos, pathAllowed, fullPathVirtual;
             var _this = this;
             return tslib_1.__generator(this, function (_a) {
-                httpReq = req;
-                requestPath = '/' + StringHelper_1.StringHelper.Trim(url_1.parse(httpReq.url).pathname, '/');
+                basePath = req.GetBasePath();
+                if (this.basePath != null)
+                    basePath = basePath.substr(this.basePath.length);
+                requestPath = basePath + req.GetRequestPath();
+                requestPath = StringHelper_1.StringHelper.DecodeUri(requestPath);
                 qmPos = requestPath.indexOf('?');
                 if (qmPos !== -1)
                     requestPath = requestPath.substr(0, qmPos);

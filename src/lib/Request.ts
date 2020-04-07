@@ -19,6 +19,7 @@ import { Cookies } from "./Requests/Cookies";
 import { IRequestCookies } from "./Requests/IRequestCookies";
 import { Url } from "./Requests/Url";
 import { Other } from "./Requests/Other";
+import { StringHelper } from "./Tools/Helpers/StringHelper";
 
 
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -34,13 +35,15 @@ exports.Request = /** @class */ (function () {
 			// @ts-ignore
 			HttpIncomingMessage.call(this, socket);
 			this.http = this as any;
-			this['startTime'] = (new Date()).getTime();
+			// @ts-ignore
+			this.startTime = (new Date()).getTime();
 			var urlInitLocal: boolean = false;
 			var bodyArr: any = [];
 			this.http.on('data', (chunk: any) => {
 				bodyArr.push(chunk);
 			}).on('end', () => {
-				this['body'] = Buffer.concat(bodyArr).toString();
+				// @ts-ignore
+				this.body = Buffer.concat(bodyArr).toString();
 				this.http.complete = true;
 				this.http.emit('body-loaded');
 			});
@@ -63,10 +66,7 @@ exports.Request = /** @class */ (function () {
 			var requestPath: string = parsedUrl.pathname;
 			if (typeof parsedUrl.query == 'string' && parsedUrl.query.length > 0)
 				requestPath += '?' + parsedUrl.query.replace(/\+/g, '%20');
-			while (requestPath.match(/[\%]([0-9]{2,})/g))
-				requestPath = requestPath.replace(/[\%]([0-9]{2,})/g, match => {
-					return decodeURIComponent(match);
-				});
+			requestPath = StringHelper.DecodeUri(requestPath);
 			var basePath: string = '';
 			var appRootPathAndScript: string[] = server.TryToFindIndexPath(requestPath);
 			if (appRootPathAndScript.length > 0) {
@@ -79,7 +79,8 @@ exports.Request = /** @class */ (function () {
 			var serverBasePath: string = server.GetBasePath();
 			if (serverBasePath != null)
 				basePath = serverBasePath + basePath;
-			this['initUrlSegments'](appRootFullPath, basePath, indexScript, requestPath);
+			// @ts-ignore
+			this.initUrlSegments(appRootFullPath, basePath, indexScript, requestPath);
 		}
 		public AddListener (): this {
 			return this.http.addListener.apply(this, [].slice.apply(arguments));
@@ -373,7 +374,7 @@ declare class Request {
 	/**
 	 * @summary Load whole request body and returns it.
 	 */
-	public LoadBody (): Promise<string>;
+	public GetBody (): Promise<string>;
 	/**
 	 * @summary Set directly all raw parameters without any conversion at once.
 	 * @param params

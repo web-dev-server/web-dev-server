@@ -1,9 +1,11 @@
 import { Request } from "../Request";
+import { Response } from '../Response';
 export declare class Params {
     protected params?: any;
     protected body?: string;
+    protected response?: Response;
     IsCompleted(): boolean;
-    LoadBody(): Promise<string>;
+    GetBody(): Promise<string>;
     SetParams(params: any): Request;
     GetParams(nameReplaceFilter?: string | false | {
         pattern: string | RegExp;
@@ -24,7 +26,7 @@ export declare class Params {
      */
     protected initParams(): void;
     /**
-     * Read and return unserialized POST/PUT request body.
+     * @summary Read and return unserialized POST/PUT request body by "content-type" header.
      */
-    protected initParamsCompletePostData(): any;
+    protected parseBodyParams(contentType: string): any;
 }

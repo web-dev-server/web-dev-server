@@ -9,7 +9,7 @@ var Params = /** @class */ (function () {
         var httpReq = this['http'];
         return httpReq.complete;
     };
-    Params.prototype.LoadBody = function () {
+    Params.prototype.GetBody = function () {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
             var httpReq;
             var _this = this;
@@ -87,53 +87,76 @@ var Params = /** @class */ (function () {
      */
     Params.prototype.initParams = function () {
         var httpReq = this['http'], postParams, getParams, method;
-        //try { 
-        var queryString = this['GetQuery'](false, true), getParams = StringHelper_1.StringHelper.QueryStringDecode(queryString, false);
-        /*} catch (e) {
-            var parsedUrlWithJsonQuery: UrlWithParsedQuery = UrlParse(this['_url'], true),
-            getParams = parsedUrlWithJsonQuery.query as any;
-        }*/
+        getParams = StringHelper_1.StringHelper.QueryStringDecode(this['query'], false);
         this.params = getParams;
         if (!httpReq.complete)
             return;
         method = httpReq.method.toUpperCase();
         if (method != 'POST' && method != 'PUT')
             return;
-        postParams = this.initParamsCompletePostData();
+        var contentType = this['GetHeader']('content-type');
+        var multiPartHeader = 'multipart/form-data';
+        var multiPartContent = contentType.indexOf(multiPartHeader) != -1;
+        // @see https://stackoverflow.com/a/37046109/7032987
+        if (!multiPartContent)
+            postParams = this.parseBodyParams(contentType);
         if (postParams == null)
             return;
         for (var key in postParams)
             this.params[key] = postParams[key];
     };
     /**
-     * Read and return unserialized POST/PUT request body.
+     * @summary Read and return unserialized POST/PUT request body by "content-type" header.
      */
-    Params.prototype.initParamsCompletePostData = function () {
+    Params.prototype.parseBodyParams = function (contentType) {
         if (this.body == null)
             return null;
-        var result = null;
-        var rawInput = this.body;
-        // try first JSON decoding, then fallback to query string
-        var probablyAJsonType = !StringHelper_1.StringHelper.IsQueryString(rawInput);
-        if (probablyAJsonType) {
+        var result = null, httpReq = this['http'], server = httpReq.socket['server']['__wds'], 
+        // @ts-ignore
+        errorsHandler = server.errorsHandler;
+        var urlEncType = contentType.indexOf('application/x-www-form-url-encoded') != -1;
+        if (urlEncType) {
             try {
-                result = JSON.parse(rawInput);
+                result = StringHelper_1.StringHelper.QueryStringDecode(this.body, false);
             }
-            catch (e) {
-                probablyAJsonType = false; // fall back to query string parsing
+            catch (e1) {
+                errorsHandler.LogError(e1, 500, this, this.response);
             }
         }
-        if (!probablyAJsonType) {
-            //try {
-            result = StringHelper_1.StringHelper.QueryStringDecode(rawInput, false);
-            /*} catch (e) {
-                rawInput = 'http://localhost/?' + StringHelper.TrimLeft(StringHelper.Trim(rawInput, '&='), '');
-                var parsedBodyAsJsonQuery: UrlWithParsedQuery = UrlParse(rawInput, true);
-                if (parsedBodyAsJsonQuery && parsedBodyAsJsonQuery.query)
-                    result = parsedBodyAsJsonQuery.query as any;
-                if (parsedBodyAsJsonQuery && parsedBodyAsJsonQuery.query)
-                    result = parsedBodyAsJsonQuery.query as any;
-            }*/
+        else {
+            var jsonType = (contentType.indexOf('application/json') != -1 ||
+                contentType.indexOf('text/javascript') != -1 ||
+                contentType.indexOf('application/ld+json') != -1);
+            if (jsonType) {
+                try {
+                    result = JSON.parse(this.body);
+                }
+                catch (e2) {
+                    errorsHandler.LogError(e2, 500, this, this.response);
+                }
+            }
+            else {
+                // if content type header is not recognized,
+                // try JSON decoding first, then fallback to query string:
+                var probablyAJsonType = !StringHelper_1.StringHelper.IsQueryString(this.body);
+                if (probablyAJsonType) {
+                    try {
+                        result = JSON.parse(this.body);
+                    }
+                    catch (e3) {
+                        errorsHandler.LogError(e3, 500, this, this.response);
+                        probablyAJsonType = false; // fall back to query string parsing
+                    }
+                }
+                if (!probablyAJsonType) {
+                    try {
+                        result = StringHelper_1.StringHelper.QueryStringDecode(this.body, false);
+                    }
+                    catch (e4) {
+                        errorsHandler.LogError(e4, 500, this, this.response);
+                    }
+                }
+            }
         }
         return result;
     };

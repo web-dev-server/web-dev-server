@@ -1,4 +1,5 @@
 import { Request } from "../Request";
+import { Response } from "../Response";
 import { Constants } from "./Constants";
 import { StringHelper } from "../Tools/Helpers/StringHelper";
 
@@ -301,7 +302,9 @@ export class Url {
 	 * @param indexScript 
 	 * @param serverBasePath 
 	 */
-	protected setUpIndexScriptExec (serverDocRoot: string, appRootFullPath: string, indexScript: string, serverBasePath: string): void {
+	protected setUpIndexScriptExec (serverDocRoot: string, appRootFullPath: string, indexScript: string, serverBasePath: string, response: Response): void {
+		// @ts-ignore
+		this.response = response;
 		var basePath: string = appRootFullPath.substr(serverDocRoot.length);
 		var requestPath: string = this.path;
 		if (basePath.length > 0 && requestPath.indexOf(basePath) == 0)

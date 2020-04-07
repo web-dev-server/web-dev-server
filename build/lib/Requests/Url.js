@@ -230,7 +230,9 @@ var Url = /** @class */ (function () {
      * @param indexScript
      * @param serverBasePath
      */
-    Url.prototype.setUpIndexScriptExec = function (serverDocRoot, appRootFullPath, indexScript, serverBasePath) {
+    Url.prototype.setUpIndexScriptExec = function (serverDocRoot, appRootFullPath, indexScript, serverBasePath, response) {
+        // @ts-ignore
+        this.response = response;
         var basePath = appRootFullPath.substr(serverDocRoot.length);
         var requestPath = this.path;
         if (basePath.length > 0 && requestPath.indexOf(basePath) == 0)

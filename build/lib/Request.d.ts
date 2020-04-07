@@ -258,7 +258,7 @@ declare class Request {
     /**
      * @summary Load whole request body and returns it.
      */
-    LoadBody(): Promise<string>;
+    GetBody(): Promise<string>;
     /**
      * @summary Set directly all raw parameters without any conversion at once.
      * @param params

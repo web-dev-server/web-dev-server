@@ -110,21 +110,26 @@ var App = /** @class */ (function () {
                         sessionNamespace = session.GetNamespace("test").SetExpirationSeconds(30);
                         sessionNamespace.value += 1;
                         staticHtmlFileFullPath = this.server.GetDocumentRoot() + "/src/tests/assets/index.html";
-                        return [4 /*yield*/, new Promise(function (resolve, reject) {
-                                fs.readFile(staticHtmlFileFullPath, 'utf8', function (err, data) {
-                                    // try to uncomment line bellow to see rendered error in browser:
-                                    try {
-                                        //throw new Error("Uncatched test error 2.");
-                                    }
-                                    catch (e) {
-                                        err = e;
-                                    }
-                                    if (err)
-                                        return reject(err);
-                                    resolve(data);
-                                });
-                            })];
+                        if (!!request.IsCompleted()) return [3 /*break*/, 5];
+                        return [4 /*yield*/, request.GetBody()];
                     case 4:
+                        _a.sent();
+                        _a.label = 5;
+                    case 5: return [4 /*yield*/, new Promise(function (resolve, reject) {
+                            fs.readFile(staticHtmlFileFullPath, 'utf8', function (err, data) {
+                                // try to uncomment line bellow to see rendered error in browser:
+                                try {
+                                    //throw new Error("Uncatched test error 2.");
+                                }
+                                catch (e) {
+                                    err = e;
+                                }
+                                if (err)
+                                    return reject(err);
+                                resolve(data);
+                            });
+                        })];
+                    case 6:
                         data = _a.sent();
                         response.SetBody(data.replace(/%code%/g, JSON.stringify({
                             basePath: request.GetBasePath(),

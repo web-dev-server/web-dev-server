@@ -411,10 +411,17 @@ export class Server {
 		res: Response
 	): Promise<void> {
 		// prepare path and full path
-		var httpReq: HttpIncomingMessage = req as any;
+		
+		/*var httpReq: HttpIncomingMessage = req as any;
 		var requestPath: string = '/' + StringHelper.Trim(
 			UrlParse(httpReq.url).pathname, '/'
-		);
+		);*/
+		var basePath: string = req.GetBasePath();
+		if (this.basePath != null) 
+			basePath = basePath.substr(this.basePath.length);
+		var requestPath = basePath + req.GetRequestPath();
+		
+		requestPath = StringHelper.DecodeUri(requestPath);
 		
 		var qmPos: number = requestPath.indexOf('?');
 		if (qmPos !== -1)

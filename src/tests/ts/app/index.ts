@@ -45,7 +45,6 @@ class App implements IApplication {
 	public async Stop (server: Server): Promise<void> {
 		// Any destructions:
 		console.log("App stop.");
-
 	}
 
 	/**
@@ -82,12 +81,14 @@ class App implements IApplication {
 		var sessionNamespace: Session.INamespace = session.GetNamespace("test").SetExpirationSeconds(30);
 		sessionNamespace.value += 1;
 		
-		// some demo operation to say hallo world:
-		var staticHtmlFileFullPath = this.server.GetDocumentRoot() + "/src/tests/assets/index.html";
-		
 		// try to uncomment line bellow to see rendered error in browser:
 		//throw new Error("Uncatched test error 1.");
 
+		if (!request.IsCompleted()) await request.GetBody();
+
+		// say hallo world with html template:
+		var staticHtmlFileFullPath = this.server.GetDocumentRoot() + "/src/tests/assets/index.html";
+		
 		//var data: string = await fs.promises.readFile(staticHtmlFileFullPath, 'utf8'); // experimental
 		var data: string = await new Promise<string>((
 			resolve: (data: string) => void, reject: (err: Error) => void
