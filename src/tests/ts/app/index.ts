@@ -70,13 +70,14 @@ class App implements IApplication {
 		// increase request counter:
 		this.counter++;
 
-		var sessionExists = Session.Exists(request);
 		var sessionInitParam = request.GetParam('session_init', '\\d');
-		if (!sessionExists) {
-			if (!sessionInitParam) return response.Redirect('?session_init=1');
+		if (sessionInitParam) {
 			(await Session.Start(request, response)).GetNamespace("test").value = 0;
 			return response.Redirect(request.GetRequestUrl());
 		}
+		var sessionExists = await Session.Exists(request);
+		if (!sessionExists) 
+			return response.Redirect('?session_init=1');
 		var session = await Session.Start(request, response);
 		var sessionNamespace: Session.INamespace = session.GetNamespace("test").SetExpirationSeconds(30);
 		sessionNamespace.value += 1;

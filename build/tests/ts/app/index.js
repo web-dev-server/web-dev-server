@@ -56,7 +56,7 @@ var App = /** @class */ (function () {
      */
     App.prototype.HttpHandle = function (request, response) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var stopParam, sessionExists, sessionInitParam, session, sessionNamespace, staticHtmlFileFullPath, data;
+            var stopParam, sessionInitParam, sessionExists, session, sessionNamespace, staticHtmlFileFullPath, data;
             var _this = this;
             return tslib_1.__generator(this, function (_a) {
                 switch (_a.label) {
@@ -74,17 +74,19 @@ var App = /** @class */ (function () {
                         }
                         // increase request counter:
                         this.counter++;
-                        sessionExists = Server_1.Session.Exists(request);
                         sessionInitParam = request.GetParam('session_init', '\\d');
-                        if (!!sessionExists) return [3 /*break*/, 2];
-                        if (!sessionInitParam)
-                            return [2 /*return*/, response.Redirect('?session_init=1')];
+                        if (!sessionInitParam) return [3 /*break*/, 2];
                         return [4 /*yield*/, Server_1.Session.Start(request, response)];
                     case 1:
                         (_a.sent()).GetNamespace("test").value = 0;
                         return [2 /*return*/, response.Redirect(request.GetRequestUrl())];
-                    case 2: return [4 /*yield*/, Server_1.Session.Start(request, response)];
+                    case 2: return [4 /*yield*/, Server_1.Session.Exists(request)];
                     case 3:
+                        sessionExists = _a.sent();
+                        if (!sessionExists)
+                            return [2 /*return*/, response.Redirect('?session_init=1')];
+                        return [4 /*yield*/, Server_1.Session.Start(request, response)];
+                    case 4:
                         session = _a.sent();
                         sessionNamespace = session.GetNamespace("test").SetExpirationSeconds(30);
                         sessionNamespace.value += 1;
@@ -103,7 +105,7 @@ var App = /** @class */ (function () {
                                     resolve(data);
                                 });
                             })];
-                    case 4:
+                    case 5:
                         data = _a.sent();
                         response.SetBody(data.replace(/%code%/g, JSON.stringify({
                             basePath: request.GetBasePath(),

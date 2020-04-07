@@ -1,36 +1,58 @@
 export default App;
 /**
- * @summary Exported class to handle directory requests.
+ * @summary
+ * Exported class to handle directory requests.
+ *
+ * When there is first request to directory with default
+ * `index.js` script inside, this class is automatically
+ * created and method `Start()` is executed.
+ * All request are normally handled by method `HttpHandle()`.
+ * If there is detected any file change inside this file
+ * or inside file included in this file (on development server
+ * instance), the module `web-dev-server` automaticly reloads
+ * all necesssary dependent source codes, stops previous instance
+ * by method `Stop`() and recreates this application instance again
+ * by `Start()` method. The same realoding procedure is executed,
+ * if there is any unhandled error inside method `HttpHandle()`
+ * (to develop more comfortably).
  */
 declare class App {
     /**
-     * @summary Application constructor, which is executed only once,
-     * 			when there is a request to directory with default `index.js`
-     * 			script inside. Then it's automatically created an instance
-     * 			of `module.exports` content. Then it's executed
-     * 			`handleHttpRequest` method on that instance.
-     * 			This is the way, how is directory request handled with
-     * 			default `index.js` file inside.
-     * 			If there is detected any file change inside this file
-     * 			(or inside file included in this file), the module
-     * 			`web-deb-server` automaticly reloads all necesssary
-     * 			dependent source codes and creates this application
-     * 			instance again. The same realoding procedure is executed,
-     * 			if there is any unhandled error inside method
-     * 			`handleHttpRequest` (to develop more comfortably).
-     */
-    Start(server: any, firstRequest: any, firstResponse: any): Promise<void>;
-    /** @summary WebDevServer server instance. @var {WebDevServer.Server} */
-    server: any;
-    /** @summary Requests counter. @var {number} */
-    counter: number;
-    Stop(server: any): Promise<void>;
-    /**
-     * @summary This method is executed each request to directory with
-     * 			`index.js` script inside (also executed for first time
-     * 			immediately after constructor).
+     * @summary Application start point.
      * @public
+     * @param {WebDevServer.Server}   server
+     * @param {WebDevServer.Request}  firstRequest
+     * @param {WebDevServer.Response} firstResponse
      * @return {Promise<void>}
      */
-    HttpHandle(request: any, response: any): Promise<void>;
+    Start(server: import("../../../lib/Server").Server, firstRequest: import("../../../lib/Request").Request, firstResponse: import("../../../lib/Response").Response): Promise<void>;
+    /**
+     * @summary WebDevServer server instance.
+     * @var {WebDevServer.Server}
+     */
+    server: import("../../../lib/Server").Server;
+    /**
+     * @summary Requests counter.
+     * @var {number}
+     */
+    counter: number;
+    /**
+     * @summary Application end point, called on unhandled error
+     * (on development server instance) or on server stop event.
+     * @public
+     * @param {WebDevServer.Server} server
+     * @return {Promise<void>}
+     */
+    Stop(server: import("../../../lib/Server").Server): Promise<void>;
+    /**
+     * @summary
+     * This method is executed each request to directory with
+     * `index.js` script inside (also executed for first time
+     * immediately after `Start()` method).
+     * @public
+     * @param {WebDevServer.Request}  request
+     * @param {WebDevServer.Response} response
+     * @return {Promise<void>}
+     */
+    HttpHandle(request: import("../../../lib/Request").Request, response: import("../../../lib/Response").Response): Promise<void>;
 }
