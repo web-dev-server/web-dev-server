@@ -84,6 +84,8 @@ var Register = /** @class */ (function () {
             promises.push(new Promise(function (resolve, reject) {
                 if (!record.instance)
                     return resolve();
+                if (!record.instance.Stop)
+                    return resolve();
                 (function () { return tslib_1.__awaiter(_this, void 0, void 0, function () {
                     var fullPathResolved;
                     return tslib_1.__generator(this, function (_a) {

@@ -165,10 +165,12 @@ export class DirectoriesHandler {
 							indexScriptModTime > cachedModule.modTime || 
 							!require.cache[requireCacheKey]
 						) {
-							try {
-								await cachedModule.instance.Stop(this.server);
-							} catch (e1) {
-								this.errorsHandler.LogError(e1, 500, req, res);
+							if (cachedModule.instance.Stop) {
+								try {
+									await cachedModule.instance.Stop(this.server);
+								} catch (e1) {
+									this.errorsHandler.LogError(e1, 500, req, res);
+								}
 							}
 							cachedModule.instance = null;
 							this.cache.ClearModuleInstanceCacheAndRequireCache(dirFullPath);
@@ -186,7 +188,7 @@ export class DirectoriesHandler {
 						this.errorsHandler
 							.LogError(e2, 500, req, res)
 							.PrintError(e2, 500, req, res);
-						if (moduleInstance != null) {
+						if (moduleInstance != null && moduleInstance.Stop) {
 							try {
 								await moduleInstance.Stop(this.server);
 							} catch (e3) {
@@ -205,7 +207,7 @@ export class DirectoriesHandler {
 						this.errorsHandler
 							.LogError(e4, 500, req, res)
 							.PrintError(e4, 500, req, res);
-						if (moduleInstance != null) {
+						if (moduleInstance != null && moduleInstance.Stop) {
 							try {
 								await moduleInstance.Stop(this.server);
 							} catch (e5) {
@@ -228,7 +230,7 @@ export class DirectoriesHandler {
 					this.errorsHandler
 						.LogError(e6, 500, req, res)
 						.PrintError(e6, 500, req, res);
-					if (moduleInstance != null) {
+					if (moduleInstance != null && moduleInstance.Stop) {
 						try {
 							await moduleInstance.Stop(this.server);
 						} catch (e7) {
@@ -319,7 +321,8 @@ export class DirectoriesHandler {
 		}
 
 		var appInstance: IApplication = new appDeclaration();
-		await appInstance.Start(this.server, req, res);
+		if (appInstance.Start)
+			await appInstance.Start(this.server, req, res);
 
 		this.cache.SetNewIndexScriptModuleRecord (
 			appInstance,
@@ -393,6 +396,7 @@ export class DirectoriesHandler {
 		req: Request, 
 		res: Response
 	): Promise<void> {
+		if (!appInstance.HttpHandle) return;
 		if (this.server.IsDevelopment()) {
 			var cacheKeysBeforeRequire = Object.keys(require.cache);
 			await appInstance.HttpHandle(

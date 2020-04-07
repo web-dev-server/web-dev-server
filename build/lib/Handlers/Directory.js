@@ -106,6 +106,7 @@ var DirectoriesHandler = /** @class */ (function () {
                         requireCacheKey = path_1.resolve(dirFullPath + '/' + indexScript);
                         if (!(indexScriptModTime > cachedModule.modTime ||
                             !require.cache[requireCacheKey])) return [3 /*break*/, 7];
+                        if (!cachedModule.instance.Stop) return [3 /*break*/, 5];
                         _a.label = 2;
                     case 2:
                         _a.trys.push([2, 4, , 5]);
@@ -137,7 +138,7 @@ var DirectoriesHandler = /** @class */ (function () {
                         this.errorsHandler
                             .LogError(e2_1, 500, req, res)
                             .PrintError(e2_1, 500, req, res);
-                        if (!(moduleInstance != null)) return [3 /*break*/, 14];
+                        if (!(moduleInstance != null && moduleInstance.Stop)) return [3 /*break*/, 14];
                         _a.label = 11;
                     case 11:
                         _a.trys.push([11, 13, , 14]);
@@ -165,7 +166,7 @@ var DirectoriesHandler = /** @class */ (function () {
                         this.errorsHandler
                             .LogError(e4_1, 500, req, res)
                             .PrintError(e4_1, 500, req, res);
-                        if (!(moduleInstance != null)) return [3 /*break*/, 22];
+                        if (!(moduleInstance != null && moduleInstance.Stop)) return [3 /*break*/, 22];
                         _a.label = 19;
                     case 19:
                         _a.trys.push([19, 21, , 22]);
@@ -195,7 +196,7 @@ var DirectoriesHandler = /** @class */ (function () {
                         this.errorsHandler
                             .LogError(e6_1, 500, req, res)
                             .PrintError(e6_1, 500, req, res);
-                        if (!(moduleInstance != null)) return [3 /*break*/, 31];
+                        if (!(moduleInstance != null && moduleInstance.Stop)) return [3 /*break*/, 31];
                         _a.label = 28;
                     case 28:
                         _a.trys.push([28, 30, , 31]);
@@ -272,9 +273,12 @@ var DirectoriesHandler = /** @class */ (function () {
                             appDeclaration = this.indexScriptModuleGetDeclaration(dirFullPath + '/' + indexScript);
                         }
                         appInstance = new appDeclaration();
+                        if (!appInstance.Start) return [3 /*break*/, 2];
                         return [4 /*yield*/, appInstance.Start(this.server, req, res)];
                     case 1:
                         _a.sent();
+                        _a.label = 2;
+                    case 2:
                         this.cache.SetNewIndexScriptModuleRecord(appInstance, indexScriptModTime, indexScript, dirFullPath);
                         return [2 /*return*/, appInstance];
                 }
@@ -328,6 +332,8 @@ var DirectoriesHandler = /** @class */ (function () {
             return tslib_1.__generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
+                        if (!appInstance.HttpHandle)
+                            return [2 /*return*/];
                         if (!this.server.IsDevelopment()) return [3 /*break*/, 2];
                         cacheKeysBeforeRequire = Object.keys(require.cache);
                         return [4 /*yield*/, appInstance.HttpHandle(req, res)];

@@ -113,6 +113,7 @@ export class Register {
 			promises.push(new Promise<void>(
 				(resolve: (() => void), reject: ((reason: Error) => void)) => {
 					if (!record.instance) return resolve();
+					if (!record.instance.Stop) return resolve();
 					(async () => {
 						await record.instance.Stop(this.server);
 						var fullPathResolved: string = require.resolve(fullPath);
