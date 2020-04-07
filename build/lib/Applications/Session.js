@@ -3,9 +3,10 @@ var tslib_1 = require("tslib");
 var crypto_1 = require("crypto");
 var Namespace_1 = require("./Sessions/Namespace");
 var Session = /** @class */ (function () {
-    function Session(id) {
+    function Session(id, locked) {
+        if (locked === void 0) { locked = true; }
         this.id = id;
-        this.locked = false;
+        this.locked = locked;
         this.lastAccessTime = +new Date;
         this.namespacesHoops = new Map();
         this.namespacesExpirations = new Map();
@@ -20,7 +21,13 @@ var Session = /** @class */ (function () {
         return this;
     };
     /**
-     * @summary Set used cookie name to identify session.
+     * @summary Get max waiting time in seconds to unlock session for another request.
+     */
+    Session.GetMaxLockWaitTime = function () {
+        return this.maxLockWaitTime;
+    };
+    /**
+     * @summary Set used cookie name to identify user session.
      * @param cookieName
      */
     Session.SetCookieName = function (cookieName) {
@@ -28,7 +35,14 @@ var Session = /** @class */ (function () {
         return this;
     };
     /**
+     * @summary Get used cookie name to identify user session.
+     */
+    Session.GetCookieName = function () {
+        return this.cookieName;
+    };
+    /**
      * @summary Set max. lifetime for all sessions and it's namespaces.
+     * `0` means unlimited, 30 days by default.
      * @param maxLifeTimeSeconds
      */
     Session.SetMaxLifeTime = function (maxLifeTimeSeconds) {
@@ -52,6 +66,24 @@ var Session = /** @class */ (function () {
         return this;
     };
     /**
+     * @summary Set custom session load handler.
+     * Implement any functionality to assign session instance under it's id into given store.
+     * @param loadHandler
+     */
+    Session.SetLoadHandler = function (loadHandler) {
+        this.loadHandler = loadHandler;
+        return this;
+    };
+    /**
+     * @summary Set custom session write handler.
+     * Implement any functionality to store session instance under it's id from given store anywhere else.
+     * @param writeHandler
+     */
+    Session.SetWriteHandler = function (writeHandler) {
+        this.writeHandler = writeHandler;
+        return this;
+    };
+    /**
      * Start session based on cookies and data stored in current process.
      * @param request
      * @param response
@@ -63,26 +95,34 @@ var Session = /** @class */ (function () {
                 switch (_a.label) {
                     case 0:
                         id = this.getRequestIdOrNew(request);
-                        if (this.store.has(id)) {
-                            session = this.store.get(id);
-                            if (this.maxLifeTimeMiliSeconds !== 0 &&
-                                session.lastAccessTime + this.maxLifeTimeMiliSeconds < (+new Date)) {
-                                session = new Session(id);
-                                this.store.set(id, session);
-                            }
-                        }
-                        else {
-                            session = new Session(id);
-                            this.store.set(id, session);
-                        }
-                        if (!session.locked) return [3 /*break*/, 2];
-                        return [4 /*yield*/, session.waitForUnlock()];
+                        if (!(!this.store.has(id) && this.loadHandler)) return [3 /*break*/, 2];
+                        return [4 /*yield*/, this.loadHandler(id, this.store, false)];
                     case 1:
                         _a.sent();
                         _a.label = 2;
                     case 2:
+                        if (this.store.has(id)) {
+                            session = this.store.get(id);
+                            if (session != null &&
+                                this.maxLifeTimeMiliSeconds !== 0 &&
+                                session.lastAccessTime + this.maxLifeTimeMiliSeconds < (+new Date)) {
+                                session = new Session(id, false);
+                                this.store.set(id, session);
+                            }
+                        }
+                        else {
+                            session = new Session(id, false);
+                            this.store.set(id, session);
+                        }
+                        if (!(session == null || (session && session.locked))) return [3 /*break*/, 4];
+                        return [4 /*yield*/, this.waitForUnlock(id)];
+                    case 3:
+                        session = _a.sent();
+                        _a.label = 4;
+                    case 4:
                         session.init();
                         this.setResponseCookie(response, session);
+                        this.runGarbageCollectingIfNecessary();
                         return [2 /*return*/, session];
                 }
             });
@@ -93,20 +133,47 @@ var Session = /** @class */ (function () {
      * @param request
      */
     Session.Exists = function (request) {
-        var id = request.GetCookie(this.cookieName, "a-zA-Z0-9");
-        return this.store.has(id);
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var id;
+            return tslib_1.__generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        id = request.GetCookie(this.cookieName, "a-zA-Z0-9");
+                        if (this.store.has(id))
+                            return [2 /*return*/, true];
+                        if (!this.loadHandler) return [3 /*break*/, 2];
+                        return [4 /*yield*/, this.loadHandler(id, this.store, true)];
+                    case 1:
+                        _a.sent();
+                        _a.label = 2;
+                    case 2: return [2 /*return*/, this.store.has(id) && this.store.get(id) != null];
+                }
+            });
+        });
     };
     Session.setResponseCookie = function (response, session) {
+        var _this = this;
         session.lastAccessTime = +new Date;
         var expireDate = null;
         if (this.maxLifeTimeMiliSeconds !== 0) {
             expireDate = new Date();
             expireDate.setTime(session.lastAccessTime + this.maxLifeTimeMiliSeconds);
         }
-        response.On("session-unlock", function () {
-            session.lastAccessTime = +new Date;
-            session.locked = false;
-        });
+        response.On("session-unlock", function () { return tslib_1.__awaiter(_this, void 0, void 0, function () {
+            return tslib_1.__generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        session.lastAccessTime = +new Date;
+                        session.locked = false;
+                        if (!this.writeHandler) return [3 /*break*/, 2];
+                        return [4 /*yield*/, this.writeHandler(session.GetId(), this.store)];
+                    case 1:
+                        _a.sent();
+                        _a.label = 2;
+                    case 2: return [2 /*return*/];
+                }
+            });
+        }); });
         response.SetCookie({
             name: this.cookieName,
             value: session.GetId(),
@@ -129,6 +196,51 @@ var Session = /** @class */ (function () {
         }
         return id;
     };
+    Session.runGarbageCollectingIfNecessary = function () {
+        var _this = this;
+        if (this.garbageCollecting !== null)
+            return;
+        this.garbageCollecting = setInterval(function () {
+            if (_this.maxLifeTimeMiliSeconds === 0)
+                return;
+            var nowTime = +new Date;
+            _this.store.forEach(function (session) {
+                if (session.lastAccessTime + _this.maxLifeTimeMiliSeconds < nowTime)
+                    session.Destroy();
+            });
+        }, this.GC_INTERVAL);
+    };
+    Session.waitForUnlock = function (id) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var session, maxWaitingTime, startTime, timeoutHandler;
+            var _this = this;
+            return tslib_1.__generator(this, function (_a) {
+                session = this.store.get(id);
+                if (session && !session.locked)
+                    return [2 /*return*/, session];
+                maxWaitingTime = Session.maxLockWaitTime;
+                startTime = +new Date;
+                timeoutHandler = function (resolve) {
+                    var session = _this.store.get(id);
+                    if (session && !session.locked) {
+                        session.locked = true;
+                        return resolve(session);
+                    }
+                    var nowTime = +new Date;
+                    if (startTime + maxWaitingTime < nowTime)
+                        return resolve(session);
+                    setTimeout(function () {
+                        timeoutHandler(resolve);
+                    }, _this.LOCK_CHECK_INTERVAL);
+                };
+                return [2 /*return*/, new Promise(function (resolve, reject) {
+                        setTimeout(function () {
+                            timeoutHandler(resolve);
+                        }, _this.LOCK_CHECK_INTERVAL);
+                    })];
+            });
+        });
+    };
     /**
      * @summary Get session id string.
      */
@@ -136,7 +248,7 @@ var Session = /** @class */ (function () {
         return this.id;
     };
     /**
-     * Get new or existing session namespace instance.
+     * @summary Get new or existing session namespace instance.
      * @param name Session namespace unique name.
      */
     Session.prototype.GetNamespace = function (name) {
@@ -157,37 +269,10 @@ var Session = /** @class */ (function () {
     Session.prototype.Destroy = function () {
         Session.store.delete(this.id);
         this.id = null;
+        this.locked = null;
         this.lastAccessTime = null;
+        this.namespacesExpirations = null;
         this.namespaces = null;
-    };
-    Session.prototype.waitForUnlock = function () {
-        return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var maxWaitingTime, startTime, timeoutHandler;
-            var _this = this;
-            return tslib_1.__generator(this, function (_a) {
-                if (!this.locked)
-                    return [2 /*return*/];
-                maxWaitingTime = Session.maxLockWaitTime;
-                startTime = +new Date;
-                timeoutHandler = function (resolve) {
-                    if (!_this.locked) {
-                        _this.locked = true;
-                        return resolve();
-                    }
-                    var nowTime = +new Date;
-                    if (startTime + maxWaitingTime < nowTime)
-                        return resolve();
-                    setTimeout(function () {
-                        timeoutHandler(resolve);
-                    }, 100);
-                };
-                return [2 /*return*/, new Promise(function (resolve, reject) {
-                        setTimeout(function () {
-                            timeoutHandler(resolve);
-                        }, 1000);
-                    })];
-            });
-        });
     };
     Session.prototype.setLastAccessTime = function (lastAccessTime) {
         this.lastAccessTime;
@@ -238,11 +323,15 @@ var Session = /** @class */ (function () {
     Session.LIFETIMES = {
         MINUTE: 60, HOUR: 3600, DAY: 86400, WEEK: 604800, MONTH: 2592000, YEAR: 31557600
     };
+    Session.GC_INTERVAL = 60 * 60 * 1000; // once per hour
+    Session.LOCK_CHECK_INTERVAL = 100;
     Session.store = new Map();
-    Session.maxLockWaitTime = 30000; // 30 seconds
+    Session.maxLockWaitTime = 30 * 1000; // 30 seconds
     Session.cookieName = 'sessionid';
-    Session.maxLifeTimeMiliSeconds = 0;
-    Session.hashSalt = '';
+    Session.maxLifeTimeMiliSeconds = 30 * 24 * 60 * 60 * 1000;
+    Session.garbageCollecting = null;
+    Session.loadHandler = null;
+    Session.writeHandler = null;
     return Session;
 }());
 exports.Session = Session;

@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { Request } from "../Request";
 import { Response } from "../Response";
 import { INamespace } from "./Sessions/INamespace";
@@ -10,23 +11,36 @@ export declare class Session {
         MONTH: number;
         YEAR: number;
     };
+    static GC_INTERVAL: number;
+    static LOCK_CHECK_INTERVAL: number;
     protected static store: Map<string, Session>;
     protected static maxLockWaitTime: number;
     protected static cookieName: string;
     protected static maxLifeTimeMiliSeconds: number;
-    protected static hashSalt: string;
+    protected static garbageCollecting: NodeJS.Timeout;
+    protected static loadHandler: (id: string, store: Map<string, Session>, exists: boolean) => Promise<void>;
+    protected static writeHandler: (id: string, store: Map<string, Session>) => Promise<void>;
     /**
      * @summary Set max waiting time in seconds to unlock session for another request.
      * @param maxLockWaitTime
      */
     static SetMaxLockWaitTime(maxLockWaitTime: number): typeof Session;
     /**
-     * @summary Set used cookie name to identify session.
+     * @summary Get max waiting time in seconds to unlock session for another request.
+     */
+    static GetMaxLockWaitTime(): number;
+    /**
+     * @summary Set used cookie name to identify user session.
      * @param cookieName
      */
     static SetCookieName(cookieName: string): typeof Session;
     /**
+     * @summary Get used cookie name to identify user session.
+     */
+    static GetCookieName(): string;
+    /**
      * @summary Set max. lifetime for all sessions and it's namespaces.
+     * `0` means unlimited, 30 days by default.
      * @param maxLifeTimeSeconds
      */
     static SetMaxLifeTime(maxLifeTimeSeconds: number): typeof Session;
@@ -39,6 +53,18 @@ export declare class Session {
      */
     static DestroyAll(): typeof Session;
     /**
+     * @summary Set custom session load handler.
+     * Implement any functionality to assign session instance under it's id into given store.
+     * @param loadHandler
+     */
+    static SetLoadHandler(loadHandler: (id: string, store: Map<string, Session>, exists: boolean) => Promise<void>): typeof Session;
+    /**
+     * @summary Set custom session write handler.
+     * Implement any functionality to store session instance under it's id from given store anywhere else.
+     * @param writeHandler
+     */
+    static SetWriteHandler(writeHandler: (id: string, store: Map<string, Session>) => Promise<void>): typeof Session;
+    /**
      * Start session based on cookies and data stored in current process.
      * @param request
      * @param response
@@ -48,15 +74,17 @@ export declare class Session {
      * @summary Check if any session data exists for given request.
      * @param request
      */
-    static Exists(request: Request): boolean;
+    static Exists(request: Request): Promise<boolean>;
     protected static setResponseCookie(response: Response, session: Session): void;
     protected static getRequestIdOrNew(request: Request): string;
+    protected static runGarbageCollectingIfNecessary(): void;
+    protected static waitForUnlock(id: string): Promise<Session>;
     /**
      * @summary Get session id string.
      */
     GetId(): string;
     /**
-     * Get new or existing session namespace instance.
+     * @summary Get new or existing session namespace instance.
      * @param name Session namespace unique name.
      */
     GetNamespace(name?: string): INamespace;
@@ -64,7 +92,6 @@ export declare class Session {
      * @summary Destroy all namespaces and this session for current user.
      */
     Destroy(): void;
-    protected waitForUnlock(): Promise<void>;
     protected setLastAccessTime(lastAccessTime: number): Session;
     protected destroyNamespace(name: string): Session;
     protected setNamespaceExpirationHoops(name: string, hoopsCount: number): Session;
@@ -76,5 +103,5 @@ export declare class Session {
     protected namespacesHoops: Map<string, number>;
     protected namespacesExpirations: Map<string, number>;
     protected namespaces: Map<string, INamespace>;
-    protected constructor(id: string);
+    constructor(id: string, locked?: boolean);
 }
