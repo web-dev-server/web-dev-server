@@ -62,10 +62,10 @@ package-lock.json
 # log files
 *.log
 
-# projects files
+# Visual Studio Code
 *.code-workspace
 
-# visual studio
+# Visual Studio
 bin/
 obj/
 *.njsproj
