@@ -1,5 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
-var mimeDb = require('../../../node_modules/mime-db/db.json');
+var mimeDb = require('mime-db');
 var Headers = /** @class */ (function () {
     function Headers() {
     }

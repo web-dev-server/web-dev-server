@@ -1,4 +1,4 @@
-var mimeDb: any = require('../../../node_modules/mime-db/db.json');
+var mimeDb: any = require('mime-db');
 
 
 interface MimeRecord {
