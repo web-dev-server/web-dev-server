@@ -1,6 +1,8 @@
 src/
 build/tests/
 gfx/
+obj/
+bin/
 node_modules/
 *.code-workspace
 *.njsproj
