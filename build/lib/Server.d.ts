@@ -36,16 +36,16 @@ export declare class Server {
         DOMAIN: string;
         RESPONSES: typeof Defaults;
     };
-    static INDEX: {
-        SCRIPTS: string[];
-        FILES: string[];
-    };
     protected state: number;
     protected documentRoot?: string;
     protected basePath?: string;
     protected port?: number;
     protected hostName?: string;
     protected development: boolean;
+    protected indexes: {
+        scripts: string[];
+        files: string[];
+    };
     protected httpServer?: HttpServer;
     protected netSockets?: Set<Socket>;
     protected customServerHandler?: HttpRequestListener;
@@ -85,6 +85,11 @@ export declare class Server {
      * @param basePath Base path (proxy path, if you are running the server under proxy).
      */
     SetBasePath(basePath: string): Server;
+    /**
+     * @summary Set custom http server handler like express module.
+     * @see https://stackoverflow.com/a/17697134/7032987
+     * @param httpHandler
+     */
     SetServerHandler(httpHandler: HttpRequestListener): Server;
     /**
      * @summary Set custom error handler for uncatched errors and warnings
@@ -97,10 +102,36 @@ export declare class Server {
      */
     SetForbiddenPaths(forbiddenPaths: string[] | RegExp[]): Server;
     /**
-     * Aet forbidden request paths to prevent requesting dangerous places (`["/node_modules", /\/package\.json/g, /\/tsconfig\.json/g, /\/\.([^\.]+)/g]` by default).
+     * Add forbidden request paths to prevent requesting dangerous places (`["/node_modules", /\/package\.json/g, /\/tsconfig\.json/g, /\/\.([^\.]+)/g]` by default).
      * @param forbiddenPaths Forbidden request path begins or regular expression patterns.
      */
     AddForbiddenPaths(forbiddenPaths: string[] | RegExp[]): Server;
+    /**
+     * Set directory index/default server script file names executed on server side as directory content.
+     * All previous configuration will be replaced.
+     * Default value is: `['index.js']`.
+     * @param indexScripts Array of file names like `['index.js', 'default.js', 'app.js', ...]`.
+     */
+    SetIndexScripts(indexScripts: string[]): Server;
+    /**
+     * Add directory index/default server script file names executed on server side as directory content.
+     * Default value is: `['index.js']`.
+     * @param indexScripts Array of file names like `['default.js', 'app.js', ...]`.
+     */
+    AddIndexScripts(indexScripts: string[]): Server;
+    /**
+     * Set directory index/default server file names staticly send to client as default directory content.
+     * All previous configuration will be replaced.
+     * Default value is: `['index.html','index.htm','default.html','default.htm']`.
+     * @param indexFiles Array of file names like `['index.html','index.htm','default.html','default.htm', 'directory.html', ...]`.
+     */
+    SetIndexFiles(indexFiles: string[]): Server;
+    /**
+     * Add directory index/default server file names staticly send to client as default directory content.
+     * Default value is: `['index.html','index.htm','default.html','default.htm']`.
+     * @param indexFiles Array of file names like `['directory.html', 'directory.htm', ...]`.
+     */
+    AddIndexFiles(indexFiles: string[]): Server;
     /**
      * @summary Add custom express http handler
      * @param handler Custom http request handler called every allowed request path before standard server handling.
@@ -134,6 +165,16 @@ export declare class Server {
      * Get forbidden request paths to prevent requesting dangerous places.
      */
     GetForbiddenPaths(): string[] | RegExp[];
+    /**
+     * Get directory index/default server script file names executed on server side as directory content.
+     * Default value is: `['index.js']`.
+     */
+    GetIndexScripts(): string[];
+    /**
+     * Get directory index/default server file names staticly send to client as default directory content.
+     * Default value is: `['index.html','index.htm','default.html','default.htm']`.
+     */
+    GetIndexFiles(): string[];
     /**
      * @summary Return used http server instance.
      */

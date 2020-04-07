@@ -39,6 +39,10 @@ var Server = /** @class */ (function () {
         this.port = null;
         this.hostName = null;
         this.development = true;
+        this.indexes = {
+            scripts: ['index.js'],
+            files: ['index.html', 'index.htm', 'default.html', 'default.htm']
+        };
         this.httpServer = null;
         this.netSockets = null;
         this.customServerHandler = null;
@@ -101,6 +105,11 @@ var Server = /** @class */ (function () {
         this.basePath = StringHelper_1.StringHelper.Trim(basePath.replace(/\\/g, '/'), '/');
         return this;
     };
+    /**
+     * @summary Set custom http server handler like express module.
+     * @see https://stackoverflow.com/a/17697134/7032987
+     * @param httpHandler
+     */
     Server.prototype.SetServerHandler = function (httpHandler) {
         this.customServerHandler = httpHandler;
         return this;
@@ -122,11 +131,49 @@ var Server = /** @class */ (function () {
         return this;
     };
     /**
-     * Aet forbidden request paths to prevent requesting dangerous places (`["/node_modules", /\/package\.json/g, /\/tsconfig\.json/g, /\/\.([^\.]+)/g]` by default).
+     * Add forbidden request paths to prevent requesting dangerous places (`["/node_modules", /\/package\.json/g, /\/tsconfig\.json/g, /\/\.([^\.]+)/g]` by default).
      * @param forbiddenPaths Forbidden request path begins or regular expression patterns.
      */
     Server.prototype.AddForbiddenPaths = function (forbiddenPaths) {
         this.forbiddenPaths = [].concat(this.forbiddenPaths, forbiddenPaths);
+        return this;
+    };
+    /**
+     * Set directory index/default server script file names executed on server side as directory content.
+     * All previous configuration will be replaced.
+     * Default value is: `['index.js']`.
+     * @param indexScripts Array of file names like `['index.js', 'default.js', 'app.js', ...]`.
+     */
+    Server.prototype.SetIndexScripts = function (indexScripts) {
+        this.indexes.scripts = indexScripts;
+        return this;
+    };
+    /**
+     * Add directory index/default server script file names executed on server side as directory content.
+     * Default value is: `['index.js']`.
+     * @param indexScripts Array of file names like `['default.js', 'app.js', ...]`.
+     */
+    Server.prototype.AddIndexScripts = function (indexScripts) {
+        this.indexes.scripts = [].concat(this.indexes.scripts, indexScripts);
+        return this;
+    };
+    /**
+     * Set directory index/default server file names staticly send to client as default directory content.
+     * All previous configuration will be replaced.
+     * Default value is: `['index.html','index.htm','default.html','default.htm']`.
+     * @param indexFiles Array of file names like `['index.html','index.htm','default.html','default.htm', 'directory.html', ...]`.
+     */
+    Server.prototype.SetIndexFiles = function (indexFiles) {
+        this.indexes.files = indexFiles;
+        return this;
+    };
+    /**
+     * Add directory index/default server file names staticly send to client as default directory content.
+     * Default value is: `['index.html','index.htm','default.html','default.htm']`.
+     * @param indexFiles Array of file names like `['directory.html', 'directory.htm', ...]`.
+     */
+    Server.prototype.AddIndexFiles = function (indexFiles) {
+        this.indexes.files = [].concat(this.indexes.scripts, indexFiles);
         return this;
     };
     /**
@@ -178,6 +225,20 @@ var Server = /** @class */ (function () {
      */
     Server.prototype.GetForbiddenPaths = function () {
         return this.forbiddenPaths;
+    };
+    /**
+     * Get directory index/default server script file names executed on server side as directory content.
+     * Default value is: `['index.js']`.
+     */
+    Server.prototype.GetIndexScripts = function () {
+        return this.indexes.scripts;
+    };
+    /**
+     * Get directory index/default server file names staticly send to client as default directory content.
+     * Default value is: `['index.html','index.htm','default.html','default.htm']`.
+     */
+    Server.prototype.GetIndexFiles = function () {
+        return this.indexes.files;
     };
     /**
      * @summary Return used http server instance.
@@ -472,7 +533,7 @@ var Server = /** @class */ (function () {
                 fileName = fullPath;
                 dirFullPath = '';
             }
-            if (Server.INDEX.SCRIPTS.indexOf(fileName) != -1) {
+            if (this.indexes.scripts.indexOf(fileName) != -1) {
                 this.directoriesHandler.HandleIndexScript(dirFullPath, fileName, stats.mtime.getTime(), req, res);
             }
             else {
@@ -568,7 +629,7 @@ var Server = /** @class */ (function () {
             searchingRequestPaths.push('/');
         return searchingRequestPaths;
     };
-    Server.VERSION = '2.2.0';
+    Server.VERSION = '3.0.0';
     Server.STATES = {
         CLOSED: 0, STARTING: 1, CLOSING: 2, STARTED: 4
     };
@@ -576,10 +637,6 @@ var Server = /** @class */ (function () {
         PORT: 8000,
         DOMAIN: '127.0.0.1',
         RESPONSES: Defaults_1.Defaults
-    };
-    Server.INDEX = {
-        SCRIPTS: ['index.js'],
-        FILES: ['index.html', 'index.htm', 'default.html', 'default.htm']
     };
     return Server;
 }());

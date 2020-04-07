@@ -35,8 +35,8 @@ export class DirectoriesHandler {
 		this.cache = cache;
 		this.filesHandler = filesHandler;
 		this.errorsHandler = errorsHandler;
-		var scripts: string[] = Server.INDEX.SCRIPTS,
-			files: string[] = Server.INDEX.FILES,
+		var scripts: string[] = this.server.GetIndexScripts(),
+			files: string[] = this.server.GetIndexFiles(),
 			i: number, 
 			l: number;
 		for (i = 0, l = scripts.length; i < l; i++) 

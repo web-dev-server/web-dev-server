@@ -44,7 +44,7 @@ export namespace Session {
 
 
 export class Server {
-	public static readonly VERSION: string = '2.2.0';
+	public static readonly VERSION: string = '3.0.0';
 	public static readonly STATES: {
 		CLOSED: number, STARTING: number, CLOSING: number, STARTED: number
 	} = {
@@ -57,12 +57,6 @@ export class Server {
 		DOMAIN: '127.0.0.1',
 		RESPONSES: Defaults
 	};
-	public static INDEX: {
-		SCRIPTS: string[]; FILES: string[];
-	} = {
-		SCRIPTS: ['index.js'],
-		FILES: ['index.html','index.htm','default.html','default.htm']
-	};
 	
 	protected state: number = 0;
 	protected documentRoot?: string = null;
@@ -70,6 +64,12 @@ export class Server {
 	protected port?: number = null;
 	protected hostName?: string = null;
 	protected development: boolean = true;
+	protected indexes: {
+		scripts: string[]; files: string[];
+	} = {
+		scripts: ['index.js'],
+		files: ['index.html','index.htm','default.html','default.htm']
+	};
 
 	protected httpServer?: HttpServer = null;
 	protected netSockets?: Set<Socket> = null;
@@ -135,6 +135,11 @@ export class Server {
 		this.basePath = StringHelper.Trim(basePath.replace(/\\/g, '/'), '/');
 		return this;
 	}
+	/**
+	 * @summary Set custom http server handler like express module.
+	 * @see https://stackoverflow.com/a/17697134/7032987
+	 * @param httpHandler
+	 */
 	public SetServerHandler (httpHandler: HttpRequestListener): Server {
 		this.customServerHandler = httpHandler;
 		return this;
@@ -163,11 +168,49 @@ export class Server {
 		return this;
 	}
 	/**
-	 * Aet forbidden request paths to prevent requesting dangerous places (`["/node_modules", /\/package\.json/g, /\/tsconfig\.json/g, /\/\.([^\.]+)/g]` by default).
+	 * Add forbidden request paths to prevent requesting dangerous places (`["/node_modules", /\/package\.json/g, /\/tsconfig\.json/g, /\/\.([^\.]+)/g]` by default).
 	 * @param forbiddenPaths Forbidden request path begins or regular expression patterns.
 	 */
 	public AddForbiddenPaths (forbiddenPaths: string[] | RegExp[]): Server {
 		this.forbiddenPaths = [].concat(this.forbiddenPaths, forbiddenPaths);
+		return this;
+	}
+	/**
+	 * Set directory index/default server script file names executed on server side as directory content.
+	 * All previous configuration will be replaced. 
+	 * Default value is: `['index.js']`.
+	 * @param indexScripts Array of file names like `['index.js', 'default.js', 'app.js', ...]`.
+	 */
+	public SetIndexScripts (indexScripts: string[]): Server {
+		this.indexes.scripts = indexScripts;
+		return this;
+	}
+	/**
+	 * Add directory index/default server script file names executed on server side as directory content.
+	 * Default value is: `['index.js']`.
+	 * @param indexScripts Array of file names like `['default.js', 'app.js', ...]`.
+	 */
+	public AddIndexScripts (indexScripts: string[]): Server {
+		this.indexes.scripts = [].concat(this.indexes.scripts, indexScripts);
+		return this;
+	}
+	/**
+	 * Set directory index/default server file names staticly send to client as default directory content.
+	 * All previous configuration will be replaced. 
+	 * Default value is: `['index.html','index.htm','default.html','default.htm']`.
+	 * @param indexFiles Array of file names like `['index.html','index.htm','default.html','default.htm', 'directory.html', ...]`.
+	 */
+	public SetIndexFiles (indexFiles: string[]): Server {
+		this.indexes.files = indexFiles;
+		return this;
+	}
+	/**
+	 * Add directory index/default server file names staticly send to client as default directory content.
+	 * Default value is: `['index.html','index.htm','default.html','default.htm']`.
+	 * @param indexFiles Array of file names like `['directory.html', 'directory.htm', ...]`.
+	 */
+	public AddIndexFiles (indexFiles: string[]): Server {
+		this.indexes.files = [].concat(this.indexes.scripts, indexFiles);
 		return this;
 	}
 	/**
@@ -226,6 +269,20 @@ export class Server {
 	 */
 	public GetForbiddenPaths (): string[] | RegExp[] {
 		return this.forbiddenPaths;
+	}
+	/**
+	 * Get directory index/default server script file names executed on server side as directory content.
+	 * Default value is: `['index.js']`.
+	 */
+	public GetIndexScripts (): string[] {
+		return this.indexes.scripts;
+	}
+	/**
+	 * Get directory index/default server file names staticly send to client as default directory content.
+	 * Default value is: `['index.html','index.htm','default.html','default.htm']`.
+	 */
+	public GetIndexFiles (): string[] {
+		return this.indexes.files;
 	}
 	/**
 	 * @summary Return used http server instance.
@@ -502,7 +559,7 @@ export class Server {
 				fileName = fullPath;
 				dirFullPath = '';
 			}
-			if (Server.INDEX.SCRIPTS.indexOf(fileName) != -1) {
+			if (this.indexes.scripts.indexOf(fileName) != -1) {
 				this.directoriesHandler.HandleIndexScript(
 					dirFullPath, fileName, stats.mtime.getTime(), req, res
 				);

@@ -16,7 +16,7 @@ var DirectoriesHandler = /** @class */ (function () {
         this.cache = cache;
         this.filesHandler = filesHandler;
         this.errorsHandler = errorsHandler;
-        var scripts = Server_1.Server.INDEX.SCRIPTS, files = Server_1.Server.INDEX.FILES, i, l;
+        var scripts = this.server.GetIndexScripts(), files = this.server.GetIndexFiles(), i, l;
         for (i = 0, l = scripts.length; i < l; i++)
             this.indexScripts.set(scripts[i], i);
         for (i = 0, l = files.length; i < l; i++)
