@@ -220,7 +220,20 @@ var WebDevServer = require("web-dev-server");
  * (to develop more comfortably).
  */
 class App {
-   
+
+   constructor () {
+      /**
+       * @summary WebDevServer server instance.
+       * @var {WebDevServer.Server}
+       */
+      this.server = null;
+      /**
+       * @summary Requests counter. 
+       * @var {number}
+       */
+      this.counter = 0;
+   }
+
    /** 
     * @summary Application start point.
     * @public
@@ -230,20 +243,9 @@ class App {
     * @return {Promise<void>}
     */
    async Start (server, firstRequest, firstResponse) {
-      /**
-       * @summary WebDevServer server instance.
-       * @var {WebDevServer.Server}
-       */
       this.server = server;
-      /**
-       * @summary Requests counter. 
-       * @var {number}
-       */
-      this.counter = 0;
-
       // Any initializations:
       console.log("App start.");
-
    }
 
    /** 
@@ -256,7 +258,6 @@ class App {
    async Stop (server) {
       // Any destructions:
       console.log("App stop.");
-
    }
    
    /**
@@ -348,7 +349,6 @@ export default class App implements IApplication {
    public async Stop (server: Server): Promise<void> {
       // Any destructions:
       console.log("App stop.");
-
    }
 
    /**
