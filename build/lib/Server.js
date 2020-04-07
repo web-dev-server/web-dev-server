@@ -102,7 +102,7 @@ var Server = /** @class */ (function () {
      * @param basePath Base path (proxy path, if you are running the server under proxy).
      */
     Server.prototype.SetBasePath = function (basePath) {
-        this.basePath = StringHelper_1.StringHelper.Trim(basePath.replace(/\\/g, '/'), '/');
+        this.basePath = StringHelper_1.StringHelper.TrimRight(basePath.replace(/\\/g, '/'), '/');
         return this;
     };
     /**

@@ -67,15 +67,18 @@ exports.Request = /** @class */ (function () {
 				requestPath = requestPath.replace(/[\%]([0-9]{2,})/g, match => {
 					return decodeURIComponent(match);
 				});
+			var basePath: string = '';
 			var appRootPathAndScript: string[] = server.TryToFindIndexPath(requestPath);
-			var basePath: string = server.GetBasePath();
-			if (basePath == null) basePath = '';
 			if (appRootPathAndScript.length > 0) {
-				var [appRootFullPath, indexScript] = appRootPathAndScript;
-				basePath += appRootFullPath.substr(serverDocumentRoot.length);
-				if (basePath.length > 0 && requestPath.length >= basePath.length)
+				var appRootFullPath = appRootPathAndScript[0];
+				var indexScript = appRootPathAndScript[1];
+				basePath = appRootFullPath.substr(serverDocumentRoot.length);
+				if (basePath.length > 0 && requestPath.indexOf(basePath) == 0)
 					requestPath = requestPath.substr(basePath.length);
 			}
+			var serverBasePath: string = server.GetBasePath();
+			if (serverBasePath != null)
+				basePath = serverBasePath + basePath;
 			this['initUrlSegments'](appRootFullPath, basePath, indexScript, requestPath);
 		}
 		public AddListener (): this {

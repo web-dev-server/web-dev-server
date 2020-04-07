@@ -231,15 +231,14 @@ var Url = /** @class */ (function () {
      * @param serverBasePath
      */
     Url.prototype.setUpIndexScriptExec = function (serverDocRoot, appRootFullPath, indexScript, serverBasePath) {
-        var basePath = serverBasePath;
+        var basePath = appRootFullPath.substr(serverDocRoot.length);
         var requestPath = this.path;
-        if (basePath == null)
-            basePath = '';
-        basePath += appRootFullPath.substr(serverDocRoot.length);
-        if (basePath.length > 0 && requestPath.length >= basePath.length)
+        if (basePath.length > 0 && requestPath.indexOf(basePath) == 0)
             requestPath = requestPath.substr(basePath.length);
         if (this.query && this.query.length > 0)
             requestPath += '?' + this.query;
+        if (serverBasePath != null)
+            basePath = serverBasePath + basePath;
         this.initUrlSegments(appRootFullPath, basePath, indexScript, requestPath);
     };
     /**

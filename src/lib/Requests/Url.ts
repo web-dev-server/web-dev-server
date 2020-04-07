@@ -302,13 +302,14 @@ export class Url {
 	 * @param serverBasePath 
 	 */
 	protected setUpIndexScriptExec (serverDocRoot: string, appRootFullPath: string, indexScript: string, serverBasePath: string): void {
-		var basePath: string = serverBasePath;
+		var basePath: string = appRootFullPath.substr(serverDocRoot.length);
 		var requestPath: string = this.path;
-		if (basePath == null) basePath = '';
-		basePath += appRootFullPath.substr(serverDocRoot.length);
-		if (basePath.length > 0 && requestPath.length >= basePath.length)
+		if (basePath.length > 0 && requestPath.indexOf(basePath) == 0)
 			requestPath = requestPath.substr(basePath.length);
-		if (this.query && this.query.length > 0) requestPath += '?' + this.query;
+		if (this.query && this.query.length > 0) 
+			requestPath += '?' + this.query;
+		if (serverBasePath != null)
+			basePath = serverBasePath + basePath;
 		this.initUrlSegments(
 			appRootFullPath, basePath, indexScript, requestPath
 		);

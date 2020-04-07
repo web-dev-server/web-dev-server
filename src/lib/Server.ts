@@ -132,7 +132,7 @@ export class Server {
 	 * @param basePath Base path (proxy path, if you are running the server under proxy).
 	 */
 	public SetBasePath (basePath: string): Server {
-		this.basePath = StringHelper.Trim(basePath.replace(/\\/g, '/'), '/');
+		this.basePath = StringHelper.TrimRight(basePath.replace(/\\/g, '/'), '/');
 		return this;
 	}
 	/**

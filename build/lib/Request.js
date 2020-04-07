@@ -56,16 +56,18 @@ exports.Request = /** @class */ (function () {
                 requestPath = requestPath.replace(/[\%]([0-9]{2,})/g, function (match) {
                     return decodeURIComponent(match);
                 });
+            var basePath = '';
             var appRootPathAndScript = server.TryToFindIndexPath(requestPath);
-            var basePath = server.GetBasePath();
-            if (basePath == null)
-                basePath = '';
             if (appRootPathAndScript.length > 0) {
-                var appRootFullPath = appRootPathAndScript[0], indexScript = appRootPathAndScript[1];
-                basePath += appRootFullPath.substr(serverDocumentRoot.length);
-                if (basePath.length > 0 && requestPath.length >= basePath.length)
+                var appRootFullPath = appRootPathAndScript[0];
+                var indexScript = appRootPathAndScript[1];
+                basePath = appRootFullPath.substr(serverDocumentRoot.length);
+                if (basePath.length > 0 && requestPath.indexOf(basePath) == 0)
                     requestPath = requestPath.substr(basePath.length);
             }
+            var serverBasePath = server.GetBasePath();
+            if (serverBasePath != null)
+                basePath = serverBasePath + basePath;
             this['initUrlSegments'](appRootFullPath, basePath, indexScript, requestPath);
         };
         Request.prototype.AddListener = function () {
