@@ -84,7 +84,7 @@ npm install web-dev-server
 
 - [Hello World In Javascript](https://github.com/web-dev-server/example-helloworld)
 - [Hello World In TypeScript](https://github.com/web-dev-server/example-helloworld-typescript)
-- [Chat In Javascript](https://github.com/web-dev-server/example-chat-example-pure-js)
+- [Chat In Javascript](https://github.com/web-dev-server/example-chat-pure-js)
 - [Chat In Angular 1](https://github.com/web-dev-server/example-chat-angular-1)
 - read more in `src/tests` directory
 
