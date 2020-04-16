@@ -44,7 +44,7 @@ export namespace Session {
 
 
 export class Server {
-	public static readonly VERSION: string = '3.0.5';
+	public static readonly VERSION: string = '3.0.6';
 	public static readonly STATES: {
 		CLOSED: number, STARTING: number, CLOSING: number, STARTED: number
 	} = {
@@ -79,8 +79,8 @@ export class Server {
 	protected filesHandler?: FilesHandler = null;
 	protected directoriesHandler?: DirectoriesHandler = null;
 	
-	protected customErrorHandler?: (err: Error, code: number, req?: Request, res?: Response) => Promise<void> = null;
-	protected customHttpPreHandlers: ((req: Request, res: Response, event: Event) => Promise<void>)[] = [];
+	protected customErrorHandler?: (err: Error, code?: number, req?: Request, res?: Response) => Promise<void> = null;
+	protected customHttpPreHandlers: ((req: Request, res: Response, event?: Event) => Promise<void>)[] = [];
 	protected forbiddenPaths: string[] | RegExp[] = [
 		'/node_modules', 
 		/\/package(-lock)?\.json/g,
@@ -151,7 +151,7 @@ export class Server {
 	public SetErrorHandler (
 		errorHandler: (
 			err: Error, 
-			code: number, 
+			code?: number, 
 			req?: Request, 
 			res?: Response
 		) => Promise<void>
@@ -221,7 +221,7 @@ export class Server {
 		handler: (
 			req: Request, 
 			res: Response, 
-			event: Event
+			event?: Event
 		) => Promise<void>
 	): Server {
 		this.customHttpPreHandlers.push(handler);

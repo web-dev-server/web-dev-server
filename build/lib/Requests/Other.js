@@ -4,12 +4,6 @@ var NumberHelper_1 = require("../Tools/Helpers/NumberHelper");
 var Other = /** @class */ (function () {
     function Other() {
     }
-    Other.prototype.GetScriptName = function () {
-        return this.scriptName;
-    };
-    Other.prototype.GetAppRoot = function () {
-        return this.appRoot;
-    };
     Other.prototype.SetMethod = function (rawMethod) {
         this.httpMethod = rawMethod.toUpperCase();
         return this;
@@ -20,6 +14,15 @@ var Other = /** @class */ (function () {
             this.httpMethod = httpReq.method.toUpperCase();
         }
         return this.httpMethod;
+    };
+    Other.prototype.IsAjax = function () {
+        if (this.ajax == null) {
+            var xReqHeader = "x-requested-with";
+            var httpReq = this['http'];
+            this.ajax = (xReqHeader in httpReq.headers &&
+                httpReq.headers[xReqHeader].length > 0);
+        }
+        return this.ajax;
     };
     Other.prototype.GetReferer = function (rawInput) {
         if (rawInput === void 0) { rawInput = false; }
@@ -48,15 +51,6 @@ var Other = /** @class */ (function () {
             this.clientIp = httpReq.socket.remoteAddress.toString().replace(/[^0-9a-zA-Z\.\:\[\]]/g, '');
         }
         return this.clientIp;
-    };
-    Other.prototype.IsAjax = function () {
-        if (this.ajax == null) {
-            var xReqHeader = "x-requested-with";
-            var httpReq = this['http'];
-            this.ajax = (xReqHeader in httpReq.headers &&
-                httpReq.headers[xReqHeader].length > 0);
-        }
-        return this.ajax;
     };
     Other.prototype.GetContentLength = function () {
         if (this.contentLength == null) {

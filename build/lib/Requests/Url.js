@@ -14,6 +14,20 @@ var Url = /** @class */ (function () {
          */
         this.portDefined = false;
     }
+    Url.prototype.SetScriptName = function (scriptName) {
+        this.scriptName = scriptName;
+        return this;
+    };
+    Url.prototype.GetScriptName = function () {
+        return this.scriptName;
+    };
+    Url.prototype.SetAppRoot = function (appRoot) {
+        this.appRoot = appRoot;
+        return this;
+    };
+    Url.prototype.GetAppRoot = function () {
+        return this.appRoot;
+    };
     Url.prototype.SetScheme = function (rawProtocol) {
         this.scheme = rawProtocol;
         this.domainUrl = undefined;

@@ -12,6 +12,11 @@ export class Other {
 	 */
 	protected httpMethod?: string;
 	/**
+	 * `true` if request is requested from browser by `XmlHttpRequest` object
+	 * with http header: `X-Requested-With: AnyJavascriptFrameworkName`, `false` otherwise.
+	 */
+	protected ajax?: boolean;
+	/**
 	 * Referer URI if any, safely read from header `Referer`.
 	 * Example: `"http://foreing.domain.com/path/where/is/link/to/?my=app"`
 	 * @var string|NULL
@@ -38,28 +43,8 @@ export class Other {
 	 * Timestamp of the start of the request in miliseconds.
 	 */
 	protected startTime?: number;
-	/**
-	 * `true` if request is requested from browser by `XmlHttpRequest` object
-	 * with http header: `X-Requested-With: AnyJavascriptFrameworkName`, `false` otherwise.
-	 */
-	protected ajax?: boolean;
-	/**
-	 * Php requested script name path from application root.
-	 * Example: `"/index.js"`
-	 */
-	protected scriptName?: string;
-	/**
-	 * Application root path on hard drive.
-	 * Example: `"C:/www/my/development/directory/www"`
-	 */
-	protected appRoot?: string;
 
-	public GetScriptName (): string {
-		return this.scriptName;
-	}
-	public GetAppRoot (): string {
-		return this.appRoot;
-	}
+	
 	public SetMethod (rawMethod: string): Request {
 		this.httpMethod = rawMethod.toUpperCase();
 		return this as any;
@@ -70,6 +55,17 @@ export class Other {
 			this.httpMethod = httpReq.method.toUpperCase();
 		}
 		return this.httpMethod;
+	}
+	public IsAjax (): boolean {
+		if (this.ajax == null) {
+			var xReqHeader: string = "x-requested-with";
+			var httpReq: HttpIncomingMessage = this['http'];
+			this.ajax = (
+				xReqHeader in httpReq.headers &&
+				httpReq.headers[xReqHeader].length > 0
+			);
+		}
+		return this.ajax;
 	}
 	public GetReferer (rawInput: boolean = false): string {
 		if (this.referer == null) {
@@ -97,17 +93,6 @@ export class Other {
 			this.clientIp = httpReq.socket.remoteAddress.toString().replace(/[^0-9a-zA-Z\.\:\[\]]/g, '');
 		}
 		return this.clientIp;
-	}
-	public IsAjax (): boolean {
-		if (this.ajax == null) {
-			var xReqHeader: string = "x-requested-with";
-			var httpReq: HttpIncomingMessage = this['http'];
-			this.ajax = (
-				xReqHeader in httpReq.headers &&
-				httpReq.headers[xReqHeader].length > 0
-			);
-		}
-		return this.ajax;
 	}
 	public GetContentLength (): number | null {
 		if (this.contentLength == null) {

@@ -7,6 +7,11 @@ export declare class Other {
      */
     protected httpMethod?: string;
     /**
+     * `true` if request is requested from browser by `XmlHttpRequest` object
+     * with http header: `X-Requested-With: AnyJavascriptFrameworkName`, `false` otherwise.
+     */
+    protected ajax?: boolean;
+    /**
      * Referer URI if any, safely read from header `Referer`.
      * Example: `"http://foreing.domain.com/path/where/is/link/to/?my=app"`
      * @var string|NULL
@@ -33,29 +38,12 @@ export declare class Other {
      * Timestamp of the start of the request in miliseconds.
      */
     protected startTime?: number;
-    /**
-     * `true` if request is requested from browser by `XmlHttpRequest` object
-     * with http header: `X-Requested-With: AnyJavascriptFrameworkName`, `false` otherwise.
-     */
-    protected ajax?: boolean;
-    /**
-     * Php requested script name path from application root.
-     * Example: `"/index.js"`
-     */
-    protected scriptName?: string;
-    /**
-     * Application root path on hard drive.
-     * Example: `"C:/www/my/development/directory/www"`
-     */
-    protected appRoot?: string;
-    GetScriptName(): string;
-    GetAppRoot(): string;
     SetMethod(rawMethod: string): Request;
     GetMethod(): string;
+    IsAjax(): boolean;
     GetReferer(rawInput?: boolean): string;
     GetServerIp(): string;
     GetClientIp(): string;
-    IsAjax(): boolean;
     GetContentLength(): number | null;
     GetStartTime(): number;
 }

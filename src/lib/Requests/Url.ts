@@ -51,11 +51,6 @@ export class Url {
 	 */
 	protected query?: string;
 	/**
-	 * `TRUE` if request is requested from browser by `XmlHttpRequest` object
-	 * with http header: `X-Requested-With: AnyJavascriptFrameworkName`, `FALSE` otherwise.
-	 */
-	protected ajax?: boolean;
-	/**
 	 * Php requested script name path from application root.
 	 * Example: `"/index.js"`
 	 */
@@ -98,6 +93,20 @@ export class Url {
 	 */
 	protected fullUrl?: string;
 
+	public SetScriptName (scriptName): Request {
+		this.scriptName = scriptName;
+		return this as any;
+	}
+	public GetScriptName (): string {
+		return this.scriptName;
+	}
+	public SetAppRoot (appRoot: string): Request {
+		this.appRoot = appRoot;
+		return this as any;
+	}
+	public GetAppRoot (): string {
+		return this.appRoot;
+	}
 	public SetScheme (rawProtocol: string): Request {
 		this.scheme = rawProtocol;
 		this.domainUrl = undefined;

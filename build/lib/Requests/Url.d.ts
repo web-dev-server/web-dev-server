@@ -47,11 +47,6 @@ export declare class Url {
      */
     protected query?: string;
     /**
-     * `TRUE` if request is requested from browser by `XmlHttpRequest` object
-     * with http header: `X-Requested-With: AnyJavascriptFrameworkName`, `FALSE` otherwise.
-     */
-    protected ajax?: boolean;
-    /**
      * Php requested script name path from application root.
      * Example: `"/index.js"`
      */
@@ -93,6 +88,10 @@ export declare class Url {
      * Example: `"http://localhost:88/my/development/directory/www/requested/path/after/domain?with=possible&query=string"`
      */
     protected fullUrl?: string;
+    SetScriptName(scriptName: any): Request;
+    GetScriptName(): string;
+    SetAppRoot(appRoot: string): Request;
+    GetAppRoot(): string;
     SetScheme(rawProtocol: string): Request;
     GetScheme(): string;
     IsSecure(): boolean;

@@ -53,8 +53,8 @@ export declare class Server {
     protected errorsHandler?: ErrorsHandler;
     protected filesHandler?: FilesHandler;
     protected directoriesHandler?: DirectoriesHandler;
-    protected customErrorHandler?: (err: Error, code: number, req?: Request, res?: Response) => Promise<void>;
-    protected customHttpPreHandlers: ((req: Request, res: Response, event: Event) => Promise<void>)[];
+    protected customErrorHandler?: (err: Error, code?: number, req?: Request, res?: Response) => Promise<void>;
+    protected customHttpPreHandlers: ((req: Request, res: Response, event?: Event) => Promise<void>)[];
     protected forbiddenPaths: string[] | RegExp[];
     /**
      * @summary Create new server instance (no singleton implementation).
@@ -95,7 +95,7 @@ export declare class Server {
      * @summary Set custom error handler for uncatched errors and warnings
      * @param errorHandler Custom handler called on any uncatched error.
      */
-    SetErrorHandler(errorHandler: (err: Error, code: number, req?: Request, res?: Response) => Promise<void>): Server;
+    SetErrorHandler(errorHandler: (err: Error, code?: number, req?: Request, res?: Response) => Promise<void>): Server;
     /**
      * Set forbidden request paths to prevent requesting dangerous places (`["/node_modules", /\/package\.json/g, /\/tsconfig\.json/g, /\/\.([^\.]+)/g]` by default). All previous configuration will be overwritten.
      * @param forbiddenPaths Forbidden request path begins or regular expression patterns.
@@ -136,7 +136,7 @@ export declare class Server {
      * @summary Add custom express http handler
      * @param handler Custom http request handler called every allowed request path before standard server handling.
      */
-    AddPreHandler(handler: (req: Request, res: Response, event: Event) => Promise<void>): Server;
+    AddPreHandler(handler: (req: Request, res: Response, event?: Event) => Promise<void>): Server;
     /**
      * @summary Return `true` if development flag is used.
      */
