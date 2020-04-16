@@ -25,7 +25,7 @@ declare class App {
      * @param {WebDevServer.Response} firstResponse
      * @return {Promise<void>}
      */
-    Start(server: import("../../../lib/Server").Server, firstRequest: import("../../../lib/Request").Request, firstResponse: import("../../../lib/Response").Response): Promise<void>;
+    public Start(server: import("../../../lib/Server").Server, firstRequest: import("../../../lib/Request").Request, firstResponse: import("../../../lib/Response").Response): Promise<void>;
     /**
      * @summary WebDevServer server instance.
      * @var {WebDevServer.Server}
@@ -43,7 +43,7 @@ declare class App {
      * @param {WebDevServer.Server} server
      * @return {Promise<void>}
      */
-    Stop(server: import("../../../lib/Server").Server): Promise<void>;
+    public Stop(server: import("../../../lib/Server").Server): Promise<void>;
     /**
      * @summary
      * This method is executed each request to directory with
@@ -54,5 +54,5 @@ declare class App {
      * @param {WebDevServer.Response} response
      * @return {Promise<void>}
      */
-    HttpHandle(request: import("../../../lib/Request").Request, response: import("../../../lib/Response").Response): Promise<void>;
+    public HttpHandle(request: import("../../../lib/Request").Request, response: import("../../../lib/Response").Response): Promise<void>;
 }
