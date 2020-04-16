@@ -250,7 +250,7 @@ export class StringHelper {
 			itemValue = itemRawValue === "null" ? null : undefined;
 		} else if (itemRawValue.match(/^([eE0-9\+\-\.]+)$/g)) {
 			var matchedDots: RegExpMatchArray = itemRawValue.match(/\./g);
-			if (matchedDots.length < 2) {
+			if (!matchedDots || (matchedDots && matchedDots.length < 2)) {
 				itemValue = parseFloat(itemRawValue);
 				if (isNaN(itemValue))
 					itemValue = itemRawValue;
