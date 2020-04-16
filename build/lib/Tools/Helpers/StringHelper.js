@@ -193,7 +193,7 @@ var StringHelper = /** @class */ (function () {
             if (!(itemRawKey.length > 0 && itemRawKey.charAt(0) !== '['))
                 continue;
             itemKeys = this.queryStringDecodeItemKeys(itemRawKey);
-            // start to assign valu into proper level
+            // start to assign value into proper level
             lastLevel = this.queryStringDecodeGetLastLevel(itemKeys, result, collections, lastCollectionId);
             lastCollectionId = lastLevel.lastId;
             lastLevelObject = lastLevel.level;
@@ -225,9 +225,15 @@ var StringHelper = /** @class */ (function () {
             itemValue = itemRawValue === "null" ? null : undefined;
         }
         else if (itemRawValue.match(/^([eE0-9\+\-\.]+)$/g)) {
-            itemValue = parseFloat(itemRawValue);
-            if (isNaN(itemValue))
+            var matchedDots = itemRawValue.match(/\./g);
+            if (matchedDots.length < 2) {
+                itemValue = parseFloat(itemRawValue);
+                if (isNaN(itemValue))
+                    itemValue = itemRawValue;
+            }
+            else {
                 itemValue = itemRawValue;
+            }
         }
         else {
             itemValue = itemRawValue;
