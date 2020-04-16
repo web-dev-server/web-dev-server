@@ -42,7 +42,9 @@ export declare class Other {
     GetMethod(): string;
     IsAjax(): boolean;
     GetReferer(rawInput?: boolean): string;
+    SetServerIp(serverIp: string): Request;
     GetServerIp(): string;
+    SetClientIp(clientIp: string): Request;
     GetClientIp(): string;
     GetContentLength(): number | null;
     GetStartTime(): number;

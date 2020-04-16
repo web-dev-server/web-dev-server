@@ -665,9 +665,19 @@ declare class Request {
 	 */
 	public GetReferer (rawInput?: boolean): string;
 	/**
+	 * @summary Set server IP.
+	 * @param serverIp
+	 */
+	public SetServerIp (serverIp: string): Request;
+	/**
 	 * @summary Get server IP.
 	 */
 	public GetServerIp (): string;
+	/**
+	 * @summary Set client IP.
+	 * @param clientIp
+	 */
+	public SetClientIp (clientIp: string): Request;
 	/**
 	 * @summary Get client IP.
 	 */

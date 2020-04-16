@@ -547,9 +547,19 @@ declare class Request {
      */
     GetReferer(rawInput?: boolean): string;
     /**
+     * @summary Set server IP.
+     * @param serverIp
+     */
+    SetServerIp(serverIp: string): Request;
+    /**
      * @summary Get server IP.
      */
     GetServerIp(): string;
+    /**
+     * @summary Set client IP.
+     * @param clientIp
+     */
+    SetClientIp(clientIp: string): Request;
     /**
      * @summary Get client IP.
      */

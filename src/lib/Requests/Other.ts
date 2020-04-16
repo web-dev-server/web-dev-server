@@ -80,12 +80,20 @@ export class Other {
 			? this.referer 
 			: StringHelper.HtmlSpecialChars(this.referer, false);
 	}
-	public GetServerIp () {
+	public SetServerIp (serverIp: string): Request {
+		this.serverIp = serverIp;
+		return this as any;
+	}
+	public GetServerIp (): string {
 		if (this.serverIp == null) {
 			var httpReq: HttpIncomingMessage = this['http'];
 			this.serverIp = httpReq.socket.localAddress;
 		}
 		return this.serverIp;
+	}
+	public SetClientIp (clientIp: string): Request {
+		this.clientIp = clientIp;
+		return this as any;
 	}
 	public GetClientIp (): string {
 		if (this.clientIp == null) {

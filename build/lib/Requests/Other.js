@@ -38,12 +38,20 @@ var Other = /** @class */ (function () {
             ? this.referer
             : StringHelper_1.StringHelper.HtmlSpecialChars(this.referer, false);
     };
+    Other.prototype.SetServerIp = function (serverIp) {
+        this.serverIp = serverIp;
+        return this;
+    };
     Other.prototype.GetServerIp = function () {
         if (this.serverIp == null) {
             var httpReq = this['http'];
             this.serverIp = httpReq.socket.localAddress;
         }
         return this.serverIp;
+    };
+    Other.prototype.SetClientIp = function (clientIp) {
+        this.clientIp = clientIp;
+        return this;
     };
     Other.prototype.GetClientIp = function () {
         if (this.clientIp == null) {
