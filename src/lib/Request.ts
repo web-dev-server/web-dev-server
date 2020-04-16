@@ -637,6 +637,12 @@ declare class Request {
 	 */
 	public GetScriptName (): string;
 	/**
+	 * @summary Set application root path on hard drive.
+	 * Example: `"C:/www/my/development/directory/www"`
+	 * @param appRoot
+	 */
+	public SetAppRoot (appRoot: string): Request;
+	/**
 	 * @summary Get application root path on hard drive.
 	 * Example: `"C:/www/my/development/directory/www"`
 	 */
