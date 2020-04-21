@@ -162,24 +162,24 @@ export class DirectoriesHandler {
 					try {
 						var requireCacheKey: string = PathResolve(dirFullPath + '/' + indexScript);
 						if (
-							indexScriptModTime > cachedModule.modTime || 
+							indexScriptModTime > cachedModule.IndexScriptModTime || 
 							!require.cache[requireCacheKey]
 						) {
-							if (cachedModule.instance.Stop) {
+							if (cachedModule.Instance.Stop) {
 								try {
-									await cachedModule.instance.Stop(this.server);
+									await cachedModule.Instance.Stop(this.server);
 								} catch (e1) {
 									this.errorsHandler.LogError(e1, 500, req, res);
 								}
 							}
-							cachedModule.instance = null;
-							this.cache.ClearModuleInstanceCacheAndRequireCache(dirFullPath);
+							cachedModule.Instance = null;
+							this.cache.ClearModuleInstanceAndModuleRequireCache(dirFullPath);
 							cachedModule = null;
 							moduleInstance = await this.indexScriptModuleCreate(
 								dirFullPath, indexScript, indexScriptModTime, req, res
 							);
 						} else {
-							moduleInstance = cachedModule.instance;
+							moduleInstance = cachedModule.Instance;
 						}
 						await this.indexScriptModuleExecute(
 							dirFullPath, indexScript, moduleInstance, req, res
@@ -195,11 +195,11 @@ export class DirectoriesHandler {
 								this.errorsHandler.LogError(e3, 500, req, res);
 							}
 						}
-						this.cache.ClearModuleInstanceCacheAndRequireCache(dirFullPath);
+						this.cache.ClearModuleInstanceAndModuleRequireCache(dirFullPath);
 					}
 				} else {
 					try {
-						moduleInstance = cachedModule.instance;
+						moduleInstance = cachedModule.Instance;
 						await this.indexScriptModuleExecute(
 							dirFullPath, indexScript, moduleInstance, req, res
 						);
@@ -214,7 +214,7 @@ export class DirectoriesHandler {
 								this.errorsHandler.LogError(e5, 500, req, res);
 							}
 						}
-						this.cache.ClearModuleInstanceCacheAndRequireCache(dirFullPath);
+						this.cache.ClearModuleInstanceAndModuleRequireCache(dirFullPath);
 					}
 				}
 			} else {
@@ -237,7 +237,7 @@ export class DirectoriesHandler {
 							this.errorsHandler.LogError(e7, 500, req, res);
 						}
 					}
-					this.cache.ClearModuleInstanceCacheAndRequireCache(dirFullPath);
+					this.cache.ClearModuleInstanceAndModuleRequireCache(dirFullPath);
 				}
 			}
 		})();
@@ -257,7 +257,6 @@ export class DirectoriesHandler {
 			.Send();
 	}
 
-	
 	/**
 	 * @summary Get first index script (or index static file) file system stats:
 	 */
@@ -308,11 +307,13 @@ export class DirectoriesHandler {
 					cacheKeysBeforeRequire, 
 					cacheKeysAfterRequire, 
 					dirFullPath + '/' + indexScript, 
-					dirFullPath + '/node_modules/'
+					['/node_modules/']
 				);
-				this.cache.InitRequireCacheItemsWatchHandlers(
-					dirFullPath + '/' + indexScript, cacheKeysToWatch
-				);
+				if (cacheKeysToWatch.length > 0)
+					this.cache.AddWatchHandlers(
+						dirFullPath + '/' + indexScript, 
+						cacheKeysToWatch
+					);
 			}
 		} else {
 			appDeclaration = this.indexScriptModuleGetDeclaration(
@@ -324,7 +325,7 @@ export class DirectoriesHandler {
 		if (appInstance.Start)
 			await appInstance.Start(this.server, req, res);
 
-		this.cache.SetNewIndexScriptModuleRecord (
+		this.cache.SetNewApplicationCacheRecord (
 			appInstance,
 			indexScriptModTime,
 			indexScript,
@@ -396,30 +397,35 @@ export class DirectoriesHandler {
 		req: Request, 
 		res: Response
 	): Promise<void> {
-		if (!appInstance.HttpHandle) return;
-		if (this.server.IsDevelopment()) {
-			var cacheKeysBeforeRequire = Object.keys(require.cache);
-			await appInstance.HttpHandle(
-				req, res, 
-			);
-			var cacheKeysAfterRequire: string[] = Object.keys(require.cache);
-			if (cacheKeysBeforeRequire.length != cacheKeysAfterRequire.length) {
-				var cacheKeysToWatch: string[] = Register.GetRequireCacheDifferenceKeys(
-					cacheKeysBeforeRequire, 
-					cacheKeysAfterRequire, 
-					fullPath + '/' + indexScript, 
-					fullPath + '/node_modules/'
+		var isDevelopment: boolean = this.server.IsDevelopment();
+		if (appInstance.HttpHandle) {
+			if (isDevelopment) {
+				var cacheKeysBeforeRequire = Object.keys(require.cache);
+				await appInstance.HttpHandle(
+					req, res, 
 				);
-				this.cache.InitRequireCacheItemsWatchHandlers(
-					fullPath + '/' + indexScript, 
-					cacheKeysToWatch
+				var cacheKeysAfterRequire: string[] = Object.keys(require.cache);
+				if (cacheKeysBeforeRequire.length != cacheKeysAfterRequire.length) {
+					var cacheKeysToWatch: string[] = Register.GetRequireCacheDifferenceKeys(
+						cacheKeysBeforeRequire, 
+						cacheKeysAfterRequire, 
+						fullPath + '/' + indexScript, 
+						['/node_modules/']
+					);
+					if (cacheKeysToWatch.length > 0)
+						this.cache.AddWatchHandlers(
+							fullPath + '/' + indexScript, 
+							cacheKeysToWatch
+						);
+				}
+			} else {
+				await appInstance.HttpHandle(
+					req, res
 				);
 			}
-		} else {
-			await appInstance.HttpHandle(
-				req, res
-			);
 		}
+		if (isDevelopment) 
+			this.errorsHandler.SetHandledRequestProperties(null, null);
 	}
 	
 	/**
@@ -459,6 +465,15 @@ export class DirectoriesHandler {
 			);	
 		});
 	}
+	/**
+	 * @summary File system directory item stats handler to complete given `dirRows` and `fileRows` arrays.
+	 * @param reqRelPath 
+	 * @param dirItemName 
+	 * @param itemStats 
+	 * @param dirRows 
+	 * @param fileRows 
+	 * @param resolve 
+	 */
 	protected renderDirContentRowStats (
 		reqRelPath: string,
 		dirItemName: string, 
@@ -548,7 +563,6 @@ export class DirectoriesHandler {
 			.replace('%filesize%', NumberHelper.FormatFileSize(size))
 			.replace('%date%', DateHelper.FormatForDirOutput(date));
 	}
-	
 	/**
 	 * @summary Display directory content - send directory content html code:
 	 */
@@ -604,7 +618,6 @@ export class DirectoriesHandler {
 			.SetBody(outputStr)
 			.Send();
 	}
-	
 	/**
 	 * @summary Display directory content - complete heading code for directory content:
 	 */

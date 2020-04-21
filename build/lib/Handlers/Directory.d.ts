@@ -49,6 +49,15 @@ export declare class DirectoriesHandler {
      * @summary Go through all files and folders in current directory:
      */
     protected renderDirContent(statusCode: number, dirStats: FsStats, dirItemsNames: string[], reqRelPath: string, fullPath: string, res: Response): void;
+    /**
+     * @summary File system directory item stats handler to complete given `dirRows` and `fileRows` arrays.
+     * @param reqRelPath
+     * @param dirItemName
+     * @param itemStats
+     * @param dirRows
+     * @param fileRows
+     * @param resolve
+     */
     protected renderDirContentRowStats(reqRelPath: string, dirItemName: string, itemStats: FsStats, dirRows: DirItem[], fileRows: DirItem[], resolve: (() => void)): void;
     /**
      * @summary Display directory content - complete directory row code for directory content:

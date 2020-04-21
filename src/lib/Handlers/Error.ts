@@ -7,7 +7,7 @@ import { StringHelper } from "../Tools/Helpers/StringHelper";
 
 export class ErrorsHandler {
 	protected server: Server;
-	protected cache: Register;
+	protected register: Register;
 
 	// development purposes:
 	protected request?: Request = null;
@@ -15,7 +15,7 @@ export class ErrorsHandler {
 
 	constructor (server: Server, cache: Register) {
 		this.server = server;
-		this.cache = cache;
+		this.register = cache;
 		this.initErrorsHandlers();
 	}
 
@@ -31,7 +31,7 @@ export class ErrorsHandler {
 	/**
 	 * @summary Print error in command line a little more nicely or log error by custom error log handler:
 	 */
-	public LogError (e: Error, code: number, req: Request, res: Response): ErrorsHandler {
+	public LogError (e: Error, code: number, req?: Request, res?: Response): ErrorsHandler {
 		var development: boolean = this.server.IsDevelopment(),
 			customErrorHandler: (
 				err: Error, 
@@ -125,16 +125,13 @@ export class ErrorsHandler {
 	 * @summary Clear all modules on any uncatched error
 	 */
 	protected handleUncatchError (clearRequireCache: boolean, error: Error): void {
-		var development: boolean = this.server.IsDevelopment();
-		if (development && clearRequireCache) {
-			this.cache.ClearDirectoryModules();
-			var requireCacheKeys = Object.keys(require.cache);
-			for (var i:number = 0, l:number = requireCacheKeys.length; i < l; i++) 
-				delete require.cache[requireCacheKeys[i]];
-		}
 		this
 			.LogError(error, 500, this.request, this.response)
 			.PrintError(error, 500, this.request, this.response);
+		var development: boolean = this.server.IsDevelopment();
+		if (development && clearRequireCache) {
+			this.register.StopAll();
+		}
 	}
 	
 	/**

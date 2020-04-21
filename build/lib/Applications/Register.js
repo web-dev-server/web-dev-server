@@ -4,45 +4,287 @@ var fs_1 = tslib_1.__importDefault(require("fs"));
 var path_1 = tslib_1.__importDefault(require("path"));
 var Record_1 = require("./Registers/Record");
 var Register = /** @class */ (function () {
+    /**
+     * @summary Register constructor with stored server instance to call it back.
+     * @param server
+     */
     function Register(server) {
+        /**
+         * @summary Store of cached application instances.
+         * Keys are index script directories, values are `Record` types.
+         */
         this.store = new Map();
-        this.requireCacheWatched = new Map();
-        this.requireCacheDependencies = new Map();
+        /**
+         * @summary Store with keys as application instance index script directories full paths
+         * and values as application instances dependent files full paths.
+         */
+        this.dependencies = new Map();
+        /**
+         * @summary Store with keys as watched filesystem directories and values as
+         * dependent application instance index script directories full paths.
+         */
+        this.watchedDirs = new Map();
+        this.watchHandleTimeouts = new Map();
         this.server = server;
     }
     /**
-     * @summary Initialize filesystem change or rename handler for given fullpath file to clear necessary require cache modules:
+     * @summary Set internal `Server` handling functionality.
+     * @param errorsHandler
      */
-    Register.prototype.InitRequireCacheItemsWatchHandlers = function (requiredByFullPath, cacheKeysToWatchFullPaths) {
-        var _this = this;
-        cacheKeysToWatchFullPaths.forEach(function (cacheKeyToWatchFullPath, i) {
-            // set up dependencies:
-            var dependencies = new Map();
-            if (_this.requireCacheDependencies.has(cacheKeyToWatchFullPath))
-                dependencies = _this.requireCacheDependencies.get(cacheKeyToWatchFullPath);
-            for (var j = 0, k = cacheKeysToWatchFullPaths.length; j < k; j++) {
-                if (j !== i)
-                    dependencies.set(cacheKeysToWatchFullPaths[j], true);
+    Register.prototype.SetErrorsHandler = function (errorsHandler) {
+        this.errorsHandler = errorsHandler;
+        return this;
+    };
+    /**
+     * @summary Initialize filesystem change or rename handler for given
+     * fullpath file to clear necessary require cache modules (only if necessary):
+     */
+    Register.prototype.AddWatchHandlers = function (requiredByFullPath, cacheKeysToWatchFullPaths) {
+        var e_1, _a, e_2, _b, e_3, _c;
+        var alreadyDependentFiles, dependentIndexScriptsDirs, checkedDirectories, dependentDirFullPath, requiredByDirFullPath, watchedDirAlready, pos;
+        pos = requiredByFullPath.lastIndexOf('/');
+        if (pos == -1) {
+            requiredByDirFullPath = requiredByFullPath;
+        }
+        else {
+            requiredByDirFullPath = requiredByFullPath.substr(0, pos);
+        }
+        // Add any other dependent files not already in dependencies:
+        if (!this.dependencies.has(requiredByDirFullPath)) {
+            alreadyDependentFiles = new Set();
+            try {
+                for (var cacheKeysToWatchFullPaths_1 = tslib_1.__values(cacheKeysToWatchFullPaths), cacheKeysToWatchFullPaths_1_1 = cacheKeysToWatchFullPaths_1.next(); !cacheKeysToWatchFullPaths_1_1.done; cacheKeysToWatchFullPaths_1_1 = cacheKeysToWatchFullPaths_1.next()) {
+                    var newDependentFile = cacheKeysToWatchFullPaths_1_1.value;
+                    alreadyDependentFiles.add(newDependentFile);
+                }
             }
-            dependencies.set(requiredByFullPath, true);
-            _this.requireCacheDependencies.set(cacheKeyToWatchFullPath, dependencies);
-            // watch directory if necessary:
-            var lastSlashPos = cacheKeyToWatchFullPath.lastIndexOf('/');
-            if (lastSlashPos !== -1) {
-                var cacheDirKeyToWatch = cacheKeyToWatchFullPath.substr(0, lastSlashPos);
-                if (!_this.requireCacheWatched.has(cacheDirKeyToWatch)) {
-                    _this.requireCacheWatched.set(cacheDirKeyToWatch, true);
-                    fs_1.default.watch(cacheDirKeyToWatch, { persistent: true, recursive: true }, function (eventType, filename) {
-                        if (filename.length > 3 && filename.substr(-3).toLowerCase() == '.js') {
-                            // eventType => 'change' | 'rename'
-                            var clearedKeys = new Map();
-                            _this.clearRequireCacheRecursive(cacheDirKeyToWatch + '/' + filename, clearedKeys);
+            catch (e_1_1) { e_1 = { error: e_1_1 }; }
+            finally {
+                try {
+                    if (cacheKeysToWatchFullPaths_1_1 && !cacheKeysToWatchFullPaths_1_1.done && (_a = cacheKeysToWatchFullPaths_1.return)) _a.call(cacheKeysToWatchFullPaths_1);
+                }
+                finally { if (e_1) throw e_1.error; }
+            }
+        }
+        else {
+            alreadyDependentFiles = this.dependencies.get(requiredByDirFullPath);
+            try {
+                for (var cacheKeysToWatchFullPaths_2 = tslib_1.__values(cacheKeysToWatchFullPaths), cacheKeysToWatchFullPaths_2_1 = cacheKeysToWatchFullPaths_2.next(); !cacheKeysToWatchFullPaths_2_1.done; cacheKeysToWatchFullPaths_2_1 = cacheKeysToWatchFullPaths_2.next()) {
+                    var newDependentFile = cacheKeysToWatchFullPaths_2_1.value;
+                    if (!alreadyDependentFiles.has(newDependentFile))
+                        alreadyDependentFiles.add(newDependentFile);
+                }
+            }
+            catch (e_2_1) { e_2 = { error: e_2_1 }; }
+            finally {
+                try {
+                    if (cacheKeysToWatchFullPaths_2_1 && !cacheKeysToWatchFullPaths_2_1.done && (_b = cacheKeysToWatchFullPaths_2.return)) _b.call(cacheKeysToWatchFullPaths_2);
+                }
+                finally { if (e_2) throw e_2.error; }
+            }
+        }
+        this.dependencies.set(requiredByDirFullPath, alreadyDependentFiles);
+        // Check if directory with application script is already monitored:
+        watchedDirAlready = this.hasWatchHandler(requiredByDirFullPath);
+        if (watchedDirAlready == null) {
+            // Add current application script directory between watched directories
+            // and add dependency on it:
+            this.addWatchHandler(requiredByDirFullPath, requiredByDirFullPath);
+        }
+        else {
+            // Check if there is for this directory already a dependency 
+            // for currently called application index script:
+            dependentIndexScriptsDirs = this.watchedDirs.get(watchedDirAlready);
+            if (!dependentIndexScriptsDirs.has(requiredByDirFullPath)) {
+                dependentIndexScriptsDirs.add(requiredByDirFullPath);
+                this.watchedDirs.set(watchedDirAlready, dependentIndexScriptsDirs);
+            }
+        }
+        // Check if all dependent file directories are already monitored:
+        checkedDirectories = new Set();
+        try {
+            for (var cacheKeysToWatchFullPaths_3 = tslib_1.__values(cacheKeysToWatchFullPaths), cacheKeysToWatchFullPaths_3_1 = cacheKeysToWatchFullPaths_3.next(); !cacheKeysToWatchFullPaths_3_1.done; cacheKeysToWatchFullPaths_3_1 = cacheKeysToWatchFullPaths_3.next()) {
+                var dependentFileFullPath = cacheKeysToWatchFullPaths_3_1.value;
+                pos = dependentFileFullPath.lastIndexOf('/');
+                if (pos == -1) {
+                    dependentDirFullPath = dependentFileFullPath;
+                }
+                else {
+                    dependentDirFullPath = dependentFileFullPath.substr(0, pos);
+                }
+                if (checkedDirectories.has(dependentDirFullPath))
+                    continue;
+                checkedDirectories.add(dependentDirFullPath);
+                watchedDirAlready = this.hasWatchHandler(dependentDirFullPath);
+                if (watchedDirAlready == null) {
+                    // Add current dependent script directory between watched directories
+                    // and add dependency to and application index script on it:
+                    this.addWatchHandler(dependentDirFullPath, requiredByDirFullPath);
+                }
+                else {
+                    // Check if there is for this directory already a dependency 
+                    // for currently called application index script:
+                    dependentIndexScriptsDirs = this.watchedDirs.get(watchedDirAlready);
+                    if (!dependentIndexScriptsDirs.has(requiredByDirFullPath)) {
+                        dependentIndexScriptsDirs.add(requiredByDirFullPath);
+                        this.watchedDirs.set(watchedDirAlready, dependentIndexScriptsDirs);
+                    }
+                }
+            }
+        }
+        catch (e_3_1) { e_3 = { error: e_3_1 }; }
+        finally {
+            try {
+                if (cacheKeysToWatchFullPaths_3_1 && !cacheKeysToWatchFullPaths_3_1.done && (_c = cacheKeysToWatchFullPaths_3.return)) _c.call(cacheKeysToWatchFullPaths_3);
+            }
+            finally { if (e_3) throw e_3.error; }
+        }
+    };
+    Register.prototype.addWatchHandler = function (dirFullPathToWatch, dependentIndexScriptDirFullPath) {
+        var _this = this;
+        var dependentIndexScriptDirs = new Set();
+        dependentIndexScriptDirs.add(dependentIndexScriptDirFullPath);
+        this.watchedDirs.set(dirFullPathToWatch, dependentIndexScriptDirs);
+        fs_1.default.watch(dirFullPathToWatch, { persistent: true, recursive: true }, function (eventType, fileName) {
+            if (fileName.length > 3 && fileName.substr(-3).toLowerCase() == '.js') {
+                // Delay cleaning for windows and do it fo all systems, because watching API is unstable:
+                var changedFileFullPath = dirFullPathToWatch + '/' + fileName, prevWatchHandleTimeout, newWatchHandleTimeout;
+                if (_this.watchHandleTimeouts.has(changedFileFullPath)) {
+                    prevWatchHandleTimeout = _this.watchHandleTimeouts.get(changedFileFullPath);
+                    clearTimeout(prevWatchHandleTimeout);
+                    _this.watchHandleTimeouts.delete(changedFileFullPath);
+                }
+                newWatchHandleTimeout = setTimeout(function () { return tslib_1.__awaiter(_this, void 0, void 0, function () {
+                    return tslib_1.__generator(this, function (_a) {
+                        switch (_a.label) {
+                            case 0:
+                                clearTimeout(newWatchHandleTimeout);
+                                this.watchHandleTimeouts.delete(changedFileFullPath);
+                                return [4 /*yield*/, this.clearInstanceAndRequireCacheOnChange(dirFullPathToWatch, changedFileFullPath)];
+                            case 1:
+                                _a.sent();
+                                return [2 /*return*/];
                         }
                     });
-                }
+                }); }, 50);
+                _this.watchHandleTimeouts.set(changedFileFullPath, newWatchHandleTimeout);
             }
         });
     };
+    /**
+     * @summary Clear instance cache and require cache for all dependent index script directories.
+     */
+    Register.prototype.clearInstanceAndRequireCacheOnChange = function (dirFullPathToWatch, changedFileFullPath) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var dependentIndexScriptDirs, promises, cacheRecord, _a, _b, dependentIndexScriptDir, allDone, allDoneBools;
+            var e_4, _c;
+            var _this = this;
+            return tslib_1.__generator(this, function (_d) {
+                switch (_d.label) {
+                    case 0:
+                        if (!this.watchedDirs.has(dirFullPathToWatch))
+                            return [2 /*return*/, false];
+                        dependentIndexScriptDirs = this.watchedDirs.get(dirFullPathToWatch), promises = [];
+                        try {
+                            for (_a = tslib_1.__values(dependentIndexScriptDirs.keys()), _b = _a.next(); !_b.done; _b = _a.next()) {
+                                dependentIndexScriptDir = _b.value;
+                                if (!this.store.has(dependentIndexScriptDir))
+                                    continue;
+                                cacheRecord = this.store.get(dependentIndexScriptDir);
+                                this.store.delete(dependentIndexScriptDir);
+                                (function (cacheRecordLocal) {
+                                    promises.push(new Promise(function (resolve, reject) { return tslib_1.__awaiter(_this, void 0, void 0, function () {
+                                        var e_5;
+                                        return tslib_1.__generator(this, function (_a) {
+                                            switch (_a.label) {
+                                                case 0:
+                                                    if (!(cacheRecordLocal != null)) return [3 /*break*/, 5];
+                                                    _a.label = 1;
+                                                case 1:
+                                                    _a.trys.push([1, 3, , 4]);
+                                                    return [4 /*yield*/, cacheRecordLocal.Instance.Stop(this.server)];
+                                                case 2:
+                                                    _a.sent();
+                                                    return [3 /*break*/, 4];
+                                                case 3:
+                                                    e_5 = _a.sent();
+                                                    this.errorsHandler.LogError(e_5, 500, null, null);
+                                                    return [3 /*break*/, 4];
+                                                case 4:
+                                                    this
+                                                        .ClearModuleInstance(dependentIndexScriptDir)
+                                                        .ClearModuleRequireCache(cacheRecordLocal);
+                                                    _a.label = 5;
+                                                case 5:
+                                                    resolve(true);
+                                                    return [2 /*return*/];
+                                            }
+                                        });
+                                    }); }));
+                                })(cacheRecord);
+                            }
+                        }
+                        catch (e_4_1) { e_4 = { error: e_4_1 }; }
+                        finally {
+                            try {
+                                if (_b && !_b.done && (_c = _a.return)) _c.call(_a);
+                            }
+                            finally { if (e_4) throw e_4.error; }
+                        }
+                        promises.push(new Promise(function (resolve, reject) { return tslib_1.__awaiter(_this, void 0, void 0, function () {
+                            var fullPathResolved;
+                            return tslib_1.__generator(this, function (_a) {
+                                fullPathResolved = require.resolve(changedFileFullPath);
+                                if (typeof (require.cache[fullPathResolved]) != 'undefined') {
+                                    delete require.cache[fullPathResolved];
+                                    if (this.server.IsDevelopment())
+                                        console.info('Module cache cleaned for: "' + changedFileFullPath + '"');
+                                }
+                                resolve(true);
+                                return [2 /*return*/];
+                            });
+                        }); }));
+                        allDone = Promise.all(promises);
+                        return [4 /*yield*/, allDone];
+                    case 1:
+                        allDoneBools = _d.sent();
+                        return [2 /*return*/, allDoneBools.length == promises.length];
+                }
+            });
+        });
+    };
+    /**
+     * @summary Check if given directory full path has already any other
+     * parent directory recursive watched or if the given directory itself has a watched.
+     * @param dirFullPath
+     * @return Already watched full path to cover this directory.
+     */
+    Register.prototype.hasWatchHandler = function (dirFullPath) {
+        var e_6, _a;
+        var result = null;
+        try {
+            for (var _b = tslib_1.__values(this.watchedDirs.keys()), _c = _b.next(); !_c.done; _c = _b.next()) {
+                var watchedParentDirFullPath = _c.value;
+                if (dirFullPath.indexOf(watchedParentDirFullPath) === 0) {
+                    result = watchedParentDirFullPath;
+                    break;
+                }
+            }
+        }
+        catch (e_6_1) { e_6 = { error: e_6_1 }; }
+        finally {
+            try {
+                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+            }
+            finally { if (e_6) throw e_6.error; }
+        }
+        return result;
+    };
+    /**
+     * @summary Try to search in application scripts cache for
+     * any application instance to handle given directory or virtual directory request.
+     * @param pathsToFound
+     */
     Register.prototype.TryToFindParentDirectoryIndexScriptModule = function (pathsToFound) {
         var dirIndexScriptsModule = null, pathToFound = '', documentRoot = this.server.GetDocumentRoot();
         for (var i = 0, l = pathsToFound.length; i < l; i += 1) {
@@ -60,13 +302,19 @@ var Register = /** @class */ (function () {
             indexScriptModuleRecord = this.store.get(fullPath);
         return indexScriptModuleRecord;
     };
-    Register.prototype.SetNewIndexScriptModuleRecord = function (appInstance, indexScriptModTime, indexScript, dirFullPath) {
-        this.store.set(dirFullPath, new Record_1.Record(appInstance, indexScriptModTime, indexScript, dirFullPath));
+    /**
+     * @summary Set new application instance cache record.
+     * @param appInstance
+     * @param indexScriptModTime
+     * @param indexScriptFileName
+     * @param dirFullPath
+     */
+    Register.prototype.SetNewApplicationCacheRecord = function (appInstance, indexScriptModTime, indexScriptFileName, dirFullPath) {
+        this.store.set(dirFullPath, new Record_1.Record(appInstance, indexScriptModTime, indexScriptFileName, dirFullPath));
         return this;
     };
     /**
      * @summary Get registered running apps count.
-     * @param cb
      */
     Register.prototype.GetSize = function () {
         return this.store.size;
@@ -80,76 +328,157 @@ var Register = /** @class */ (function () {
         var promises = [];
         if (this.store.size === 0)
             return cb();
-        this.store.forEach(function (record, fullPath) {
-            promises.push(new Promise(function (resolve, reject) {
-                if (!record.instance)
-                    return resolve();
-                if (!record.instance.Stop)
-                    return resolve();
-                (function () { return tslib_1.__awaiter(_this, void 0, void 0, function () {
-                    var fullPathResolved;
-                    return tslib_1.__generator(this, function (_a) {
-                        switch (_a.label) {
-                            case 0: return [4 /*yield*/, record.instance.Stop(this.server)];
-                            case 1:
-                                _a.sent();
-                                fullPathResolved = require.resolve(fullPath);
-                                if (typeof (require.cache[fullPathResolved]) != 'undefined')
-                                    delete require.cache[fullPathResolved];
-                                resolve();
-                                return [2 /*return*/];
-                        }
-                    });
-                }); })();
-            }));
+        this.store.forEach(function (record, indexScriptDirFullPath) {
+            promises.push(new Promise(function (resolve, reject) { return tslib_1.__awaiter(_this, void 0, void 0, function () {
+                var e_7;
+                return tslib_1.__generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0:
+                            if (!(!record.Instance || !record.Instance.Stop)) return [3 /*break*/, 1];
+                            this
+                                .ClearModuleInstance(indexScriptDirFullPath)
+                                .ClearModuleRequireCache(record);
+                            resolve();
+                            return [3 /*break*/, 5];
+                        case 1:
+                            _a.trys.push([1, 3, , 4]);
+                            return [4 /*yield*/, record.Instance.Stop(this.server)];
+                        case 2:
+                            _a.sent();
+                            return [3 /*break*/, 4];
+                        case 3:
+                            e_7 = _a.sent();
+                            this.errorsHandler.LogError(e_7, 500, null, null);
+                            return [3 /*break*/, 4];
+                        case 4:
+                            this
+                                .ClearModuleInstance(indexScriptDirFullPath)
+                                .ClearModuleRequireCache(record);
+                            resolve();
+                            _a.label = 5;
+                        case 5: return [2 /*return*/];
+                    }
+                });
+            }); }));
         });
-        Promise.all(promises).then(cb);
+        Promise.all(promises).then(function () {
+            if (cb)
+                cb();
+        });
     };
     /**
      * @summary Delete cached module from Node.JS require cache by full path.
+     * @param indexScriptDirFullPath
      */
-    Register.prototype.ClearModuleInstanceCacheAndRequireCache = function (fullPath) {
-        var fullPathResolved = require.resolve(fullPath);
-        if (typeof (require.cache[fullPathResolved]) != 'undefined') {
-            delete require.cache[fullPathResolved];
-            if (this.server.IsDevelopment())
-                console.info('Module cache cleaned for: "' + fullPathResolved + '"');
+    Register.prototype.ClearModuleInstanceAndModuleRequireCache = function (indexScriptDirFullPath) {
+        if (this.store.has(indexScriptDirFullPath)) {
+            var record = this.store.get(indexScriptDirFullPath);
+            this.store.delete(indexScriptDirFullPath);
+            this.ClearModuleRequireCache(record);
         }
-        this.store.delete(fullPath);
     };
-    Register.prototype.ClearDirectoryModules = function () {
-        this.store = new Map();
+    /**
+     * @summary Delete cached application index script module instance.
+     * @param indexScriptDirFullPath
+     */
+    Register.prototype.ClearModuleInstance = function (indexScriptDirFullPath) {
+        if (!this.store.has(indexScriptDirFullPath))
+            return this;
+        this.store.delete(indexScriptDirFullPath);
         return this;
     };
     /**
-     * @summary Clear require cache recursively with cleaning module dependencies:
+     * @summary Delete require cache for dependencies of application index script dir full path
+     * delete require cache for index script file itself.
+     * @param indexScriptDirFullPath
+     * @param indexScriptFullPath
      */
-    Register.prototype.clearRequireCacheRecursive = function (fullPath, clearedKeys) {
-        var _this = this;
-        clearedKeys.set(fullPath, true);
-        if (typeof (require.cache[fullPath]) != 'undefined') {
-            delete require.cache[fullPath];
-            if (this.server.IsDevelopment())
-                console.info('Module cache cleaned for: "' + fullPath + '"');
+    Register.prototype.ClearModuleRequireCache = function (cacheRecord) {
+        var e_8, _a, e_9, _b;
+        var indexScriptDirFullPath = cacheRecord.DirectoryFullPath, indexScriptFullPath = indexScriptDirFullPath + '/' + cacheRecord.IndexScriptFileName, pathsToClear = new Map();
+        pathsToClear.set(indexScriptFullPath, require.resolve(indexScriptFullPath));
+        var dependentFiles;
+        if (this.dependencies.has(indexScriptDirFullPath)) {
+            dependentFiles = this.dependencies.get(indexScriptDirFullPath);
+            try {
+                for (var _c = tslib_1.__values(dependentFiles.keys()), _d = _c.next(); !_d.done; _d = _c.next()) {
+                    var dependentFileFullPath = _d.value;
+                    pathsToClear.set(dependentFileFullPath, require.resolve(dependentFileFullPath));
+                }
+            }
+            catch (e_8_1) { e_8 = { error: e_8_1 }; }
+            finally {
+                try {
+                    if (_d && !_d.done && (_a = _c.return)) _a.call(_c);
+                }
+                finally { if (e_8) throw e_8.error; }
+            }
         }
-        this.store.delete(fullPath);
-        if (this.requireCacheDependencies.has(fullPath)) {
-            var dependencies = this.requireCacheDependencies.get(fullPath);
-            this.requireCacheDependencies.delete(fullPath);
-            dependencies.forEach(function (val, dependencyFullPath, string) {
-                if (!clearedKeys.has(dependencyFullPath))
-                    _this.clearRequireCacheRecursive(dependencyFullPath, clearedKeys);
-            });
-            this.requireCacheDependencies.set(fullPath, dependencies);
+        var isDevelopment = this.server.IsDevelopment();
+        try {
+            for (var _e = tslib_1.__values(pathsToClear.entries()), _f = _e.next(); !_f.done; _f = _e.next()) {
+                var _g = tslib_1.__read(_f.value, 2), fullPath = _g[0], fullPathResolved = _g[1];
+                if (typeof (require.cache[fullPathResolved]) != 'undefined') {
+                    delete require.cache[fullPathResolved];
+                    if (isDevelopment)
+                        console.info('Module cache cleaned for: "' + fullPath + '"');
+                }
+            }
         }
+        catch (e_9_1) { e_9 = { error: e_9_1 }; }
+        finally {
+            try {
+                if (_f && !_f.done && (_b = _e.return)) _b.call(_e);
+            }
+            finally { if (e_9) throw e_9.error; }
+        }
+        return this;
     };
-    Register.GetRequireCacheDifferenceKeys = function (cacheKeysBeforeRequire, cacheKeysAfterRequire, requiredBy, doNotIncludePath) {
-        var result = [], record;
+    /**
+     * @summary Clear all require cache.
+     */
+    Register.prototype.ClearAllRequireCache = function () {
+        var requireCacheKeys = Object.keys(require.cache);
+        for (var i = 0, l = requireCacheKeys.length; i < l; i++)
+            delete require.cache[requireCacheKeys[i]];
+        return this;
+    };
+    /**
+     * @summary Get all required full paths as difference between application call and after application call.
+     * @param cacheKeysBeforeRequire
+     * @param cacheKeysAfterRequire
+     * @param requiredBy
+     * @param doNotIncludePaths
+     */
+    Register.GetRequireCacheDifferenceKeys = function (cacheKeysBeforeRequire, cacheKeysAfterRequire, requiredBy, doNotIncludePaths) {
+        var e_10, _a;
+        var result = [], record, doNotInclude;
         for (var i = 0, l = cacheKeysAfterRequire.length; i < l; i += 1) {
             record = cacheKeysAfterRequire[i];
-            if (cacheKeysBeforeRequire.indexOf(record) == -1)
-                if (record !== requiredBy && record.indexOf(doNotIncludePath) !== 0)
-                    result.push(record);
+            if (cacheKeysBeforeRequire.indexOf(record) == -1) {
+                record = record.replace(/\\/g, '/');
+                if (record !== requiredBy) {
+                    doNotInclude = false;
+                    try {
+                        for (var doNotIncludePaths_1 = (e_10 = void 0, tslib_1.__values(doNotIncludePaths)), doNotIncludePaths_1_1 = doNotIncludePaths_1.next(); !doNotIncludePaths_1_1.done; doNotIncludePaths_1_1 = doNotIncludePaths_1.next()) {
+                            var doNotIncludePath = doNotIncludePaths_1_1.value;
+                            if (record.indexOf(doNotIncludePath) != -1) {
+                                doNotInclude = true;
+                                break;
+                            }
+                        }
+                    }
+                    catch (e_10_1) { e_10 = { error: e_10_1 }; }
+                    finally {
+                        try {
+                            if (doNotIncludePaths_1_1 && !doNotIncludePaths_1_1.done && (_a = doNotIncludePaths_1.return)) _a.call(doNotIncludePaths_1);
+                        }
+                        finally { if (e_10) throw e_10.error; }
+                    }
+                    if (!doNotInclude)
+                        result.push(record);
+                }
+            }
         }
         return result;
     };

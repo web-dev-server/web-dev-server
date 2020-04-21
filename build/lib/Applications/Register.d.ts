@@ -1,37 +1,110 @@
-import { IApplication } from "./IApplication";
-import { Server } from "../Server";
+/// <reference types="node" />
+import { Server, IApplication } from "../Server";
 import { Record } from "./Registers/Record";
+import { ErrorsHandler } from "../Handlers/Error";
 export declare class Register {
+    /**
+     * @summary Server instance pointer.
+     */
     protected server: Server;
+    /**
+     * @summary Server error handler submodule pointer.
+     */
+    protected errorsHandler: ErrorsHandler;
+    /**
+     * @summary Store of cached application instances.
+     * Keys are index script directories, values are `Record` types.
+     */
     protected store: Map<string, Record>;
-    protected requireCacheWatched: Map<string, boolean>;
-    protected requireCacheDependencies: Map<string, Map<string, boolean>>;
+    /**
+     * @summary Store with keys as application instance index script directories full paths
+     * and values as application instances dependent files full paths.
+     */
+    protected dependencies: Map<string, Set<string>>;
+    /**
+     * @summary Store with keys as watched filesystem directories and values as
+     * dependent application instance index script directories full paths.
+     */
+    protected watchedDirs: Map<string, Set<string>>;
+    protected watchHandleTimeouts: Map<string, NodeJS.Timeout>;
+    /**
+     * @summary Register constructor with stored server instance to call it back.
+     * @param server
+     */
     constructor(server: Server);
     /**
-     * @summary Initialize filesystem change or rename handler for given fullpath file to clear necessary require cache modules:
+     * @summary Set internal `Server` handling functionality.
+     * @param errorsHandler
      */
-    InitRequireCacheItemsWatchHandlers(requiredByFullPath: string, cacheKeysToWatchFullPaths: string[]): void;
+    SetErrorsHandler(errorsHandler: ErrorsHandler): this;
+    /**
+     * @summary Initialize filesystem change or rename handler for given
+     * fullpath file to clear necessary require cache modules (only if necessary):
+     */
+    AddWatchHandlers(requiredByFullPath: string, cacheKeysToWatchFullPaths: string[]): void;
+    protected addWatchHandler(dirFullPathToWatch: string, dependentIndexScriptDirFullPath: string): void;
+    /**
+     * @summary Clear instance cache and require cache for all dependent index script directories.
+     */
+    protected clearInstanceAndRequireCacheOnChange(dirFullPathToWatch: string, changedFileFullPath: string): Promise<boolean>;
+    /**
+     * @summary Check if given directory full path has already any other
+     * parent directory recursive watched or if the given directory itself has a watched.
+     * @param dirFullPath
+     * @return Already watched full path to cover this directory.
+     */
+    protected hasWatchHandler(dirFullPath: string): string;
+    /**
+     * @summary Try to search in application scripts cache for
+     * any application instance to handle given directory or virtual directory request.
+     * @param pathsToFound
+     */
     TryToFindParentDirectoryIndexScriptModule(pathsToFound: string[]): Record | null;
     GetIndexScriptModuleRecord(fullPath: string): Record | null;
-    SetNewIndexScriptModuleRecord(appInstance: IApplication, indexScriptModTime: number, indexScript: string, dirFullPath: string): Register;
+    /**
+     * @summary Set new application instance cache record.
+     * @param appInstance
+     * @param indexScriptModTime
+     * @param indexScriptFileName
+     * @param dirFullPath
+     */
+    SetNewApplicationCacheRecord(appInstance: IApplication, indexScriptModTime: number, indexScriptFileName: string, dirFullPath: string): Register;
     /**
      * @summary Get registered running apps count.
-     * @param cb
      */
     GetSize(): number;
     /**
      * @summary Stop all running registered app instances.
      * @param cb
      */
-    StopAll(cb: () => void): void;
+    StopAll(cb?: () => void): void;
     /**
      * @summary Delete cached module from Node.JS require cache by full path.
+     * @param indexScriptDirFullPath
      */
-    ClearModuleInstanceCacheAndRequireCache(fullPath: string): void;
-    ClearDirectoryModules(): Register;
+    ClearModuleInstanceAndModuleRequireCache(indexScriptDirFullPath: string): void;
     /**
-     * @summary Clear require cache recursively with cleaning module dependencies:
+     * @summary Delete cached application index script module instance.
+     * @param indexScriptDirFullPath
      */
-    protected clearRequireCacheRecursive(fullPath: string, clearedKeys: Map<string, boolean>): void;
-    static GetRequireCacheDifferenceKeys(cacheKeysBeforeRequire: string[], cacheKeysAfterRequire: string[], requiredBy: string, doNotIncludePath: string): string[];
+    ClearModuleInstance(indexScriptDirFullPath: string): this;
+    /**
+     * @summary Delete require cache for dependencies of application index script dir full path
+     * delete require cache for index script file itself.
+     * @param indexScriptDirFullPath
+     * @param indexScriptFullPath
+     */
+    ClearModuleRequireCache(cacheRecord: Record): this;
+    /**
+     * @summary Clear all require cache.
+     */
+    ClearAllRequireCache(): Register;
+    /**
+     * @summary Get all required full paths as difference between application call and after application call.
+     * @param cacheKeysBeforeRequire
+     * @param cacheKeysAfterRequire
+     * @param requiredBy
+     * @param doNotIncludePaths
+     */
+    static GetRequireCacheDifferenceKeys(cacheKeysBeforeRequire: string[], cacheKeysAfterRequire: string[], requiredBy: string, doNotIncludePaths: string[]): string[];
 }

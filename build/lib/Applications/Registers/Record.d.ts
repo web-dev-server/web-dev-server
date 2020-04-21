@@ -1,8 +1,8 @@
 import { IApplication } from "../IApplication";
 export declare class Record {
-    instance: IApplication;
-    modTime: number;
-    scriptName: string;
-    dirFullPath: string;
+    Instance: IApplication;
+    IndexScriptModTime: number;
+    IndexScriptFileName: string;
+    DirectoryFullPath: string;
     constructor(instance: IApplication, modTime: number, scriptName: string, fullPath: string);
 }

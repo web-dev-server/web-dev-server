@@ -44,7 +44,7 @@ export namespace Session {
 
 
 export class Server {
-	public static readonly VERSION: string = '3.0.10';
+	public static readonly VERSION: string = '3.0.11';
 	public static readonly STATES: {
 		CLOSED: number, STARTING: number, CLOSING: number, STARTED: number
 	} = {
@@ -318,8 +318,8 @@ export class Server {
 			.TryToFindParentDirectoryIndexScriptModule(searchingRequestPaths);
 		if (parentDirIndexScriptModule !== null) 
 			result = [
-				parentDirIndexScriptModule.dirFullPath,
-				parentDirIndexScriptModule.scriptName
+				parentDirIndexScriptModule.DirectoryFullPath,
+				parentDirIndexScriptModule.IndexScriptFileName
 			];
 		return result;
 	}
@@ -336,6 +336,7 @@ export class Server {
 
 		this.register = new Register(this);
 		this.errorsHandler = new ErrorsHandler(this, this.register);
+		this.register.SetErrorsHandler(this.errorsHandler);
 		this.filesHandler = new FilesHandler(this.errorsHandler);
 		this.directoriesHandler = new DirectoriesHandler(
 			this, this.register, this.filesHandler, this.errorsHandler
@@ -601,19 +602,19 @@ export class Server {
 		if (parentDirIndexScriptModule != null) {
 			if (!this.development) {
 				this.directoriesHandler.HandleIndexScript(
-					parentDirIndexScriptModule.dirFullPath, 
-					parentDirIndexScriptModule.scriptName, 
-					parentDirIndexScriptModule.modTime, 
+					parentDirIndexScriptModule.DirectoryFullPath, 
+					parentDirIndexScriptModule.IndexScriptFileName, 
+					parentDirIndexScriptModule.IndexScriptModTime, 
 					req, res
 				);
 			} else {
-				FsStat(parentDirIndexScriptModule.dirFullPath, (err: Error, stats: FsStats) => {
+				FsStat(parentDirIndexScriptModule.DirectoryFullPath, (err: Error, stats: FsStats) => {
 					if (err) {
 						return console.error(err);
 					}
 					this.directoriesHandler.HandleIndexScript(
-						parentDirIndexScriptModule.dirFullPath, 
-						parentDirIndexScriptModule.scriptName, 
+						parentDirIndexScriptModule.DirectoryFullPath, 
+						parentDirIndexScriptModule.IndexScriptFileName, 
 						stats.mtime.getTime(), 
 						req, res
 					);

@@ -273,8 +273,8 @@ var Server = /** @class */ (function () {
             .TryToFindParentDirectoryIndexScriptModule(searchingRequestPaths);
         if (parentDirIndexScriptModule !== null)
             result = [
-                parentDirIndexScriptModule.dirFullPath,
-                parentDirIndexScriptModule.scriptName
+                parentDirIndexScriptModule.DirectoryFullPath,
+                parentDirIndexScriptModule.IndexScriptFileName
             ];
         return result;
     };
@@ -291,6 +291,7 @@ var Server = /** @class */ (function () {
         this.hostName = this.hostName || Server.DEFAULTS.DOMAIN;
         this.register = new Register_1.Register(this);
         this.errorsHandler = new Error_1.ErrorsHandler(this, this.register);
+        this.register.SetErrorsHandler(this.errorsHandler);
         this.filesHandler = new File_1.FilesHandler(this.errorsHandler);
         this.directoriesHandler = new Directory_1.DirectoriesHandler(this, this.register, this.filesHandler, this.errorsHandler);
         this.netSockets = new Set();
@@ -562,14 +563,14 @@ var Server = /** @class */ (function () {
             .TryToFindParentDirectoryIndexScriptModule(searchingRequestPaths);
         if (parentDirIndexScriptModule != null) {
             if (!this.development) {
-                this.directoriesHandler.HandleIndexScript(parentDirIndexScriptModule.dirFullPath, parentDirIndexScriptModule.scriptName, parentDirIndexScriptModule.modTime, req, res);
+                this.directoriesHandler.HandleIndexScript(parentDirIndexScriptModule.DirectoryFullPath, parentDirIndexScriptModule.IndexScriptFileName, parentDirIndexScriptModule.IndexScriptModTime, req, res);
             }
             else {
-                fs_1.stat(parentDirIndexScriptModule.dirFullPath, function (err, stats) {
+                fs_1.stat(parentDirIndexScriptModule.DirectoryFullPath, function (err, stats) {
                     if (err) {
                         return console.error(err);
                     }
-                    _this.directoriesHandler.HandleIndexScript(parentDirIndexScriptModule.dirFullPath, parentDirIndexScriptModule.scriptName, stats.mtime.getTime(), req, res);
+                    _this.directoriesHandler.HandleIndexScript(parentDirIndexScriptModule.DirectoryFullPath, parentDirIndexScriptModule.IndexScriptFileName, stats.mtime.getTime(), req, res);
                 });
             }
         }
@@ -632,7 +633,7 @@ var Server = /** @class */ (function () {
             searchingRequestPaths.push('/');
         return searchingRequestPaths;
     };
-    Server.VERSION = '3.0.10';
+    Server.VERSION = '3.0.11';
     Server.STATES = {
         CLOSED: 0, STARTING: 1, CLOSING: 2, STARTED: 4
     };

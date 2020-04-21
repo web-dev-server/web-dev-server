@@ -1,10 +1,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var Record = /** @class */ (function () {
     function Record(instance, modTime, scriptName, fullPath) {
-        this.instance = instance;
-        this.modTime = modTime;
-        this.scriptName = scriptName;
-        this.dirFullPath = fullPath;
+        this.Instance = instance;
+        this.IndexScriptModTime = modTime;
+        this.IndexScriptFileName = scriptName;
+        this.DirectoryFullPath = fullPath;
     }
     ;
     return Record;

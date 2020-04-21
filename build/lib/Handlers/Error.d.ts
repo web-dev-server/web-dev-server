@@ -4,7 +4,7 @@ import { Response } from "../Response";
 import { Register } from "../Applications/Register";
 export declare class ErrorsHandler {
     protected server: Server;
-    protected cache: Register;
+    protected register: Register;
     protected request?: Request;
     protected response?: Response;
     constructor(server: Server, cache: Register);
@@ -12,7 +12,7 @@ export declare class ErrorsHandler {
     /**
      * @summary Print error in command line a little more nicely or log error by custom error log handler:
      */
-    LogError(e: Error, code: number, req: Request, res: Response): ErrorsHandler;
+    LogError(e: Error, code: number, req?: Request, res?: Response): ErrorsHandler;
     /**
      * @summary Print exception in command line a little more nicely in response:
      */

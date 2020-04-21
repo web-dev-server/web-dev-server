@@ -7,7 +7,7 @@ var ErrorsHandler = /** @class */ (function () {
         this.request = null;
         this.response = null;
         this.server = server;
-        this.cache = cache;
+        this.register = cache;
         this.initErrorsHandlers();
     }
     ErrorsHandler.prototype.SetHandledRequestProperties = function (req, res) {
@@ -113,16 +113,13 @@ var ErrorsHandler = /** @class */ (function () {
      * @summary Clear all modules on any uncatched error
      */
     ErrorsHandler.prototype.handleUncatchError = function (clearRequireCache, error) {
-        var development = this.server.IsDevelopment();
-        if (development && clearRequireCache) {
-            this.cache.ClearDirectoryModules();
-            var requireCacheKeys = Object.keys(require.cache);
-            for (var i = 0, l = requireCacheKeys.length; i < l; i++)
-                delete require.cache[requireCacheKeys[i]];
-        }
         this
             .LogError(error, 500, this.request, this.response)
             .PrintError(error, 500, this.request, this.response);
+        var development = this.server.IsDevelopment();
+        if (development && clearRequireCache) {
+            this.register.StopAll();
+        }
     };
     /**
      * @summary Render error as text for development purposes:
