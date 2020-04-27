@@ -133,9 +133,16 @@ public static CleanParamValue (
 	} else if (rawValue.match(/^(null|undefined)$/g)) {
 		resultValue = rawValue === "null" ? null : undefined;
 	} else if (rawValue.match(/^([eE0-9\+\-\.]+)$/g)) {
-		resultValue = parseFloat(rawValue);
-		if (isNaN(resultValue))
-		resultValue = rawValue;
+		var matchedDots: RegExpMatchArray = rawValue.match(/\./g);
+		if (!matchedDots || (matchedDots && matchedDots.length < 2)) {
+			// for numbers - there could be no dot or only single dot char:
+			resultValue = parseFloat(rawValue);
+			if (isNaN(resultValue))
+				resultValue = rawValue;
+		} else {
+			// something like: 127.0.0.1:
+			resultValue = rawValue;
+		}
 	} else {
 		resultValue = rawValue;
 	}
