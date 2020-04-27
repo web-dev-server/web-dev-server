@@ -116,14 +116,14 @@ var Session = /** @class */ (function () {
                             this.store.set(id, session);
                         }
                         if (!(session == null || (session && session.locked))) return [3 /*break*/, 4];
-                        return [4 /*yield*/, this.waitForUnlock(id)];
+                        return [4 /*yield*/, this.waitToUnlock(id)];
                     case 3:
                         session = _a.sent();
                         _a.label = 4;
                     case 4:
                         session.init();
                         if (response)
-                            this.setResponseCookie(response, session);
+                            this.setUpResponse(session, response);
                         this.runGarbageCollectingIfNecessary();
                         return [2 /*return*/, session];
                 }
@@ -153,7 +153,30 @@ var Session = /** @class */ (function () {
             });
         });
     };
-    Session.setResponseCookie = function (response, session) {
+    /**
+     * @summary Get session object by session id or `null`.
+     * Returned session could be already locked by another request.
+     * @param sessionId
+     */
+    Session.GetById = function (sessionId) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            return tslib_1.__generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        if (!(!this.store.has(sessionId) && this.loadHandler)) return [3 /*break*/, 2];
+                        return [4 /*yield*/, this.loadHandler(sessionId, this.store, false)];
+                    case 1:
+                        _a.sent();
+                        _a.label = 2;
+                    case 2:
+                        if (this.store.has(sessionId))
+                            return [2 /*return*/, this.store.get(sessionId)];
+                        return [2 /*return*/, null];
+                }
+            });
+        });
+    };
+    Session.setUpResponse = function (session, response) {
         var _this = this;
         session.lastAccessTime = +new Date;
         var expireDate = null;
@@ -212,7 +235,7 @@ var Session = /** @class */ (function () {
             });
         }, this.GC_INTERVAL);
     };
-    Session.waitForUnlock = function (id) {
+    Session.waitToUnlock = function (id) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
             var session, maxWaitingTime, startTime, timeoutHandler;
             var _this = this;
@@ -248,6 +271,27 @@ var Session = /** @class */ (function () {
      */
     Session.prototype.GetId = function () {
         return this.id;
+    };
+    /**
+     * @summary Get if session is locked.
+     */
+    Session.prototype.IsLocked = function () {
+        return this.locked;
+    };
+    /**
+     * @summary Wait until this session is unlocked by another request end.
+     */
+    Session.prototype.WaitToUnlock = function () {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            return tslib_1.__generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, Session.waitToUnlock(this.id)];
+                    case 1:
+                        _a.sent();
+                        return [2 /*return*/, this];
+                }
+            });
+        });
     };
     /**
      * @summary Get new or existing session namespace instance.

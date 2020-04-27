@@ -75,14 +75,28 @@ export declare class Session {
      * @param request
      */
     static Exists(request: Request): Promise<boolean>;
-    protected static setResponseCookie(response: Response, session: Session): void;
+    /**
+     * @summary Get session object by session id or `null`.
+     * Returned session could be already locked by another request.
+     * @param sessionId
+     */
+    static GetById(sessionId: string): Promise<Session>;
+    protected static setUpResponse(session: Session, response: Response): void;
     protected static getRequestIdOrNew(request: Request): string;
     protected static runGarbageCollectingIfNecessary(): void;
-    protected static waitForUnlock(id: string): Promise<Session>;
+    protected static waitToUnlock(id: string): Promise<Session>;
     /**
      * @summary Get session id string.
      */
     GetId(): string;
+    /**
+     * @summary Get if session is locked.
+     */
+    IsLocked(): boolean;
+    /**
+     * @summary Wait until this session is unlocked by another request end.
+     */
+    WaitToUnlock(): Promise<this>;
     /**
      * @summary Get new or existing session namespace instance.
      * @param name Session namespace unique name.

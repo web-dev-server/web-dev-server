@@ -117,9 +117,9 @@ export class Session {
 			this.store.set(id, session);
 		}
 		if (session == null || (session && session.locked)) 
-			session = await this.waitForUnlock(id);
+			session = await this.waitToUnlock(id);
 		session.init();
-		if (response) this.setResponseCookie(response, session);
+		if (response) this.setUpResponse(session, response);
 		this.runGarbageCollectingIfNecessary();
 		return session;
 	}
@@ -134,7 +134,19 @@ export class Session {
 			await this.loadHandler(id, this.store, true);
 		return this.store.has(id) && this.store.get(id) != null;
 	}
-	protected static setResponseCookie (response: Response, session: Session): void {
+	/**
+	 * @summary Get session object by session id or `null`. 
+	 * Returned session could be already locked by another request.
+	 * @param sessionId 
+	 */
+	public static async GetById (sessionId: string): Promise<Session> {
+		if (!this.store.has(sessionId) && this.loadHandler) 
+			await this.loadHandler(sessionId, this.store, false);
+		if (this.store.has(sessionId))
+			return this.store.get(sessionId);
+		return null;
+	}
+	protected static setUpResponse (session: Session, response: Response): void {
 		session.lastAccessTime = +new Date;
 		var expireDate: Date = null;
 		if (this.maxLifeTimeMiliSeconds !== 0) {
@@ -179,12 +191,12 @@ export class Session {
 			});
 		}, this.GC_INTERVAL);
 	}
-	protected static async waitForUnlock (id: string): Promise<Session> {
+	protected static async waitToUnlock (id: string): Promise<Session> {
 		var session: Session = this.store.get(id);
 		if (session && !session.locked) return session;
 		var maxWaitingTime: number = Session.maxLockWaitTime;
 		var startTime: number = +new Date;
-		var timeoutHandler = (resolve) => {
+		var timeoutHandler = (resolve: (session: Session) => void): void => {
 			var session: Session = this.store.get(id);
 			if (session && !session.locked) {
 				session.locked = true;
@@ -208,6 +220,19 @@ export class Session {
 	 */
 	public GetId (): string {
 		return this.id;
+	}
+	/**
+	 * @summary Get if session is locked.
+	 */
+	public IsLocked (): boolean {
+		return this.locked;
+	}
+	/**
+	 * @summary Wait until this session is unlocked by another request end.
+	 */
+	public async WaitToUnlock (): Promise<this> {
+		await Session.waitToUnlock(this.id);
+		return this;
 	}
 	/**
 	 * @summary Get new or existing session namespace instance.
