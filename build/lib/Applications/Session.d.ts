@@ -101,6 +101,16 @@ export declare class Session {
      */
     IsLocked(): boolean;
     /**
+     * @summary Lock current session and prevent other request to using it.
+     * Session is locked automaticly on session start. Use this method very carefully.
+     */
+    Lock(): this;
+    /**
+     * @summary Unlock current session and allow other request to using it.
+     * Session is unlocked automaticly on response send. Use this method very carefully.
+     */
+    Unlock(): this;
+    /**
      * @summary Wait until this session is unlocked by another request end.
      */
     WaitToUnlock(): Promise<this>;

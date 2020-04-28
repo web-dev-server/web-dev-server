@@ -303,6 +303,22 @@ var Session = /** @class */ (function () {
         return this.locked;
     };
     /**
+     * @summary Lock current session and prevent other request to using it.
+     * Session is locked automaticly on session start. Use this method very carefully.
+     */
+    Session.prototype.Lock = function () {
+        this.locked = true;
+        return this;
+    };
+    /**
+     * @summary Unlock current session and allow other request to using it.
+     * Session is unlocked automaticly on response send. Use this method very carefully.
+     */
+    Session.prototype.Unlock = function () {
+        this.locked = false;
+        return this;
+    };
+    /**
      * @summary Wait until this session is unlocked by another request end.
      */
     Session.prototype.WaitToUnlock = function () {

@@ -241,6 +241,22 @@ export class Session {
 		return this.locked;
 	}
 	/**
+	 * @summary Lock current session and prevent other request to using it.
+	 * Session is locked automaticly on session start. Use this method very carefully.
+	 */
+	public Lock (): this {
+		this.locked = true;
+		return this;
+	}
+	/**
+	 * @summary Unlock current session and allow other request to using it.
+	 * Session is unlocked automaticly on response send. Use this method very carefully.
+	 */
+	public Unlock (): this {
+		this.locked = false;
+		return this;
+	}
+	/**
 	 * @summary Wait until this session is unlocked by another request end.
 	 */
 	public async WaitToUnlock (): Promise<this> {
