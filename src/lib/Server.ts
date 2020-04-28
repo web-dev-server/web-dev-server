@@ -44,7 +44,7 @@ export namespace Session {
 
 
 export class Server {
-	public static readonly VERSION: string = '3.0.15';
+	public static readonly VERSION: string = '3.0.16';
 	public static readonly STATES: {
 		CLOSED: number, STARTING: number, CLOSING: number, STARTED: number
 	} = {
