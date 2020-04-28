@@ -127,6 +127,21 @@ var Server = /** @class */ (function () {
      * @param forbiddenPaths Forbidden request path begins or regular expression patterns.
      */
     Server.prototype.SetForbiddenPaths = function (forbiddenPaths) {
+        var e_1, _a;
+        try {
+            for (var _b = tslib_1.__values(Object.entries(forbiddenPaths)), _c = _b.next(); !_c.done; _c = _b.next()) {
+                var _d = tslib_1.__read(_c.value, 2), index = _d[0], forbiddenPath = _d[1];
+                if (!(forbiddenPath instanceof RegExp))
+                    forbiddenPaths[index] = String(forbiddenPath).toLocaleLowerCase();
+            }
+        }
+        catch (e_1_1) { e_1 = { error: e_1_1 }; }
+        finally {
+            try {
+                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+            }
+            finally { if (e_1) throw e_1.error; }
+        }
         this.forbiddenPaths = forbiddenPaths;
         return this;
     };
@@ -135,6 +150,21 @@ var Server = /** @class */ (function () {
      * @param forbiddenPaths Forbidden request path begins or regular expression patterns.
      */
     Server.prototype.AddForbiddenPaths = function (forbiddenPaths) {
+        var e_2, _a;
+        try {
+            for (var _b = tslib_1.__values(Object.entries(forbiddenPaths)), _c = _b.next(); !_c.done; _c = _b.next()) {
+                var _d = tslib_1.__read(_c.value, 2), index = _d[0], forbiddenPath = _d[1];
+                if (!(forbiddenPath instanceof RegExp))
+                    forbiddenPaths[index] = String(forbiddenPath).toLocaleLowerCase();
+            }
+        }
+        catch (e_2_1) { e_2 = { error: e_2_1 }; }
+        finally {
+            try {
+                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+            }
+            finally { if (e_2) throw e_2.error; }
+        }
         this.forbiddenPaths = [].concat(this.forbiddenPaths, forbiddenPaths);
         return this;
     };
@@ -145,6 +175,20 @@ var Server = /** @class */ (function () {
      * @param indexScripts Array of file names like `['index.js', 'default.js', 'app.js', ...]`.
      */
     Server.prototype.SetIndexScripts = function (indexScripts) {
+        var e_3, _a;
+        try {
+            for (var _b = tslib_1.__values(Object.entries(indexScripts)), _c = _b.next(); !_c.done; _c = _b.next()) {
+                var _d = tslib_1.__read(_c.value, 2), index = _d[0], indexScript = _d[1];
+                indexScripts[index] = String(indexScript).toLocaleLowerCase();
+            }
+        }
+        catch (e_3_1) { e_3 = { error: e_3_1 }; }
+        finally {
+            try {
+                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+            }
+            finally { if (e_3) throw e_3.error; }
+        }
         this.indexes.scripts = indexScripts;
         return this;
     };
@@ -154,6 +198,20 @@ var Server = /** @class */ (function () {
      * @param indexScripts Array of file names like `['default.js', 'app.js', ...]`.
      */
     Server.prototype.AddIndexScripts = function (indexScripts) {
+        var e_4, _a;
+        try {
+            for (var _b = tslib_1.__values(Object.entries(indexScripts)), _c = _b.next(); !_c.done; _c = _b.next()) {
+                var _d = tslib_1.__read(_c.value, 2), index = _d[0], indexScript = _d[1];
+                indexScripts[index] = String(indexScript).toLocaleLowerCase();
+            }
+        }
+        catch (e_4_1) { e_4 = { error: e_4_1 }; }
+        finally {
+            try {
+                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+            }
+            finally { if (e_4) throw e_4.error; }
+        }
         this.indexes.scripts = [].concat(this.indexes.scripts, indexScripts);
         return this;
     };
@@ -482,7 +540,7 @@ var Server = /** @class */ (function () {
      * @param path Path including start slash, excluding base url and excluding params.
      */
     Server.prototype.isPathAllowed = function (path) {
-        var result = true, beginPath, regExp, match;
+        var result = true, pathLower = path.toLocaleLowerCase(), beginPathLower, regExp, match;
         for (var i = 0, l = this.forbiddenPaths.length; i < l; i++) {
             if (this.forbiddenPaths[i] instanceof RegExp) {
                 regExp = this.forbiddenPaths[i];
@@ -493,8 +551,8 @@ var Server = /** @class */ (function () {
                 }
             }
             else {
-                beginPath = this.forbiddenPaths[i].toString();
-                if (path.indexOf(beginPath) === 0) {
+                beginPathLower = this.forbiddenPaths[i].toString();
+                if (pathLower.indexOf(beginPathLower) === 0) {
                     result = false;
                     break;
                 }
@@ -537,7 +595,7 @@ var Server = /** @class */ (function () {
                 fileName = fullPath;
                 dirFullPath = '';
             }
-            if (this.indexes.scripts.indexOf(fileName) != -1) {
+            if (this.indexes.scripts.indexOf(fileName.toLocaleLowerCase()) != -1) {
                 this.directoriesHandler.HandleIndexScript(dirFullPath, fileName, stats.mtime.getTime(), req, res);
             }
             else {
@@ -633,7 +691,7 @@ var Server = /** @class */ (function () {
             searchingRequestPaths.push('/');
         return searchingRequestPaths;
     };
-    Server.VERSION = '3.0.14';
+    Server.VERSION = '3.0.15';
     Server.STATES = {
         CLOSED: 0, STARTING: 1, CLOSING: 2, STARTED: 4
     };

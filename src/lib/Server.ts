@@ -44,7 +44,7 @@ export namespace Session {
 
 
 export class Server {
-	public static readonly VERSION: string = '3.0.14';
+	public static readonly VERSION: string = '3.0.15';
 	public static readonly STATES: {
 		CLOSED: number, STARTING: number, CLOSING: number, STARTED: number
 	} = {
@@ -164,6 +164,9 @@ export class Server {
 	 * @param forbiddenPaths Forbidden request path begins or regular expression patterns.
 	 */
 	public SetForbiddenPaths (forbiddenPaths: string[] | RegExp[]): Server {
+		for (var [index, forbiddenPath] of Object.entries(forbiddenPaths)) 
+			if (!(forbiddenPath instanceof RegExp))
+				forbiddenPaths[index] = String(forbiddenPath).toLocaleLowerCase();
 		this.forbiddenPaths = forbiddenPaths;
 		return this;
 	}
@@ -172,6 +175,9 @@ export class Server {
 	 * @param forbiddenPaths Forbidden request path begins or regular expression patterns.
 	 */
 	public AddForbiddenPaths (forbiddenPaths: string[] | RegExp[]): Server {
+		for (var [index, forbiddenPath] of Object.entries(forbiddenPaths)) 
+			if (!(forbiddenPath instanceof RegExp))
+				forbiddenPaths[index] = String(forbiddenPath).toLocaleLowerCase();
 		this.forbiddenPaths = [].concat(this.forbiddenPaths, forbiddenPaths);
 		return this;
 	}
@@ -182,6 +188,8 @@ export class Server {
 	 * @param indexScripts Array of file names like `['index.js', 'default.js', 'app.js', ...]`.
 	 */
 	public SetIndexScripts (indexScripts: string[]): Server {
+		for (var [index, indexScript] of Object.entries(indexScripts)) 
+			indexScripts[index] = String(indexScript).toLocaleLowerCase();
 		this.indexes.scripts = indexScripts;
 		return this;
 	}
@@ -191,6 +199,8 @@ export class Server {
 	 * @param indexScripts Array of file names like `['default.js', 'app.js', ...]`.
 	 */
 	public AddIndexScripts (indexScripts: string[]): Server {
+		for (var [index, indexScript] of Object.entries(indexScripts)) 
+			indexScripts[index] = String(indexScript).toLocaleLowerCase();
 		this.indexes.scripts = [].concat(this.indexes.scripts, indexScripts);
 		return this;
 	}
@@ -464,7 +474,7 @@ export class Server {
 					resolve(stats);
 				});
 			});
-
+			
 			if (stats) {
 				this.handleReqExistingPath(fullPathVirtual, requestPath, stats, req, res);
 			} else if (err && err.code == 'ENOENT') {
@@ -505,7 +515,8 @@ export class Server {
 	 */
 	protected isPathAllowed (path: string): boolean {
 		var result: boolean = true,
-			beginPath: string,
+			pathLower: string = path.toLocaleLowerCase(),
+			beginPathLower: string,
 			regExp: RegExp,
 			match: RegExpMatchArray;
 		for (var i: number = 0, l: number = this.forbiddenPaths.length; i < l; i++) {
@@ -517,8 +528,8 @@ export class Server {
 					break;
 				}
 			} else {
-				beginPath = this.forbiddenPaths[i].toString();
-				if (path.indexOf(beginPath) === 0) {
+				beginPathLower = this.forbiddenPaths[i].toString();
+				if (pathLower.indexOf(beginPathLower) === 0) {
 					result = false;
 					break;
 				}
@@ -567,7 +578,7 @@ export class Server {
 				fileName = fullPath;
 				dirFullPath = '';
 			}
-			if (this.indexes.scripts.indexOf(fileName) != -1) {
+			if (this.indexes.scripts.indexOf(fileName.toLocaleLowerCase()) != -1) {
 				this.directoriesHandler.HandleIndexScript(
 					dirFullPath, fileName, stats.mtime.getTime(), req, res
 				);

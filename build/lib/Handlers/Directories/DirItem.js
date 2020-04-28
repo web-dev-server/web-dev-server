@@ -23,7 +23,7 @@ var DirItem = /** @class */ (function () {
         var dirItemsLowerCased = [], indexFilesFound = [], indexScriptsFound = [], dirItem = '', dirItemLowerCased = '', resultScripts = [], resultFiles = [], i, l, index = 0;
         for (i = 0, l = dirItems.length; i < l; i++) {
             dirItem = dirItems[i];
-            dirItemLowerCased = dirItem.toLowerCase();
+            dirItemLowerCased = dirItem.toLocaleLowerCase();
             dirItemsLowerCased.push({
                 original: dirItem,
                 lowerCase: dirItemLowerCased
