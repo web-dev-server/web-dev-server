@@ -100,7 +100,7 @@ export class Session {
 	public static async Start (request: Request, response: Response = null): Promise<Session> {
 		var session: Session,
 			id: string = this.getRequestIdOrNew(request);
-		if (!this.store.has(id) && this.loadHandler) 
+		if (!this.store.has(id) && this.loadHandler != null) 
 			await this.loadHandler(id, this.store, false);
 		if (this.store.has(id)) {
 			session = this.store.get(id);
@@ -116,7 +116,7 @@ export class Session {
 			session = new Session(id, false);
 			this.store.set(id, session);
 		}
-		if (session == null || (session && session.locked)) 
+		if (session == null || (session && session.IsLocked())) 
 			session = await this.waitToUnlock(id);
 		session.init();
 		if (response) this.setUpResponse(session, response);
@@ -139,12 +139,25 @@ export class Session {
 	 * Returned session could be already locked by another request.
 	 * @param sessionId 
 	 */
-	public static async GetById (sessionId: string): Promise<Session> {
+	public static async Get (sessionId: string): Promise<Session> {
 		if (!this.store.has(sessionId) && this.loadHandler) 
 			await this.loadHandler(sessionId, this.store, false);
 		if (this.store.has(sessionId))
 			return this.store.get(sessionId);
 		return null;
+	}
+	/**
+	 * @summary Set session object with session id and optional data or lock
+	 * into global store. If there is configured any write handler, then the
+	 * handler is invoked for this session id.
+	 * @param session 
+	 */
+	public static async Set (session: Session): Promise<typeof Session> {
+		var sessionId: string = session.GetId();
+		this.store.set(sessionId, session);
+		if (this.writeHandler != null) 
+			await this.writeHandler(sessionId, this.store);
+		return this;
 	}
 	protected static setUpResponse (session: Session, response: Response): void {
 		session.lastAccessTime = +new Date;
@@ -156,7 +169,7 @@ export class Session {
 		response.On("session-unlock", async () => {
 			session.lastAccessTime = +new Date;
 			session.locked = false;
-			if (this.writeHandler) 
+			if (this.writeHandler != null) 
 				await this.writeHandler(session.GetId(), this.store);
 		});
 		response.SetCookie(<IResponseCookie>{

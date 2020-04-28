@@ -80,7 +80,14 @@ export declare class Session {
      * Returned session could be already locked by another request.
      * @param sessionId
      */
-    static GetById(sessionId: string): Promise<Session>;
+    static Get(sessionId: string): Promise<Session>;
+    /**
+     * @summary Set session object with session id and optional data or lock
+     * into global store. If there is configured any write handler, then the
+     * handler is invoked for this session id.
+     * @param session
+     */
+    static Set(session: Session): Promise<typeof Session>;
     protected static setUpResponse(session: Session, response: Response): void;
     protected static getRequestIdOrNew(request: Request): string;
     protected static runGarbageCollectingIfNecessary(): void;

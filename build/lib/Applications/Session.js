@@ -96,7 +96,7 @@ var Session = /** @class */ (function () {
                 switch (_a.label) {
                     case 0:
                         id = this.getRequestIdOrNew(request);
-                        if (!(!this.store.has(id) && this.loadHandler)) return [3 /*break*/, 2];
+                        if (!(!this.store.has(id) && this.loadHandler != null)) return [3 /*break*/, 2];
                         return [4 /*yield*/, this.loadHandler(id, this.store, false)];
                     case 1:
                         _a.sent();
@@ -115,7 +115,7 @@ var Session = /** @class */ (function () {
                             session = new Session(id, false);
                             this.store.set(id, session);
                         }
-                        if (!(session == null || (session && session.locked))) return [3 /*break*/, 4];
+                        if (!(session == null || (session && session.IsLocked()))) return [3 /*break*/, 4];
                         return [4 /*yield*/, this.waitToUnlock(id)];
                     case 3:
                         session = _a.sent();
@@ -158,7 +158,7 @@ var Session = /** @class */ (function () {
      * Returned session could be already locked by another request.
      * @param sessionId
      */
-    Session.GetById = function (sessionId) {
+    Session.Get = function (sessionId) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
             return tslib_1.__generator(this, function (_a) {
                 switch (_a.label) {
@@ -172,6 +172,30 @@ var Session = /** @class */ (function () {
                         if (this.store.has(sessionId))
                             return [2 /*return*/, this.store.get(sessionId)];
                         return [2 /*return*/, null];
+                }
+            });
+        });
+    };
+    /**
+     * @summary Set session object with session id and optional data or lock
+     * into global store. If there is configured any write handler, then the
+     * handler is invoked for this session id.
+     * @param session
+     */
+    Session.Set = function (session) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var sessionId;
+            return tslib_1.__generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        sessionId = session.GetId();
+                        this.store.set(sessionId, session);
+                        if (!(this.writeHandler != null)) return [3 /*break*/, 2];
+                        return [4 /*yield*/, this.writeHandler(sessionId, this.store)];
+                    case 1:
+                        _a.sent();
+                        _a.label = 2;
+                    case 2: return [2 /*return*/, this];
                 }
             });
         });
@@ -190,7 +214,7 @@ var Session = /** @class */ (function () {
                     case 0:
                         session.lastAccessTime = +new Date;
                         session.locked = false;
-                        if (!this.writeHandler) return [3 /*break*/, 2];
+                        if (!(this.writeHandler != null)) return [3 /*break*/, 2];
                         return [4 /*yield*/, this.writeHandler(session.GetId(), this.store)];
                     case 1:
                         _a.sent();
