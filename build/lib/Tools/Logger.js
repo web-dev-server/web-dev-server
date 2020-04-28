@@ -1,4 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
+var tslib_1 = require("tslib");
 var fs_1 = require("fs");
 var v8_1 = require("v8");
 var path_1 = require("path");
@@ -123,14 +124,26 @@ var Logger = /** @class */ (function () {
      * @param allowedLevels Allowed levels to log like: `[Logger.LEVEL.ERROR, Logger.LEVEL.DEBUG, 'customname', ...]`
      */
     Logger.prototype.SetAllowedLevels = function (allowedLevels) {
+        var e_1, _a;
         var _this = this;
         // set all existing levels to false first:
         this.allowedLevels.forEach(function (value, allowedLevelName) {
             _this.allowedLevels.set(allowedLevelName, false);
         });
-        // allow only selected levels:
-        for (var levelName in allowedLevels)
-            this.allowedLevels.set(levelName, true);
+        try {
+            // allow only selected levels:
+            for (var allowedLevels_1 = tslib_1.__values(allowedLevels), allowedLevels_1_1 = allowedLevels_1.next(); !allowedLevels_1_1.done; allowedLevels_1_1 = allowedLevels_1.next()) {
+                var levelName = allowedLevels_1_1.value;
+                this.allowedLevels.set(levelName, true);
+            }
+        }
+        catch (e_1_1) { e_1 = { error: e_1_1 }; }
+        finally {
+            try {
+                if (allowedLevels_1_1 && !allowedLevels_1_1.done && (_a = allowedLevels_1.return)) _a.call(allowedLevels_1);
+            }
+            finally { if (e_1) throw e_1.error; }
+        }
         return this;
     };
     /**

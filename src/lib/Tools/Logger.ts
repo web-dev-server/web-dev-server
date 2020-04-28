@@ -159,7 +159,7 @@ export class Logger {
 			this.allowedLevels.set(allowedLevelName, false);
 		});
 		// allow only selected levels:
-		for (var levelName in allowedLevels) 
+		for (var levelName of allowedLevels) 
 			this.allowedLevels.set(levelName, true);
 		return this;
 	}
