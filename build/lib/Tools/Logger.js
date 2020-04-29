@@ -451,7 +451,7 @@ var Logger = /** @class */ (function () {
     Logger.prototype.serializeWhatIsPossible = function (obj, prettyPrint, addTypeName) {
         if (prettyPrint === void 0) { prettyPrint = false; }
         if (addTypeName === void 0) { addTypeName = true; }
-        var result = [], separator = '', keys, key;
+        var result = [], separator = '', keys, key, item;
         if (ObjectHelper_1.ObjectHelper.IsPrimitiveType(obj)) {
             result.push(JSON.stringify(obj));
         }
@@ -463,7 +463,7 @@ var Logger = /** @class */ (function () {
                 result.push(separator);
                 try {
                     if (prettyPrint) {
-                        result.push(JSON.stringify(obj[i], null, "\n"));
+                        result.push(JSON.stringify(obj[i], null, "\t"));
                     }
                     else {
                         result.push(JSON.stringify(obj[i]));
@@ -494,7 +494,8 @@ var Logger = /** @class */ (function () {
                 }
                 try {
                     if (prettyPrint) {
-                        result.push(JSON.stringify(obj[key], null, "\n"));
+                        item = JSON.stringify(obj[key], null, "\t");
+                        result.push(item.replace(/\n/g, "\n\t"));
                     }
                     else {
                         result.push(JSON.stringify(obj[key]));
@@ -519,6 +520,8 @@ var Logger = /** @class */ (function () {
         }
         if (addTypeName)
             result.push(' [' + ObjectHelper_1.ObjectHelper.RealTypeOf(obj) + ']');
+        console.log(result.join(''));
+        process.exit();
         return result.join('');
     };
     Logger.prototype.getStackTraceItemFuncFullName = function (stack, isTopLevel, isConstructor) {

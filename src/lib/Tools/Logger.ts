@@ -489,7 +489,8 @@ export class Logger {
 		var result: string[] = [],
 			separator: string = '',
 			keys: string[],
-			key: string;
+			key: string,
+			item: string;
 		if (ObjectHelper.IsPrimitiveType(obj)) {
 			result.push(JSON.stringify(obj));
 		} else if (
@@ -501,7 +502,7 @@ export class Logger {
 				result.push(separator);
 				try {
 					if (prettyPrint) {
-						result.push(JSON.stringify(obj[i], null, "\n"));
+						result.push(JSON.stringify(obj[i], null, "\t"));
 					} else {
 						result.push(JSON.stringify(obj[i]));
 					}
@@ -527,7 +528,8 @@ export class Logger {
 				}
 				try {
 					if (prettyPrint) {
-						result.push(JSON.stringify(obj[key], null, "\n"));
+						item = JSON.stringify(obj[key], null, "\t");
+						result.push(item.replace(/\n/g, "\n\t"));
 					} else {
 						result.push(JSON.stringify(obj[key]));
 					}
@@ -548,6 +550,8 @@ export class Logger {
 		}
 		if (addTypeName)
 			result.push(' [' + ObjectHelper.RealTypeOf(obj) + ']');
+		console.log(result.join(''));
+		process.exit();
 		return result.join('');
 	}
 	protected getStackTraceItemFuncFullName (stack: CallSite, isTopLevel: boolean, isConstructor: boolean): string {
