@@ -520,8 +520,6 @@ var Logger = /** @class */ (function () {
         }
         if (addTypeName)
             result.push(' [' + ObjectHelper_1.ObjectHelper.RealTypeOf(obj) + ']');
-        console.log(result.join(''));
-        process.exit();
         return result.join('');
     };
     Logger.prototype.getStackTraceItemFuncFullName = function (stack, isTopLevel, isConstructor) {
