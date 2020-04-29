@@ -1,7 +1,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var tslib_1 = require("tslib");
 var fs_1 = require("fs");
-var v8_1 = require("v8");
+//import { serialize as V8Serialize } from "v8";
 var path_1 = require("path");
 var ObjectHelper_1 = require("./Helpers/ObjectHelper");
 var StringHelper_1 = require("./Helpers/StringHelper");
@@ -31,6 +31,7 @@ var Logger = /** @class */ (function () {
         this.logsCaches = new Map();
         this.writeStackTrace = true;
         this.writeStackTraceFuncArgs = false;
+        this.maxDepth = 3;
         logsDirFullPath = path_1.resolve(logsDirFullPath).replace(/\\/g, '/');
         documentRoot = path_1.resolve(documentRoot).replace(/\\/g, '/');
         this.logsDirFullPath = StringHelper_1.StringHelper.TrimRight(logsDirFullPath, '/');
@@ -161,6 +162,15 @@ var Logger = /** @class */ (function () {
         else {
             this.writeStackTraceFuncArgs = false;
         }
+        return this;
+    };
+    /**
+     * @summary Set max depth to dump objects.
+     * @param maxDepth Default is `3`.
+     */
+    Logger.prototype.SetMaxDepth = function (maxDepth) {
+        if (maxDepth === void 0) { maxDepth = 3; }
+        this.maxDepth = maxDepth;
         return this;
     };
     /**
@@ -449,71 +459,90 @@ var Logger = /** @class */ (function () {
         return result.join('');
     };
     Logger.prototype.serializeWhatIsPossible = function (obj, prettyPrint, addTypeName) {
-        var e_2, _a, e_3, _b;
         if (prettyPrint === void 0) { prettyPrint = false; }
         if (addTypeName === void 0) { addTypeName = true; }
-        var result = [], separator = '', keys, key, item, isArray = false, isMap = false, isSet = false;
-        if (ObjectHelper_1.ObjectHelper.IsPrimitiveType(obj)) {
-            result.push(JSON.stringify(obj));
+        var result;
+        try {
+            result = this.stringifyRecursive(prettyPrint, addTypeName, 0, '', obj);
         }
-        else if (
+        catch (e) {
+            result = e.message;
+        }
+        return result;
+    };
+    Logger.prototype.stringifyRecursive = function (prettyPrint, addTypeName, level, indent, obj) {
+        var e_2, _a, e_3, _b, e_4, _c;
+        var result = [], baseSeparator = '', separator = '', key, item, itemsIndent, newLine = "\n", doubleDot = ': ', isArray = false, isMap = false, isSet = false;
+        if (ObjectHelper_1.ObjectHelper.IsPrimitiveType(obj)) {
+            if (obj === undefined)
+                return 'undefined';
+            if (obj === null)
+                return 'null';
+            if (obj.constructor === Number) {
+                if (Number.isNaN(obj))
+                    return 'NaN';
+                if (!Number.isFinite(obj)) {
+                    if (obj < 0)
+                        return '-Infinity';
+                    return 'Infinity';
+                }
+                return JSON.stringify(obj);
+            }
+            else {
+                return JSON.stringify(obj);
+            }
+        }
+        else if (obj instanceof Function) {
+            return '[' + obj.name + ' Function(' + obj.length + ')]';
+        }
+        if (level == this.maxDepth)
+            return '[' + ObjectHelper_1.ObjectHelper.RealTypeOf(obj) + ']';
+        var objProto = Object.getPrototypeOf(obj);
+        if (prettyPrint) {
+            itemsIndent = indent + "\t";
+            baseSeparator = ",\n";
+        }
+        else {
+            newLine = '';
+            indent = '';
+            doubleDot = ':';
+            itemsIndent = '';
+            baseSeparator = ',';
+        }
+        if (
         //Helpers.RealTypeOf(obj) == 'Array' | 'Uint8Array' | ... &&
-        'length' in Object.getPrototypeOf(obj)) {
+        'length' in objProto) {
             isArray = true;
-            result.push('[');
+            result.push('[' + newLine);
             for (var i = 0, l = obj.length; i < l; i++) {
-                result.push(separator);
                 try {
-                    if (prettyPrint) {
-                        result.push(JSON.stringify(obj[i], null, "\t"));
-                    }
-                    else {
-                        result.push(JSON.stringify(obj[i]));
-                    }
+                    item = this.stringifyRecursive(prettyPrint, addTypeName, level + 1, itemsIndent, obj[i]);
                 }
                 catch (e1) {
-                    try {
-                        result.push(v8_1.serialize(obj[i]).toString('base64'));
-                    }
-                    catch (e2) {
-                        result.push(JSON.stringify('[' + ObjectHelper_1.ObjectHelper.RealTypeOf(obj[i]) + ']'));
-                    }
+                    item = '[' + ObjectHelper_1.ObjectHelper.RealTypeOf(obj[i]) + ']';
                 }
-                separator = ',';
+                result.push(separator + itemsIndent + item);
+                separator = baseSeparator;
             }
-            result.push(']');
+            result.push(newLine + indent + ']');
         }
-        else if (obj instanceof Map) {
+        else if (obj instanceof global.Map) {
             isMap = true;
-            result.push('{');
             var objMap = obj;
+            result.push('{' + newLine);
             try {
                 for (var objMap_1 = tslib_1.__values(objMap), objMap_1_1 = objMap_1.next(); !objMap_1_1.done; objMap_1_1 = objMap_1.next()) {
-                    var _c = tslib_1.__read(objMap_1_1.value, 2), rawKey = _c[0], rawValue = _c[1];
-                    if (prettyPrint) {
-                        result.push(separator + "\n\t" + JSON.stringify(rawKey) + ":");
-                    }
-                    else {
-                        result.push(separator + JSON.stringify(rawKey) + ":");
-                    }
+                    var _d = tslib_1.__read(objMap_1_1.value, 2), rawKey = _d[0], rawValue = _d[1];
                     try {
-                        if (prettyPrint) {
-                            item = JSON.stringify(rawValue, null, "\t");
-                            result.push(item.replace(/\n/g, "\n\t"));
-                        }
-                        else {
-                            result.push(JSON.stringify(rawValue));
-                        }
+                        key = JSON.stringify(rawKey);
+                        item = this.stringifyRecursive(prettyPrint, addTypeName, level + 1, itemsIndent, rawValue);
                     }
                     catch (e1) {
-                        try {
-                            result.push(v8_1.serialize(rawValue).toString('base64'));
-                        }
-                        catch (e2) {
-                            result.push(JSON.stringify('[' + ObjectHelper_1.ObjectHelper.RealTypeOf(rawValue) + ']'));
-                        }
+                        key = String(rawKey);
+                        item = '[' + ObjectHelper_1.ObjectHelper.RealTypeOf(rawValue) + ']';
                     }
-                    separator = ',';
+                    result.push(separator + itemsIndent + key + doubleDot + item);
+                    separator = baseSeparator;
                 }
             }
             catch (e_2_1) { e_2 = { error: e_2_1 }; }
@@ -523,38 +552,23 @@ var Logger = /** @class */ (function () {
                 }
                 finally { if (e_2) throw e_2.error; }
             }
-            if (prettyPrint) {
-                result.push("\n}");
-            }
-            else {
-                result.push('}');
-            }
+            result.push(newLine + indent + '}');
         }
-        else if (obj instanceof Set) {
+        else if (obj instanceof global.Set) {
             isSet = true;
-            result.push('[');
             var objSet = obj;
+            result.push('[' + newLine);
             try {
                 for (var objSet_1 = tslib_1.__values(objSet), objSet_1_1 = objSet_1.next(); !objSet_1_1.done; objSet_1_1 = objSet_1.next()) {
-                    var rawItem = objSet_1_1.value;
-                    result.push(separator);
+                    var rawValue = objSet_1_1.value;
                     try {
-                        if (prettyPrint) {
-                            result.push(JSON.stringify(rawItem, null, "\t"));
-                        }
-                        else {
-                            result.push(JSON.stringify(rawItem));
-                        }
+                        item = this.stringifyRecursive(prettyPrint, addTypeName, level + 1, itemsIndent, rawValue);
                     }
                     catch (e1) {
-                        try {
-                            result.push(v8_1.serialize(rawItem).toString('base64'));
-                        }
-                        catch (e2) {
-                            result.push(JSON.stringify('[' + ObjectHelper_1.ObjectHelper.RealTypeOf(rawItem) + ']'));
-                        }
+                        item = '[' + ObjectHelper_1.ObjectHelper.RealTypeOf(rawValue) + ']';
                     }
-                    separator = ',';
+                    result.push(separator + itemsIndent + item);
+                    separator = baseSeparator;
                 }
             }
             catch (e_3_1) { e_3 = { error: e_3_1 }; }
@@ -564,44 +578,39 @@ var Logger = /** @class */ (function () {
                 }
                 finally { if (e_3) throw e_3.error; }
             }
-            result.push(']');
+            result.push(newLine + indent + ']');
+        }
+        else if (obj.exports && obj.exports.__esModule && obj.constructor && obj.constructor.name == 'Module') {
+            var file = String(obj.filename).replace(/\\/g, '/');
+            if (file.indexOf(this.documentRoot) === 0)
+                file = '.' + file.substr(this.documentRoot.length);
+            return '[' + file + ' Module]';
         }
         else {
-            result.push('{');
-            keys = Object.keys(obj);
-            for (var j = 0, k = keys.length; j < k; j++) {
-                key = keys[j];
-                if (prettyPrint) {
-                    result.push(separator + "\n\t" + JSON.stringify(key) + ":");
-                }
-                else {
-                    result.push(separator + JSON.stringify(key) + ":");
-                }
-                try {
-                    if (prettyPrint) {
-                        item = JSON.stringify(obj[key], null, "\t");
-                        result.push(item.replace(/\n/g, "\n\t"));
-                    }
-                    else {
-                        result.push(JSON.stringify(obj[key]));
-                    }
-                }
-                catch (e1) {
+            result.push('{' + newLine);
+            try {
+                for (var _e = tslib_1.__values(Object.entries(obj)), _f = _e.next(); !_f.done; _f = _e.next()) {
+                    var _g = tslib_1.__read(_f.value, 2), rawKey2 = _g[0], rawValue2 = _g[1];
                     try {
-                        result.push(v8_1.serialize(obj[key]).toString('base64'));
+                        key = JSON.stringify(rawKey2);
+                        item = this.stringifyRecursive(prettyPrint, addTypeName, level + 1, itemsIndent, rawValue2);
                     }
-                    catch (e2) {
-                        result.push(JSON.stringify('[' + ObjectHelper_1.ObjectHelper.RealTypeOf(obj[key]) + ']'));
+                    catch (e1) {
+                        key = String(rawKey2);
+                        item = '[' + ObjectHelper_1.ObjectHelper.RealTypeOf(rawValue2) + ']';
                     }
+                    result.push(separator + itemsIndent + key + doubleDot + item);
+                    separator = baseSeparator;
                 }
-                separator = ',';
             }
-            if (prettyPrint) {
-                result.push("\n}");
+            catch (e_4_1) { e_4 = { error: e_4_1 }; }
+            finally {
+                try {
+                    if (_f && !_f.done && (_c = _e.return)) _c.call(_e);
+                }
+                finally { if (e_4) throw e_4.error; }
             }
-            else {
-                result.push('}');
-            }
+            result.push(newLine + indent + '}');
         }
         if (addTypeName) {
             result.push(' [' + ObjectHelper_1.ObjectHelper.RealTypeOf(obj));

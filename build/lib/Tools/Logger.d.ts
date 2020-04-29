@@ -23,6 +23,7 @@ export declare class Logger {
     protected logsCaches: Map<string, string>;
     protected writeStackTrace: boolean;
     protected writeStackTraceFuncArgs: boolean;
+    protected maxDepth: number;
     /**
      * @summary Create new Logger instance.
      * @param logsDirFullPath Directory full path with log files.
@@ -67,6 +68,11 @@ export declare class Logger {
      */
     SetStackTraceWriting(writeStackTrace?: boolean, writeStackTraceFuncArgs?: boolean): Logger;
     /**
+     * @summary Set max depth to dump objects.
+     * @param maxDepth Default is `3`.
+     */
+    SetMaxDepth(maxDepth?: number): Logger;
+    /**
      * @summary Log any error.
      * @param err Error instance to log or error message to generate an error internally and log the error instance.
      * @param level Log level (log file name).
@@ -87,5 +93,6 @@ export declare class Logger {
     protected getStackTraceItem(stack: CallSite): StackTraceItem;
     protected getStackTraceItemSerializedArgs(args: any[]): string;
     protected serializeWhatIsPossible(obj: any, prettyPrint?: boolean, addTypeName?: boolean): string;
+    protected stringifyRecursive(prettyPrint: boolean, addTypeName: boolean, level: number, indent: string, obj: any): any;
     protected getStackTraceItemFuncFullName(stack: CallSite, isTopLevel: boolean, isConstructor: boolean): string;
 }

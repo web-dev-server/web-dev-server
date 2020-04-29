@@ -8,7 +8,7 @@ import {
 	appendFile as FsAppendFile,
 	createWriteStream as FsCreateWriteStream
 } from "fs";
-import { serialize as V8Serialize } from "v8";
+//import { serialize as V8Serialize } from "v8";
 import { resolve as PathResolve } from "path";
 
 import { ObjectHelper } from "./Helpers/ObjectHelper";
@@ -58,6 +58,7 @@ export class Logger {
 	protected logsCaches: Map<string, string> = new Map<string, string>();
 	protected writeStackTrace: boolean = true;
 	protected writeStackTraceFuncArgs: boolean = false;
+	protected maxDepth: number = 3;
 	/**
 	 * @summary Create new Logger instance.
 	 * @param logsDirFullPath Directory full path with log files.
@@ -175,6 +176,14 @@ export class Logger {
 		} else {
 			this.writeStackTraceFuncArgs = false;
 		}
+		return this;
+	}
+	/**
+	 * @summary Set max depth to dump objects.
+	 * @param maxDepth Default is `3`.
+	 */
+	public SetMaxDepth(maxDepth: number = 3): Logger {
+		this.maxDepth = maxDepth;
 		return this;
 	}
 	/**
@@ -486,124 +495,120 @@ export class Logger {
 		return result.join('');
 	}
 	protected serializeWhatIsPossible (obj: any, prettyPrint: boolean = false, addTypeName: boolean = true): string {
+		var result: string;
+		try {
+			result = this.stringifyRecursive(prettyPrint, addTypeName, 0, '', obj);
+		} catch (e) {
+			result = e.message;
+		}
+		return result;
+	}
+	protected stringifyRecursive (prettyPrint: boolean, addTypeName: boolean, level: number, indent: string, obj: any): any {
 		var result: string[] = [],
+			baseSeparator: string = '',
 			separator: string = '',
-			keys: string[],
 			key: string,
 			item: string,
+			itemsIndent: string,
+			newLine: string = "\n",
+			doubleDot: string = ': ',
 			isArray: boolean = false,
 			isMap: boolean = false,
 			isSet: boolean = false;
 		if (ObjectHelper.IsPrimitiveType(obj)) {
-			result.push(JSON.stringify(obj));
-		} else if (
+			if (obj === undefined) return 'undefined';
+			if (obj === null) return 'null';
+			if (obj.constructor === Number) {
+				if (Number.isNaN(obj)) return 'NaN';
+				if (!Number.isFinite(obj)) {
+					if (obj < 0) return '-Infinity';
+					return 'Infinity';
+				}
+				return JSON.stringify(obj);
+			} else {
+				return JSON.stringify(obj);
+			}
+		} else if (obj instanceof Function) {
+			return '[' + obj.name + ' Function(' + obj.length + ')]';
+		}
+		if (level == this.maxDepth)
+			return '[' + ObjectHelper.RealTypeOf(obj) + ']';
+		var objProto: any = Object.getPrototypeOf(obj);
+		if (prettyPrint) {
+			itemsIndent = indent + "\t";
+			baseSeparator = ",\n";
+		} else {
+			newLine = '';
+			indent = '';
+			doubleDot = ':';
+			itemsIndent = '';
+			baseSeparator = ',';
+		}
+		if (
 			//Helpers.RealTypeOf(obj) == 'Array' | 'Uint8Array' | ... &&
-			'length' in Object.getPrototypeOf(obj)
+			'length' in objProto
 		) {
 			isArray = true;
-			result.push('[');
+			result.push('[' + newLine);
 			for (var i: number = 0, l = obj.length; i < l; i++) {
-				result.push(separator);
 				try {
-					if (prettyPrint) {
-						result.push(JSON.stringify(obj[i], null, "\t"));
-					} else {
-						result.push(JSON.stringify(obj[i]));
-					}
+					item = this.stringifyRecursive(prettyPrint, addTypeName, level + 1, itemsIndent, obj[i]);
 				} catch (e1) {
-					try {
-						result.push(V8Serialize(obj[i]).toString('base64'));
-					} catch (e2) {
-						result.push(JSON.stringify('[' + ObjectHelper.RealTypeOf(obj[i]) + ']'));
-					}
+					item = '[' + ObjectHelper.RealTypeOf(obj[i]) + ']';
 				}
-				separator = ',';
+				result.push(separator + itemsIndent + item);
+				separator = baseSeparator;
 			}
-			result.push(']');
-		} else if (obj instanceof Map) {
+			result.push(newLine + indent + ']');
+		} else if (obj instanceof global.Map) {
 			isMap = true;
-			result.push('{');
 			var objMap: Map<any, any> = obj as any;
+			result.push('{' + newLine);
 			for (var [rawKey, rawValue] of objMap) {
-				if (prettyPrint) {
-					result.push(separator + "\n\t" + JSON.stringify(rawKey) + ":");
-				} else {
-					result.push(separator + JSON.stringify(rawKey) + ":");
-				}
 				try {
-					if (prettyPrint) {
-						item = JSON.stringify(rawValue, null, "\t");
-						result.push(item.replace(/\n/g, "\n\t"));
-					} else {
-						result.push(JSON.stringify(rawValue));
-					}
+					key = JSON.stringify(rawKey);
+					item = this.stringifyRecursive(prettyPrint, addTypeName, level + 1, itemsIndent, rawValue);
 				} catch (e1) {
-					try {
-						result.push(V8Serialize(rawValue).toString('base64'));
-					} catch (e2) {
-						result.push(JSON.stringify('[' + ObjectHelper.RealTypeOf(rawValue) + ']'));
-					}
+					key = String(rawKey);
+					item = '[' + ObjectHelper.RealTypeOf(rawValue) + ']';
 				}
-				separator = ',';
+				result.push(separator + itemsIndent + key + doubleDot + item);
+				separator = baseSeparator;
 			}
-			if (prettyPrint) {
-				result.push("\n}");
-			} else {
-				result.push('}');
-			}
-		} else if (obj instanceof Set) {
+			result.push(newLine + indent + '}');
+		} else if (obj instanceof global.Set) {
 			isSet = true;
-			result.push('[');
 			var objSet: Set<any> = obj as any;
-			for (var rawItem of objSet) {
-				result.push(separator);
+			result.push('[' + newLine);
+			for (var rawValue of objSet) {
 				try {
-					if (prettyPrint) {
-						result.push(JSON.stringify(rawItem, null, "\t"));
-					} else {
-						result.push(JSON.stringify(rawItem));
-					}
+					item = this.stringifyRecursive(prettyPrint, addTypeName, level + 1, itemsIndent, rawValue);
 				} catch (e1) {
-					try {
-						result.push(V8Serialize(rawItem).toString('base64'));
-					} catch (e2) {
-						result.push(JSON.stringify('[' + ObjectHelper.RealTypeOf(rawItem) + ']'));
-					}
+					item = '[' + ObjectHelper.RealTypeOf(rawValue) + ']';
 				}
-				separator = ',';
+				result.push(separator + itemsIndent + item);
+				separator = baseSeparator;
 			}
-			result.push(']');
+			result.push(newLine + indent + ']');
+		} else if (obj.exports && obj.exports.__esModule && obj.constructor && obj.constructor.name == 'Module') {
+			var file: string = String(obj.filename).replace(/\\/g, '/');
+			if (file.indexOf(this.documentRoot) === 0) 
+				file = '.' + file.substr(this.documentRoot.length);
+			return '[' + file + ' Module]';
 		} else {
-			result.push('{');
-			keys = Object.keys(obj);
-			for (var j: number = 0, k: number = keys.length; j < k; j++) {
-				key = keys[j];
-				if (prettyPrint) {
-					result.push(separator + "\n\t" + JSON.stringify(key) + ":");
-				} else {
-					result.push(separator + JSON.stringify(key) + ":");
-				}
+			result.push('{' + newLine);
+			for (var [rawKey2, rawValue2] of Object.entries(obj)) {
 				try {
-					if (prettyPrint) {
-						item = JSON.stringify(obj[key], null, "\t");
-						result.push(item.replace(/\n/g, "\n\t"));
-					} else {
-						result.push(JSON.stringify(obj[key]));
-					}
+					key = JSON.stringify(rawKey2);
+					item = this.stringifyRecursive(prettyPrint, addTypeName, level + 1, itemsIndent, rawValue2);
 				} catch (e1) {
-					try {
-						result.push(V8Serialize(obj[key]).toString('base64'));
-					} catch (e2) {
-						result.push(JSON.stringify('[' + ObjectHelper.RealTypeOf(obj[key]) + ']'));
-					}
+					key = String(rawKey2);
+					item = '[' + ObjectHelper.RealTypeOf(rawValue2) + ']';
 				}
-				separator = ',';
+				result.push(separator + itemsIndent + key + doubleDot + item);
+				separator = baseSeparator;
 			}
-			if (prettyPrint) {
-				result.push("\n}");
-			} else {
-				result.push('}');
-			}
+			result.push(newLine + indent + '}');
 		}
 		if (addTypeName) {
 			result.push(' [' + ObjectHelper.RealTypeOf(obj));
