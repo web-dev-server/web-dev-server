@@ -3,6 +3,7 @@ import { Server, Request, Response, Session, Event, Tools } from "../../lib/Serv
 var rootDir = __dirname + '/../../..';
 
 var logger = Tools.Logger.CreateNew(rootDir, rootDir)
+				.SetStreamWriting(!true)
 				.SetStackTraceWriting(true, true);
 
 var customStore: Map<string, Session> = new Map<string, Session>();
