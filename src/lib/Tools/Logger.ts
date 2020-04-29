@@ -550,8 +550,6 @@ export class Logger {
 		}
 		if (addTypeName)
 			result.push(' [' + ObjectHelper.RealTypeOf(obj) + ']');
-		console.log(result.join(''));
-		process.exit();
 		return result.join('');
 	}
 	protected getStackTraceItemFuncFullName (stack: CallSite, isTopLevel: boolean, isConstructor: boolean): string {
