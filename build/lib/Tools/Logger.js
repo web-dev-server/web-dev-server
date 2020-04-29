@@ -449,15 +449,17 @@ var Logger = /** @class */ (function () {
         return result.join('');
     };
     Logger.prototype.serializeWhatIsPossible = function (obj, prettyPrint, addTypeName) {
+        var e_2, _a, e_3, _b;
         if (prettyPrint === void 0) { prettyPrint = false; }
         if (addTypeName === void 0) { addTypeName = true; }
-        var result = [], separator = '', keys, key, item;
+        var result = [], separator = '', keys, key, item, isArray = false, isMap = false, isSet = false;
         if (ObjectHelper_1.ObjectHelper.IsPrimitiveType(obj)) {
             result.push(JSON.stringify(obj));
         }
         else if (
         //Helpers.RealTypeOf(obj) == 'Array' | 'Uint8Array' | ... &&
         'length' in Object.getPrototypeOf(obj)) {
+            isArray = true;
             result.push('[');
             for (var i = 0, l = obj.length; i < l; i++) {
                 result.push(separator);
@@ -478,6 +480,89 @@ var Logger = /** @class */ (function () {
                     }
                 }
                 separator = ',';
+            }
+            result.push(']');
+        }
+        else if (obj instanceof Map) {
+            isMap = true;
+            result.push('{');
+            var objMap = obj;
+            try {
+                for (var objMap_1 = tslib_1.__values(objMap), objMap_1_1 = objMap_1.next(); !objMap_1_1.done; objMap_1_1 = objMap_1.next()) {
+                    var _c = tslib_1.__read(objMap_1_1.value, 2), rawKey = _c[0], rawValue = _c[1];
+                    if (prettyPrint) {
+                        result.push(separator + "\n\t" + JSON.stringify(rawKey) + ":");
+                    }
+                    else {
+                        result.push(separator + JSON.stringify(rawKey) + ":");
+                    }
+                    try {
+                        if (prettyPrint) {
+                            item = JSON.stringify(rawValue, null, "\t");
+                            result.push(item.replace(/\n/g, "\n\t"));
+                        }
+                        else {
+                            result.push(JSON.stringify(rawValue));
+                        }
+                    }
+                    catch (e1) {
+                        try {
+                            result.push(v8_1.serialize(rawValue).toString('base64'));
+                        }
+                        catch (e2) {
+                            result.push(JSON.stringify('[' + ObjectHelper_1.ObjectHelper.RealTypeOf(rawValue) + ']'));
+                        }
+                    }
+                    separator = ',';
+                }
+            }
+            catch (e_2_1) { e_2 = { error: e_2_1 }; }
+            finally {
+                try {
+                    if (objMap_1_1 && !objMap_1_1.done && (_a = objMap_1.return)) _a.call(objMap_1);
+                }
+                finally { if (e_2) throw e_2.error; }
+            }
+            if (prettyPrint) {
+                result.push("\n}");
+            }
+            else {
+                result.push('}');
+            }
+        }
+        else if (obj instanceof Set) {
+            isSet = true;
+            result.push('[');
+            var objSet = obj;
+            try {
+                for (var objSet_1 = tslib_1.__values(objSet), objSet_1_1 = objSet_1.next(); !objSet_1_1.done; objSet_1_1 = objSet_1.next()) {
+                    var rawItem = objSet_1_1.value;
+                    result.push(separator);
+                    try {
+                        if (prettyPrint) {
+                            result.push(JSON.stringify(rawItem, null, "\t"));
+                        }
+                        else {
+                            result.push(JSON.stringify(rawItem));
+                        }
+                    }
+                    catch (e1) {
+                        try {
+                            result.push(v8_1.serialize(rawItem).toString('base64'));
+                        }
+                        catch (e2) {
+                            result.push(JSON.stringify('[' + ObjectHelper_1.ObjectHelper.RealTypeOf(rawItem) + ']'));
+                        }
+                    }
+                    separator = ',';
+                }
+            }
+            catch (e_3_1) { e_3 = { error: e_3_1 }; }
+            finally {
+                try {
+                    if (objSet_1_1 && !objSet_1_1.done && (_b = objSet_1.return)) _b.call(objSet_1);
+                }
+                finally { if (e_3) throw e_3.error; }
             }
             result.push(']');
         }
@@ -518,8 +603,16 @@ var Logger = /** @class */ (function () {
                 result.push('}');
             }
         }
-        if (addTypeName)
-            result.push(' [' + ObjectHelper_1.ObjectHelper.RealTypeOf(obj) + ']');
+        if (addTypeName) {
+            result.push(' [' + ObjectHelper_1.ObjectHelper.RealTypeOf(obj));
+            if (isArray) {
+                result.push('(' + String(obj.length) + ')');
+            }
+            else if (isMap || isSet) {
+                result.push('(' + String(obj.size) + ')');
+            }
+            result.push(']');
+        }
         return result.join('');
     };
     Logger.prototype.getStackTraceItemFuncFullName = function (stack, isTopLevel, isConstructor) {

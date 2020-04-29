@@ -490,13 +490,17 @@ export class Logger {
 			separator: string = '',
 			keys: string[],
 			key: string,
-			item: string;
+			item: string,
+			isArray: boolean = false,
+			isMap: boolean = false,
+			isSet: boolean = false;
 		if (ObjectHelper.IsPrimitiveType(obj)) {
 			result.push(JSON.stringify(obj));
 		} else if (
 			//Helpers.RealTypeOf(obj) == 'Array' | 'Uint8Array' | ... &&
 			'length' in Object.getPrototypeOf(obj)
 		) {
+			isArray = true;
 			result.push('[');
 			for (var i: number = 0, l = obj.length; i < l; i++) {
 				result.push(separator);
@@ -511,6 +515,59 @@ export class Logger {
 						result.push(V8Serialize(obj[i]).toString('base64'));
 					} catch (e2) {
 						result.push(JSON.stringify('[' + ObjectHelper.RealTypeOf(obj[i]) + ']'));
+					}
+				}
+				separator = ',';
+			}
+			result.push(']');
+		} else if (obj instanceof Map) {
+			isMap = true;
+			result.push('{');
+			var objMap: Map<any, any> = obj as any;
+			for (var [rawKey, rawValue] of objMap) {
+				if (prettyPrint) {
+					result.push(separator + "\n\t" + JSON.stringify(rawKey) + ":");
+				} else {
+					result.push(separator + JSON.stringify(rawKey) + ":");
+				}
+				try {
+					if (prettyPrint) {
+						item = JSON.stringify(rawValue, null, "\t");
+						result.push(item.replace(/\n/g, "\n\t"));
+					} else {
+						result.push(JSON.stringify(rawValue));
+					}
+				} catch (e1) {
+					try {
+						result.push(V8Serialize(rawValue).toString('base64'));
+					} catch (e2) {
+						result.push(JSON.stringify('[' + ObjectHelper.RealTypeOf(rawValue) + ']'));
+					}
+				}
+				separator = ',';
+			}
+			if (prettyPrint) {
+				result.push("\n}");
+			} else {
+				result.push('}');
+			}
+		} else if (obj instanceof Set) {
+			isSet = true;
+			result.push('[');
+			var objSet: Set<any> = obj as any;
+			for (var rawItem of objSet) {
+				result.push(separator);
+				try {
+					if (prettyPrint) {
+						result.push(JSON.stringify(rawItem, null, "\t"));
+					} else {
+						result.push(JSON.stringify(rawItem));
+					}
+				} catch (e1) {
+					try {
+						result.push(V8Serialize(rawItem).toString('base64'));
+					} catch (e2) {
+						result.push(JSON.stringify('[' + ObjectHelper.RealTypeOf(rawItem) + ']'));
 					}
 				}
 				separator = ',';
@@ -548,8 +605,15 @@ export class Logger {
 				result.push('}');
 			}
 		}
-		if (addTypeName)
-			result.push(' [' + ObjectHelper.RealTypeOf(obj) + ']');
+		if (addTypeName) {
+			result.push(' [' + ObjectHelper.RealTypeOf(obj));
+			if (isArray) {
+				result.push('(' + String(obj.length) + ')');
+			} else if (isMap || isSet) {
+				result.push('(' + String(obj.size) + ')');
+			}
+			result.push(']');
+		}
 		return result.join('');
 	}
 	protected getStackTraceItemFuncFullName (stack: CallSite, isTopLevel: boolean, isConstructor: boolean): string {
