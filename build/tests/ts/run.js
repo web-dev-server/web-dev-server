@@ -4,6 +4,7 @@ var tslib_1 = require("tslib");
 var Server_1 = require("../../lib/Server");
 var rootDir = __dirname + '/../../..';
 var logger = Server_1.Tools.Logger.CreateNew(rootDir, rootDir)
+    .SetStreamWriting(!true)
     .SetStackTraceWriting(true, true);
 var customStore = new Map();
 var delayedWriting = new Map();

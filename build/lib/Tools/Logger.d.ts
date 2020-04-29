@@ -52,8 +52,8 @@ export declare class Logger {
      */
     SetMaxLogFileSize(maxBytes?: number | string): Logger;
     /**
-     * @summary Enable or disable writing to logs by write streams. If disabled, there is used standard file append.
-     * @param allowedLevels `true` to enable stream writing (for singleton logger) or `false` for multiple logger instances to the same files.
+     * @summary Enable or disable writing to logs by write streams. If disabled, there is used standard file append. Disabled by default.
+     * @param allowedLevels `true` to enable stream writing (for singleton logger) or `false` for multiple logger instances to the same files. `false` by default.
      */
     SetStreamWriting(streamWriting?: boolean): Logger;
     /**
