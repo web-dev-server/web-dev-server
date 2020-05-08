@@ -114,7 +114,7 @@ var Params = /** @class */ (function () {
         var result = null, httpReq = this['http'], server = httpReq.socket['server']['__wds'], 
         // @ts-ignore
         errorsHandler = server.errorsHandler;
-        var urlEncType = contentType.indexOf('application/x-www-form-url-encoded') != -1;
+        var urlEncType = contentType.indexOf('application/x-www-form-urlencoded') != -1;
         if (urlEncType) {
             try {
                 result = StringHelper_1.StringHelper.QueryStringDecode(this.body, false);

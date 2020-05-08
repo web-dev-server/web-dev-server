@@ -126,7 +126,7 @@ export class Params {
 			server: Server = httpReq.socket['server']['__wds'],
 			// @ts-ignore
 			errorsHandler: ErrorsHandler = server.errorsHandler;
-		var urlEncType: boolean = contentType.indexOf('application/x-www-form-url-encoded') != -1;
+		var urlEncType: boolean = contentType.indexOf('application/x-www-form-urlencoded') != -1;
 		if (urlEncType) {
 			try {
 				result = StringHelper.QueryStringDecode(this.body, false);
