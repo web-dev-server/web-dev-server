@@ -1,4 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Server = exports.Session = void 0;
 var tslib_1 = require("tslib");
 var http_1 = require("http");
 var fs_1 = require("fs");
@@ -17,6 +18,7 @@ tslib_1.__exportStar(require("./Request"), exports);
 tslib_1.__exportStar(require("./Response"), exports);
 tslib_1.__exportStar(require("./Event"), exports);
 tslib_1.__exportStar(require("./Tools/Namespace"), exports);
+tslib_1.__exportStar(require("./Applications/IApplication"), exports);
 var Session_1 = require("./Applications/Session");
 var Session = /** @class */ (function (_super) {
     tslib_1.__extends(Session, _super);
@@ -53,7 +55,7 @@ var Server = /** @class */ (function () {
         this.customErrorHandler = null;
         this.customHttpPreHandlers = [];
         this.forbiddenPaths = [
-            '/node_modules',
+            /^\/node_modules/g,
             /\/package(-lock)?\.json/g,
             /\/tsconfig\.json/g,
             /\/\.([^\.]+)/g
@@ -691,7 +693,7 @@ var Server = /** @class */ (function () {
             searchingRequestPaths.push('/');
         return searchingRequestPaths;
     };
-    Server.VERSION = '3.0.22';
+    Server.VERSION = '3.0.26';
     Server.STATES = {
         CLOSED: 0, STARTING: 1, CLOSING: 2, STARTED: 4
     };

@@ -1,4 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.createNamespace = void 0;
 function createNamespace(name, session) {
     var Namespace = /** @class */ (function () {
         function Namespace() {

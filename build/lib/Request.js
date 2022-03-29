@@ -1,4 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Request = void 0;
 var http_1 = require("http");
 var url_1 = require("url");
 var ObjectHelper_1 = require("./Tools/Helpers/ObjectHelper");

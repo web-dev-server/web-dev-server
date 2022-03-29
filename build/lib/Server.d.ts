@@ -55,7 +55,7 @@ export declare class Server {
     protected directoriesHandler?: DirectoriesHandler;
     protected customErrorHandler?: (err: Error, code?: number, req?: Request, res?: Response) => Promise<void>;
     protected customHttpPreHandlers: ((req: Request, res: Response, event?: Event) => Promise<void>)[];
-    protected forbiddenPaths: string[] | RegExp[];
+    protected forbiddenPaths: (string | RegExp)[];
     /**
      * @summary Create new server instance (no singleton implementation).
      */
@@ -100,12 +100,12 @@ export declare class Server {
      * Set forbidden request paths to prevent requesting dangerous places (`["/node_modules", /\/package\.json/g, /\/tsconfig\.json/g, /\/\.([^\.]+)/g]` by default). All previous configuration will be overwritten.
      * @param forbiddenPaths Forbidden request path begins or regular expression patterns.
      */
-    SetForbiddenPaths(forbiddenPaths: string[] | RegExp[]): Server;
+    SetForbiddenPaths(forbiddenPaths: (string | RegExp)[]): Server;
     /**
      * Add forbidden request paths to prevent requesting dangerous places (`["/node_modules", /\/package\.json/g, /\/tsconfig\.json/g, /\/\.([^\.]+)/g]` by default).
      * @param forbiddenPaths Forbidden request path begins or regular expression patterns.
      */
-    AddForbiddenPaths(forbiddenPaths: string[] | RegExp[]): Server;
+    AddForbiddenPaths(forbiddenPaths: (string | RegExp)[]): Server;
     /**
      * Set directory index/default server script file names executed on server side as directory content.
      * All previous configuration will be replaced.
@@ -164,7 +164,7 @@ export declare class Server {
     /**
      * Get forbidden request paths to prevent requesting dangerous places.
      */
-    GetForbiddenPaths(): string[] | RegExp[];
+    GetForbiddenPaths(): (string | RegExp)[];
     /**
      * Get directory index/default server script file names executed on server side as directory content.
      * Default value is: `['index.js']`.

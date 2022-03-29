@@ -1,4 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Response = void 0;
 var http_1 = require("http");
 var ObjectHelper_1 = require("./Tools/Helpers/ObjectHelper");
 var Constants_1 = require("./Responses/Constants");

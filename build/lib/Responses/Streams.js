@@ -1,4 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Streams = void 0;
 var Streams = /** @class */ (function () {
     function Streams() {
     }

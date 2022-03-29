@@ -1,4 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.QueryStringCollection = void 0;
 var QueryStringCollection = /** @class */ (function () {
     function QueryStringCollection() {
         var numericKeys = true, arrStore = [], objectStore = {};

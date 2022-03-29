@@ -1,4 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Cookies = void 0;
 var Cookies = /** @class */ (function () {
     function Cookies() {
         this.cookies = new Map();

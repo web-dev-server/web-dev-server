@@ -1,4 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.StringHelper = void 0;
 var ObjectHelper_1 = require("./ObjectHelper");
 var Collection_1 = require("./StringHelpers/QueryString/Collection");
 var StringHelper = /** @class */ (function () {

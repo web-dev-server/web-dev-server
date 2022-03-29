@@ -1,4 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Headers = void 0;
 var mimeDb = require('mime-db');
 var Headers = /** @class */ (function () {
     function Headers() {

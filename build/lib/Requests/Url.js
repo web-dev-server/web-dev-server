@@ -1,4 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Url = void 0;
 var Constants_1 = require("./Constants");
 var StringHelper_1 = require("../Tools/Helpers/StringHelper");
 var Url = /** @class */ (function () {

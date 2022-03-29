@@ -1,4 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.NumberHelper = void 0;
 var NumberHelper = /** @class */ (function () {
     function NumberHelper() {
     }

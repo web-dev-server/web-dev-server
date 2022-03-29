@@ -1,4 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Headers = void 0;
 var Protected_1 = require("./Protected");
 var Headers = /** @class */ (function () {
     function Headers() {

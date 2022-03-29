@@ -57,11 +57,11 @@ Server.CreateNew()
 	.AddPreHandler(async (
 		req: Request,
 		res: Response,
-		event: Event
+		event?: Event
 	) => {
 		if (req.GetPath() == '/health') {
 			res.SetCode(200).SetBody('1').Send();
-			event.PreventDefault();
+			event?.PreventDefault();
 		}
 		/*setTimeout(function () {
 			throw new Error("Test error:-)");

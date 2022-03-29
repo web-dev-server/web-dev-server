@@ -25,12 +25,12 @@ declare class App {
      * @param {WebDevServer.Response} firstResponse
      * @return {Promise<void>}
      */
-    public Start(server: import("../../../lib/Server").Server, firstRequest: import("../../../lib/Request").Request, firstResponse: import("../../../lib/Response").Response): Promise<void>;
+    public Start(server: WebDevServer.Server, firstRequest: WebDevServer.Request, firstResponse: WebDevServer.Response): Promise<void>;
     /**
      * @summary WebDevServer server instance.
      * @var {WebDevServer.Server}
      */
-    server: import("../../../lib/Server").Server;
+    server: WebDevServer.Server;
     /**
      * @summary Requests counter.
      * @var {number}
@@ -43,7 +43,7 @@ declare class App {
      * @param {WebDevServer.Server} server
      * @return {Promise<void>}
      */
-    public Stop(server: import("../../../lib/Server").Server): Promise<void>;
+    public Stop(server: WebDevServer.Server): Promise<void>;
     /**
      * @summary
      * This method is executed each request to directory with
@@ -54,5 +54,6 @@ declare class App {
      * @param {WebDevServer.Response} response
      * @return {Promise<void>}
      */
-    public HttpHandle(request: import("../../../lib/Request").Request, response: import("../../../lib/Response").Response): Promise<void>;
+    public HttpHandle(request: WebDevServer.Request, response: WebDevServer.Response): Promise<void>;
 }
+import WebDevServer = require("../../../lib/Server");

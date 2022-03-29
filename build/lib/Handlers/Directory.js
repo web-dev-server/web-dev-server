@@ -1,4 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.DirectoriesHandler = void 0;
 var tslib_1 = require("tslib");
 var fs_1 = require("fs");
 var path_1 = require("path");

@@ -1,4 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Protected = void 0;
 var ObjectHelper_1 = require("../Tools/Helpers/ObjectHelper");
 var Protected = /** @class */ (function () {
     function Protected() {

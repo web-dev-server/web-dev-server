@@ -1,4 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.ErrorsHandler = void 0;
 var Server_1 = require("../Server");
 var StringHelper_1 = require("../Tools/Helpers/StringHelper");
 var ErrorsHandler = /** @class */ (function () {

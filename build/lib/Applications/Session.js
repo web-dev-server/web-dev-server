@@ -1,4 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Session = void 0;
 var tslib_1 = require("tslib");
 var crypto_1 = require("crypto");
 var Namespace_1 = require("./Sessions/Namespace");

@@ -1,4 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Logger = void 0;
 var tslib_1 = require("tslib");
 var fs_1 = require("fs");
 //import { serialize as V8Serialize } from "v8";

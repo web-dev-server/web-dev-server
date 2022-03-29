@@ -1,4 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Defaults = void 0;
 var Defaults = /** @class */ (function () {
     function Defaults() {
     }

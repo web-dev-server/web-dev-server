@@ -1,4 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Localization = void 0;
 var Static_1 = require("./Static");
 var Localization = /** @class */ (function () {
     function Localization() {

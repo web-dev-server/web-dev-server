@@ -1,4 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Headers = void 0;
 var http_1 = require("http");
 var Constants_1 = require("./Constants");
 var Headers = /** @class */ (function () {

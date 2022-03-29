@@ -1,4 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Event = void 0;
 var Event = /** @class */ (function () {
     function Event(req, res, fullPath) {
         this.preventDefault = false;

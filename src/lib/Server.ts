@@ -44,7 +44,7 @@ export namespace Session {
 
 
 export class Server {
-	public static readonly VERSION: string = '3.0.22';
+	public static readonly VERSION: string = '3.0.26';
 	public static readonly STATES: {
 		CLOSED: number, STARTING: number, CLOSING: number, STARTED: number
 	} = {
@@ -81,12 +81,12 @@ export class Server {
 	
 	protected customErrorHandler?: (err: Error, code?: number, req?: Request, res?: Response) => Promise<void> = null;
 	protected customHttpPreHandlers: ((req: Request, res: Response, event?: Event) => Promise<void>)[] = [];
-	protected forbiddenPaths: string[] | RegExp[] = [
-		'/node_modules', 
+	protected forbiddenPaths: (string | RegExp)[] = [
+		/^\/node_modules/g, 
 		/\/package(-lock)?\.json/g,
 		/\/tsconfig\.json/g,
 		/\/\.([^\.]+)/g
-	] as string[] | RegExp[];
+	];
 	
 	/**
 	 * @summary Create new server instance (no singleton implementation).
@@ -163,7 +163,7 @@ export class Server {
 	 * Set forbidden request paths to prevent requesting dangerous places (`["/node_modules", /\/package\.json/g, /\/tsconfig\.json/g, /\/\.([^\.]+)/g]` by default). All previous configuration will be overwritten.
 	 * @param forbiddenPaths Forbidden request path begins or regular expression patterns.
 	 */
-	public SetForbiddenPaths (forbiddenPaths: string[] | RegExp[]): Server {
+	public SetForbiddenPaths (forbiddenPaths: (string | RegExp)[]): Server {
 		for (var [index, forbiddenPath] of Object.entries(forbiddenPaths)) 
 			if (!(forbiddenPath instanceof RegExp))
 				forbiddenPaths[index] = String(forbiddenPath).toLocaleLowerCase();
@@ -174,7 +174,7 @@ export class Server {
 	 * Add forbidden request paths to prevent requesting dangerous places (`["/node_modules", /\/package\.json/g, /\/tsconfig\.json/g, /\/\.([^\.]+)/g]` by default).
 	 * @param forbiddenPaths Forbidden request path begins or regular expression patterns.
 	 */
-	public AddForbiddenPaths (forbiddenPaths: string[] | RegExp[]): Server {
+	public AddForbiddenPaths (forbiddenPaths: (string | RegExp)[]): Server {
 		for (var [index, forbiddenPath] of Object.entries(forbiddenPaths)) 
 			if (!(forbiddenPath instanceof RegExp))
 				forbiddenPaths[index] = String(forbiddenPath).toLocaleLowerCase();
@@ -277,7 +277,7 @@ export class Server {
 	/**
 	 * Get forbidden request paths to prevent requesting dangerous places.
 	 */
-	public GetForbiddenPaths (): string[] | RegExp[] {
+	public GetForbiddenPaths (): (string | RegExp)[] {
 		return this.forbiddenPaths;
 	}
 	/**

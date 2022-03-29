@@ -1,4 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.DirItem = void 0;
 var DirItem = /** @class */ (function () {
     function DirItem(type, path, code) {
         this.type = type;

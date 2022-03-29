@@ -1,4 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Params = void 0;
 var tslib_1 = require("tslib");
 var StringHelper_1 = require("../Tools/Helpers/StringHelper");
 var Protected_1 = require("./Protected");

@@ -1,4 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.ObjectHelper = void 0;
 var ObjectHelper = /** @class */ (function () {
     function ObjectHelper() {
     }

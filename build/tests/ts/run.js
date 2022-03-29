@@ -68,7 +68,7 @@ Server_1.Server.CreateNew()
     return tslib_1.__generator(this, function (_a) {
         if (req.GetPath() == '/health') {
             res.SetCode(200).SetBody('1').Send();
-            event.PreventDefault();
+            event === null || event === void 0 ? void 0 : event.PreventDefault();
         }
         return [2 /*return*/];
     });

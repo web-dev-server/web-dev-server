@@ -1,4 +1,5 @@
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Other = void 0;
 var StringHelper_1 = require("../Tools/Helpers/StringHelper");
 var NumberHelper_1 = require("../Tools/Helpers/NumberHelper");
 var Other = /** @class */ (function () {
