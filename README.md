@@ -3,7 +3,7 @@
 [![Latest Stable Version](https://img.shields.io/badge/Stable-v3.0.26-brightgreen.svg?style=plastic)](https://github.com/web-dev-server/web-dev-server/releases)
 [![Min. TypeScript Version](https://img.shields.io/badge/TypeScript-v3.7-brightgreen.svg?style=plastic)](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-7.html)
 [![Min. Node.JS Version](https://img.shields.io/badge/Node.JS-v10.0-brightgreen.svg?style=plastic)](https://nodejs.org/en/about/releases/)
-[![License](https://img.shields.io/badge/Licence-BSD-brightgreen.svg?style=plastic)](https://github.com/web-dev-server/web-dev-server/blob/master/LICENCE.md)
+[![License](https://img.shields.io/badge/Licence-BSD-brightgreen.svg?style=plastic)](https://github.com/web-dev-server/web-dev-server/blob/master/LICENSE.md)
 
 Node.js simple http server for common development or training purposes in Javascript or Typescript.
 
