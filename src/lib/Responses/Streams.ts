@@ -2,7 +2,7 @@ import { OutgoingMessage as HttpOutgoingMessage } from "http";
 
 
 export class Streams {
-	public Write (chunk: any, encoding: string, cb?: (error: Error | null | undefined) => void): boolean {
+	public Write (chunk: any, encoding: BufferEncoding, cb?: (error: Error | null | undefined) => void): boolean {
 		var httpRes: HttpOutgoingMessage = this['http'];
 		return httpRes.write(chunk, encoding, cb);
 	}

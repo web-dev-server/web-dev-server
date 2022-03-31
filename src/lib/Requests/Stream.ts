@@ -7,7 +7,7 @@ export class Stream {
 		var httpReq: IncomingMessage = this['http'];
 		return httpReq.read(size);
 	}
-	public SetEncoding (encoding: string): Request {
+	public SetEncoding (encoding: BufferEncoding): Request {
 		var httpReq: IncomingMessage = this['http'];
 		return httpReq.setEncoding(encoding) as any;
 	}
@@ -35,7 +35,7 @@ export class Stream {
 		var httpReq: IncomingMessage = this['http'];
 		return httpReq.wrap(oldStream) as any;
 	}
-	public Push (chunk: any, encoding?: string): boolean {
+	public Push (chunk: any, encoding?: BufferEncoding): boolean {
 		var httpReq: IncomingMessage = this['http'];
 		return httpReq.push(chunk, encoding);
 	}

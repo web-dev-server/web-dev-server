@@ -156,7 +156,9 @@ var Headers = /** @class */ (function () {
     };
     Headers.prototype.IsUpgrading = function () {
         var httpRes = this['http'];
-        return httpRes.upgrading;
+        if (httpRes['upgrading'] != null)
+            return httpRes['upgrading'];
+        return this.HasHeader("upgrading");
     };
     Headers.prototype.IsRedirect = function () {
         return this.HasHeader('location');

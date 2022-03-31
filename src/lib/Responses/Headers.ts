@@ -156,7 +156,9 @@ export class Headers {
 	}
 	public IsUpgrading (): boolean {
 		var httpRes: HttpServerResponse = this['http'];
-		return httpRes.upgrading;
+		if (httpRes['upgrading'] != null)
+			return httpRes['upgrading'];
+		return this.HasHeader("upgrading");
 	}
 	public IsRedirect (): boolean {
 		return this.HasHeader('location');
