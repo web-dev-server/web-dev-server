@@ -695,7 +695,9 @@ export class Server {
 			}
 		);
 	}
-
+	/**
+	 * @summary Complete paths collection, where to find first existing requested directory.
+	 */
 	protected getSearchingRequestPaths (requestPath: string): string[] {
 		var pathExploded: string[] = StringHelper.Trim(requestPath, '/').split('/'),
 			searchingRequestPath: string = '',
